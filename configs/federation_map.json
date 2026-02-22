@@ -1,0 +1,231 @@
+{
+    "version": "1.0.0",
+    "fleet_root": "d:/dev/repos",
+    "domains": {
+        "creative": {
+            "blender": {
+                "path": "blender-mcp",
+                "capabilities": [
+                    "3D modeling",
+                    "rendering",
+                    "scene assembly"
+                ]
+            },
+            "gimp": {
+                "path": "gimp-mcp",
+                "capabilities": [
+                    "image editing",
+                    "layer manipulation"
+                ]
+            },
+            "inkscape": {
+                "path": "inkscape-mcp",
+                "capabilities": [
+                    "vector graphics",
+                    "SVG generation"
+                ]
+            },
+            "unity3d": {
+                "path": "unity3d-mcp",
+                "capabilities": [
+                    "game engine",
+                    "prefab management"
+                ]
+            },
+            "davinci-resolve": {
+                "path": "davinci-resolve-mcp",
+                "capabilities": [
+                    "video editing",
+                    "color grading"
+                ]
+            },
+            "reaper": {
+                "path": "reaper-mcp",
+                "capabilities": [
+                    "audio production",
+                    "mixing"
+                ]
+            },
+            "resolume": {
+                "path": "resolume-mcp",
+                "capabilities": [
+                    "live visuals",
+                    "VEE performance"
+                ]
+            },
+            "virtualdj": {
+                "path": "virtualdj-mcp",
+                "capabilities": [
+                    "DJ performance",
+                    "audio mixing"
+                ]
+            }
+        },
+        "knowledge": {
+            "calibre": {
+                "path": "calibre-mcp",
+                "capabilities": [
+                    "e-book management",
+                    "metadata extraction"
+                ]
+            },
+            "plex": {
+                "path": "plex-mcp",
+                "capabilities": [
+                    "media streaming",
+                    "library management"
+                ]
+            },
+            "advanced-memory": {
+                "path": "advanced-memory-mcp",
+                "capabilities": [
+                    "long-term memory",
+                    "ADN notes"
+                ]
+            },
+            "obsidian": {
+                "path": "obsidian-mcp",
+                "capabilities": [
+                    "note taking",
+                    "knowledge graph"
+                ]
+            },
+            "notion": {
+                "path": "notion-mcp",
+                "capabilities": [
+                    "workspace organization",
+                    "database management"
+                ]
+            },
+            "readly": {
+                "path": "readly-mcp",
+                "capabilities": [
+                    "document reading",
+                    "PDF analysis"
+                ]
+            }
+        },
+        "comms": {
+            "email": {
+                "path": "email-mcp",
+                "capabilities": [
+                    "SMTP",
+                    "IMAP",
+                    "automated reporting"
+                ]
+            },
+            "git-github": {
+                "path": "git-github-mcp",
+                "capabilities": [
+                    "version control",
+                    "PR management"
+                ]
+            },
+            "tailscale": {
+                "path": "tailscale-mcp",
+                "capabilities": [
+                    "networking",
+                    "secure access"
+                ]
+            }
+        },
+        "system": {
+            "windows-operations": {
+                "path": "windows-operations-mcp",
+                "capabilities": [
+                    "shell execution",
+                    "registry management"
+                ]
+            },
+            "filesystem": {
+                "path": "filesystem-mcp",
+                "capabilities": [
+                    "file operations",
+                    "path analysis"
+                ]
+            },
+            "docker": {
+                "path": "docker-mcp",
+                "capabilities": [
+                    "container lifecycle",
+                    "orchestration"
+                ]
+            },
+            "virtualization": {
+                "path": "virtualization-mcp",
+                "capabilities": [
+                    "VirtualBox",
+                    "sandbox management"
+                ]
+            },
+            "monitoring": {
+                "path": "monitoring-mcp",
+                "capabilities": [
+                    "resource tracking",
+                    "performance metrics"
+                ]
+            }
+        },
+        "hardware_iot": {
+            "home-assistant": {
+                "path": "home-assistant-mcp",
+                "capabilities": [
+                    "smart home automation"
+                ]
+            },
+            "tapo": {
+                "path": "tapo-mcp",
+                "capabilities": [
+                    "camera monitoring",
+                    "smart plugs"
+                ]
+            },
+            "ring": {
+                "path": "ring-mcp",
+                "capabilities": [
+                    "doorbell security",
+                    "motion detection"
+                ]
+            },
+            "nest-protect": {
+                "path": "nest-protect-mcp",
+                "capabilities": [
+                    "smoke detection",
+                    "air quality"
+                ]
+            }
+        },
+        "robotics_vr": {
+            "robotics": {
+                "path": "robotics-mcp",
+                "capabilities": [
+                    "actuator control",
+                    "ROS integration"
+                ]
+            },
+            "resonite": {
+                "path": "resonite-mcp",
+                "capabilities": [
+                    "virtual world interaction",
+                    "ResoniteLink WebSocket JSON",
+                    "WebMCP integration",
+                    "ProtoFlux node manipulation",
+                    "3D slot/component restructuring"
+                ]
+            },
+            "vrchat": {
+                "path": "vrchat-mcp",
+                "capabilities": [
+                    "social VR automation",
+                    "avatar control"
+                ]
+            },
+            "vroidstudio": {
+                "path": "vroidstudio-mcp",
+                "capabilities": [
+                    "3D avatar creation"
+                ]
+            }
+        }
+    }
+}

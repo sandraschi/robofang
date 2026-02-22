@@ -1,0 +1,45 @@
+import sys
+import json
+import argparse
+from typing import Dict, List
+
+# Note: In a production OpenFang environment, this script would leverage
+# Docling (IBM) or Nougat (Meta) for multimodal PDF parsing.
+# For this implementation, we provide the glue to connect ArXiv data to memops.
+
+
+def parse_arxiv_paper(file_path: str) -> Dict:
+    """
+    Placeholder for high-fidelity parsing (Docling/Nougat).
+    Extracts semantic content, LaTeX formulas, and graph metadata.
+    """
+    print(f"Ingesting ArXiv paper: {file_path}")
+    # Simulating the extraction of high-entropy primitives
+    return {
+        "title": "Simulated High-Entropy Paper",
+        "content": "## Core Primitives\n- [AEnt] Clamped Entropy Control\n- [MATTRL] Multi-Agent Test-Time RL\n\n$ E = mc^2 $ (LaTeX verification)",
+        "tags": ["arxiv", "agentic-ai", "2026-wild-idea"],
+        "metadata": {"source": "arxiv:2602.XXXX", "fidelity": "High (Multi-modal)"},
+    }
+
+
+def push_to_adn(data: Dict):
+    """
+    Prepares the payload for the write_note memops tool.
+    In OpenFang, this is the "Deep Memory" update.
+    """
+    note_content = f"# {data['title']}\n\n{data['content']}\n\nSource: {data['metadata']['source']}"
+    print(f"Prepared ADN Note: {data['title']}")
+    # In a full agentic loop, this would trigger:
+    # mcp_memops_write_note(title=data['title'], content=note_content, tags=data['tags'])
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="OpenFang ArXiv Graph-Ingestor")
+    parser.add_param("path", help="Path to the ArXiv PDF")
+    # args = parser.parse_args()
+
+    # Mocking execution for demo
+    sample_data = parse_arxiv_paper("sample_paper.pdf")
+    push_to_adn(sample_data)
+    print("Ingestion complete. Context linkable.")

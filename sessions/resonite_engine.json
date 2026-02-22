@@ -1,0 +1,16 @@
+{
+    "session_id": "resonite_engine_v1",
+    "topic": "Resonite 3D Manipulation Engine: Agentic Orchestration",
+    "status": "INITIALIZED",
+    "adjudicator_logic": "Instigator (Gemini 3.1 Pro) -> Debugger (Opus 4.6) -> Refactorer (Sonnet 4.6)",
+    "context": {
+        "mcp_server": "resonite-mcp",
+        "protocol": "ResoniteLink",
+        "goal": "Architect a 'Full Attack' 3D manipulation service using spatially contextualized VLMs.",
+        "priors": [
+            "arXiv:2602.03455 (Latent Agent Primitives)",
+            "arXiv:2509.03493 (Adaptive Entropy Control)"
+        ]
+    },
+    "history": []
+}

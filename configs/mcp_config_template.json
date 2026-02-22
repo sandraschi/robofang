@@ -1,0 +1,22 @@
+{
+  "server_name": "openfang-[domain]-[app]-mcp",
+  "version": "1.0.0",
+  "domain": "[creative|knowledge|comms|system]",
+  "app_target": "[Blender|GIMP|Plex|etc]",
+  "ontology": {
+    "primitives": [],
+    "capabilities": []
+  },
+  "runtime": {
+    "type": "uv",
+    "port": 0,
+    "env": {
+      "OPENFANG_MODE": "SOVEREIGN",
+      "PULSE_CHECK": "../../configs/pulse.json"
+    }
+  },
+  "heartbeat": {
+    "interval_ms": 30000,
+    "failure_policy": "RESTART_IN_SANDBOX"
+  }
+}
