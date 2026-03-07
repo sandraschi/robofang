@@ -1,0 +1,36 @@
+import axios from 'axios';
+
+const API_BASE = 'http://localhost:10865';
+
+// Axios instance with short timeout so bridge-down is detected fast
+const api = axios.create({ baseURL: API_BASE, timeout: 4000 });
+
+export const askQuestion = async (message: string, persona: string = 'sovereign', use_rag: boolean = true) => {
+    const response = await api.post('/ask', { message, persona, use_rag });
+    return response.data;
+};
+
+export const getPulseFeed = async () => {
+    const response = await api.get('/feed');
+    return response.data;
+};
+
+export const getPersonas = async () => {
+    const response = await api.get('/personality/personas');
+    return response.data;
+};
+
+export const getFleet = async () => {
+    const response = await api.get('/fleet');
+    return response.data;
+};
+
+export const getHealth = async () => {
+    const response = await api.get('/health');
+    return response.data;
+};
+
+export const getSystem = async () => {
+    const response = await api.get('/system');
+    return response.data;
+};

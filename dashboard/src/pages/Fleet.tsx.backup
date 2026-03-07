@@ -1,0 +1,165 @@
+import React from 'react';
+import { motion } from 'framer-motion';
+import {
+    Cpu,
+    Power,
+    UserCheck,
+    ShieldAlert,
+    Globe,
+    ShieldCheck,
+    Settings2,
+    Plus,
+    Activity
+} from 'lucide-react';
+
+const Fleet: React.FC = () => {
+    return (
+        <div className="page-grid">
+            <div className="lg:col-span-12 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-white font-heading">Fleet Control</h1>
+                    <p className="text-slate-400 text-sm mt-1">Manage sovereign connectors and autonomous agents.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        title="Add New Connector"
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
+                    >
+                        <Plus size={14} /> New Connector
+                    </button>
+                    <button
+                        title="Fleet Settings"
+                        className="p-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all active:scale-95"
+                    >
+                        <Settings2 size={18} className="text-slate-400" />
+                    </button>
+                </div>
+            </div>
+
+            <div className="lg:col-span-8 space-y-6">
+                <div className="page-card flex flex-col p-0 overflow-hidden">
+                    <div className="card-header border-b border-white/5 p-6 flex items-center justify-between bg-white/[0.02]">
+                        <h2 className="card-title flex items-center gap-3">
+                            <Globe size={20} className="text-indigo-400" />
+                            Universal Connectors
+                        </h2>
+                        <span className="text-[10px] font-bold text-slate-500 uppercase bg-white/5 px-2 py-1 rounded border border-white/5">2 Active / 7 Total</span>
+                    </div>
+                    <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <ConnectorCard name="Resonite" status="online" type="industrial" />
+                        <ConnectorCard name="Moltbook" status="online" type="log-adn" />
+                        <ConnectorCard name="Discord" status="offline" type="social" />
+                        <ConnectorCard name="WhatsApp" status="offline" type="mobile" />
+                        <ConnectorCard name="Teams" status="offline" type="enterprise" />
+                        <ConnectorCard name="Zoom" status="offline" type="meeting" />
+                    </div>
+                </div>
+
+                <div className="page-card flex flex-col p-0 overflow-hidden">
+                    <div className="card-header border-b border-white/5 p-6">
+                        <h2 className="card-title flex items-center gap-3">
+                            <Activity size={20} className="text-pink-400" />
+                            Pulse Reflection
+                        </h2>
+                    </div>
+                    <div className="p-6 space-y-5">
+                        <PulseItem time="17:42" text="System reflection recorded to ADN: Fleet state stable." type="success" />
+                        <PulseItem time="17:30" text="Syncing 24 files with local knowledge engine." type="info" />
+                        <PulseItem time="17:15" text="External skill discovery found 12 legacy modules." type="warning" />
+                    </div>
+                </div>
+            </div>
+
+            <div className="lg:col-span-4 space-y-6">
+                <div className="page-card flex flex-col p-0 overflow-hidden bg-gradient-to-br from-emerald-500/[0.03] to-transparent">
+                    <div className="card-header border-b border-white/5 p-6">
+                        <h2 className="card-title flex items-center gap-3">
+                            <UserCheck size={20} className="text-emerald-400" />
+                            Active Persona
+                        </h2>
+                    </div>
+                    <div className="p-8 flex flex-col items-center text-center">
+                        <div className="w-24 h-24 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 mb-6 shadow-2xl shadow-emerald-500/10 group-hover:scale-105 transition-transform duration-500">
+                            <ShieldCheck size={48} strokeWidth={1.5} />
+                        </div>
+                        <h3 className="text-2xl font-bold text-white mb-1">Sovereign</h3>
+                        <p className="text-slate-500 text-xs font-medium uppercase tracking-widest px-3 py-1 bg-white/5 rounded-full mt-2">Primary Adjudicator</p>
+
+                        <div className="w-full space-y-3 mt-8">
+                            <PersonaAttr label="Logic Level" value="Industrial" />
+                            <PersonaAttr label="Directness" value="Maximum" />
+                            <PersonaAttr label="Tone" value="Reductionist" />
+                        </div>
+
+                        <button
+                            title="Swap Active Persona"
+                            className="w-full mt-8 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
+                        >
+                            Swap Persona
+                        </button>
+                    </div>
+                </div>
+
+                <div className="page-card border-rose-500/20 bg-rose-500/5 p-6">
+                    <div className="flex items-start gap-4">
+                        <div className="p-2 bg-rose-500/10 rounded-lg shrink-0">
+                            <ShieldAlert className="text-rose-500" size={20} />
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-bold text-rose-500 mb-1 uppercase tracking-wider">RBAC Oversight</h4>
+                            <p className="text-xs text-slate-400 leading-relaxed">
+                                Sovereign subject 'guest' is currently restricted from full fleet manipulation. Administrative elevation required.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ConnectorCard = ({ name, status, type }: { name: string, status: 'online' | 'offline', type: string }) => (
+    <motion.div
+        whileHover={{ y: -2 }}
+        className="page-card p-4 flex items-center justify-between group hover:border-indigo-500/30 transition-all cursor-pointer bg-white/[0.02]"
+    >
+        <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${status === 'online' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-slate-800/50 text-slate-600 border border-white/5'
+                }`}>
+                <Cpu size={20} />
+            </div>
+            <div>
+                <h4 className="text-sm font-bold text-white group-hover:text-indigo-400 transition-colors">{name}</h4>
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">{type}</p>
+            </div>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+            <div className={`w-2 h-2 rounded-full ${status === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-700'}`} />
+            <Power size={14} className={status === 'online' ? 'text-emerald-500/40' : 'text-slate-800'} />
+        </div>
+    </motion.div>
+);
+
+const PulseItem = ({ time, text, type }: { time: string, text: string, type: 'success' | 'info' | 'warning' }) => (
+    <div className="flex gap-4 group">
+        <span className="text-[10px] font-mono text-slate-600 mt-1 shrink-0 font-bold">{time}</span>
+        <div className="flex flex-col min-w-0">
+            <div className="flex items-center gap-3">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${type === 'success' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]' :
+                    type === 'warning' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' :
+                        'bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.4)]'
+                    }`} />
+                <p className="text-sm text-slate-300 leading-relaxed group-hover:text-white transition-colors truncate">{text}</p>
+            </div>
+        </div>
+    </div>
+);
+
+const PersonaAttr = ({ label, value }: { label: string, value: string }) => (
+    <div className="flex justify-between items-center py-2.5 border-b border-white/5 last:border-0 hover:bg-white/[0.01] px-2 rounded-lg transition-colors">
+        <span className="text-[11px] text-slate-500 font-bold uppercase tracking-wider">{label}</span>
+        <span className="text-[11px] font-bold text-white font-mono">{value}</span>
+    </div>
+);
+
+export default Fleet;

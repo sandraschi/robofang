@@ -1,0 +1,105 @@
+{
+  "_comment": "MCP sidecar configs for MCPBridgeConnector. Each entry maps a connector_id to port+start command.",
+  "_protocol": "FastMCP 2.14.x HTTP streamable transport. Launch with MCP_TRANSPORT=http MCP_PORT=<port>.",
+
+  "plex": {
+    "name": "plex-mcp",
+    "url": "http://127.0.0.1:8101/mcp",
+    "auto_start": true,
+    "start_cmd": [
+      "C:\\Users\\sandr\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "-m", "plex_mcp", "--http", "--port", "8101"
+    ],
+    "start_cwd": "D:\\Dev\\repos\\plex-mcp",
+    "env": {
+      "MCP_TRANSPORT": "http",
+      "MCP_PORT": "8101"
+    },
+    "timeout": 30,
+    "_note": "Plex token from PLEX_TOKEN env var or plex-mcp config"
+  },
+
+  "calibre": {
+    "name": "calibre-mcp",
+    "url": "http://127.0.0.1:8102/mcp",
+    "auto_start": true,
+    "start_cmd": [
+      "C:\\Users\\sandr\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "-m", "calibre_mcp", "--http", "--port", "8102"
+    ],
+    "start_cwd": "D:\\Dev\\repos\\calibre-mcp",
+    "env": {
+      "MCP_TRANSPORT": "http",
+      "MCP_PORT": "8102"
+    },
+    "timeout": 30
+  },
+
+  "immich": {
+    "name": "immich-mcp",
+    "url": "http://127.0.0.1:8103/mcp",
+    "auto_start": true,
+    "start_cmd": [
+      "C:\\Users\\sandr\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "-m", "immich_mcp.server", "--http", "--port", "8103"
+    ],
+    "start_cwd": "D:\\Dev\\repos\\immich-mcp",
+    "env": {
+      "MCP_TRANSPORT": "http",
+      "MCP_PORT": "8103"
+    },
+    "timeout": 30,
+    "_note": "IMMICH_URL and IMMICH_API_KEY must be in env or immich-mcp .env"
+  },
+
+  "blender": {
+    "name": "blender-mcp",
+    "url": "http://127.0.0.1:8110/mcp",
+    "auto_start": true,
+    "start_cmd": [
+      "C:\\Users\\sandr\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "-m", "blender_mcp", "--http", "--port", "8110"
+    ],
+    "start_cwd": "D:\\Dev\\repos\\blender-mcp",
+    "env": {
+      "MCP_TRANSPORT": "http",
+      "MCP_PORT": "8110"
+    },
+    "timeout": 60,
+    "_note": "Blender must be running with blender-mcp addon active"
+  },
+
+  "gimp": {
+    "name": "gimp-mcp",
+    "url": "http://127.0.0.1:8111/mcp",
+    "auto_start": true,
+    "start_cmd": [
+      "C:\\Users\\sandr\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "-m", "gimp_mcp.main", "--http", "--port", "8111"
+    ],
+    "start_cwd": "D:\\Dev\\repos\\gimp-mcp",
+    "env": {
+      "MCP_TRANSPORT": "http",
+      "MCP_PORT": "8111"
+    },
+    "timeout": 60,
+    "_note": "GIMP must be running with Script-Fu server active on port 9999 (default)"
+  },
+
+  "inkscape": {
+    "name": "inkscape-mcp",
+    "url": "http://127.0.0.1:8112/mcp",
+    "auto_start": true,
+    "start_cmd": [
+      "C:\\Users\\sandr\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+      "-m", "inkscape_mcp.main", "--http", "--port", "8112"
+    ],
+    "start_cwd": "D:\\Dev\\repos\\inkscape-mcp",
+    "env": {
+      "MCP_TRANSPORT": "http",
+      "MCP_PORT": "8112"
+    },
+    "timeout": 30,
+    "_note": "Inkscape CLI must be on PATH"
+  }
+}

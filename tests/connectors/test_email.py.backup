@@ -1,0 +1,86 @@
+"""Test scaffold for EmailConnector (aiosmtplib + aioimaplib).
+
+Run: python tests/connectors/test_email.py
+Set env vars or edit the config dict below.
+"""
+
+import asyncio
+import logging
+import os
+import sys
+
+sys.path.insert(0, "src")
+logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+
+EMAIL_CONFIG = {
+    "imap_host": os.getenv("EMAIL_IMAP_HOST", ""),
+    "imap_port": int(os.getenv("EMAIL_IMAP_PORT", "993")),
+    "smtp_host": os.getenv("EMAIL_SMTP_HOST", ""),
+    "smtp_port": int(os.getenv("EMAIL_SMTP_PORT", "587")),
+    "username":  os.getenv("EMAIL_USER", ""),
+    "password":  os.getenv("EMAIL_PASSWORD", ""),
+    "from_addr": os.getenv("EMAIL_FROM", ""),
+}
+TEST_RECIPIENT = os.getenv("EMAIL_TEST_TO", EMAIL_CONFIG["username"])
+
+
+async def test_connect():
+    print("\n=== test_connect (IMAP) ===")
+    if not EMAIL_CONFIG["imap_host"] or not EMAIL_CONFIG["username"]:
+        print("SKIP: EMAIL_IMAP_HOST or EMAIL_USER not set")
+        return
+    from openfang.core.connectors import EmailConnector
+    conn = EmailConnector("email", EMAIL_CONFIG)
+    ok = await conn.connect()
+    print(f"connect() -> {ok}, active={conn.active}")
+    await conn.disconnect()
+    print("PASS" if ok else "WARN: IMAP connection failed")
+
+
+async def test_get_messages():
+    print("\n=== test_get_messages (unseen INBOX) ===")
+    if not EMAIL_CONFIG["imap_host"] or not EMAIL_CONFIG["username"]:
+        print("SKIP")
+        return
+    from openfang.core.connectors import EmailConnector
+    conn = EmailConnector("email", EMAIL_CONFIG)
+    await conn.connect()
+    if not conn.active:
+        print("SKIP: not connected")
+        return
+    msgs = await conn.get_messages(limit=3)
+    for m in msgs:
+        print(f"  From: {m['from']} | Subject: {m['subject']}")
+        print(f"  Preview: {m['body_preview'][:100]}")
+    await conn.disconnect()
+    assert isinstance(msgs, list)
+    print(f"PASS ({len(msgs)} unseen messages)")
+
+
+async def test_send_message():
+    print("\n=== test_send_message (SMTP) ===")
+    if not EMAIL_CONFIG["smtp_host"] or not EMAIL_CONFIG["username"]:
+        print("SKIP: EMAIL_SMTP_HOST or EMAIL_USER not set")
+        return
+    from openfang.core.connectors import EmailConnector
+    conn = EmailConnector("email", EMAIL_CONFIG)
+    await conn.connect()
+    ok = await conn.send_message(
+        TEST_RECIPIENT,
+        "OpenFang EmailConnector scaffold check — if you see this it works.",
+        subject="[OpenFang test] EmailConnector",
+    )
+    print(f"send_message() -> {ok}")
+    await conn.disconnect()
+    print("PASS" if ok else "WARN: SMTP send failed")
+
+
+async def main():
+    await test_connect()
+    await test_get_messages()
+    await test_send_message()
+    print("\nAll Email tests complete.")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

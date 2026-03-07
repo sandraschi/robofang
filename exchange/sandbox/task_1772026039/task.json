@@ -1,0 +1,13 @@
+{
+  "task_id": "task_1772026039",
+  "name": "verify_sandbox",
+  "provider": "wsb",
+  "status": "QUEUED",
+  "start_time": "Wed Feb 25 14:27:19 2026",
+  "env": {
+    "BASTIO_API_KEY": "",
+    "BASTIO_BASE_URL": "https://api.bastio.com",
+    "DTU_PROXY_URL": "http://localhost:8001",
+    "OPENFANG_SECURITY_LEVEL": "STRICT"
+  }
+}

@@ -1,0 +1,159 @@
+{
+    "_comment": "OpenFang Council Adviser Registry. Kept current — update whenever cheaper/better models appear.",
+    "_last_updated": "2026-02-25",
+    "_cost_unit": "USD per million tokens (input/output averaged, approximate)",
+    "tiebreaker_policy": {
+        "trigger_phrases": [
+            "split",
+            "tied",
+            "inconclusive",
+            "unresolved",
+            "no consensus",
+            "deadlock"
+        ],
+        "max_cost_usd": 0.05,
+        "preferred_order": [
+            "groq",
+            "deepseek",
+            "together",
+            "hf",
+            "openai"
+        ],
+        "note": "Cheapest available provider is tried first. Escalates if unavailable."
+    },
+    "providers": {
+        "groq": {
+            "api_base": "https://api.groq.com/openai/v1",
+            "env_key": "GROQ_API_KEY",
+            "protocol": "openai_compat",
+            "cost_per_m": 0.05,
+            "models": {
+                "llama-3.3-70b-versatile": {
+                    "cost_per_m": 0.59,
+                    "specialty": "general reasoning, fast",
+                    "context_k": 128
+                },
+                "llama-3.1-8b-instant": {
+                    "cost_per_m": 0.05,
+                    "specialty": "ultra-cheap tiebreaker, low latency",
+                    "context_k": 128
+                },
+                "mixtral-8x7b-32768": {
+                    "cost_per_m": 0.27,
+                    "specialty": "mixture-of-experts, instruction following",
+                    "context_k": 32
+                },
+                "gemma2-9b-it": {
+                    "cost_per_m": 0.20,
+                    "specialty": "google gemma, structured output",
+                    "context_k": 8
+                }
+            }
+        },
+        "deepseek": {
+            "api_base": "https://api.deepseek.com",
+            "env_key": "DEEPSEEK_API_KEY",
+            "protocol": "openai_compat",
+            "cost_per_m": 0.14,
+            "models": {
+                "deepseek-chat": {
+                    "cost_per_m": 0.28,
+                    "specialty": "general, coding, instruction following — very cheap",
+                    "context_k": 64
+                },
+                "deepseek-reasoner": {
+                    "cost_per_m": 0.55,
+                    "specialty": "chain-of-thought reasoning, math, adversarial analysis",
+                    "context_k": 64,
+                    "note": "DeepSeek-R1 — best for adversarial council tiebreaker"
+                }
+            }
+        },
+        "together": {
+            "api_base": "https://api.together.xyz/v1",
+            "env_key": "TOGETHER_API_KEY",
+            "protocol": "openai_compat",
+            "cost_per_m": 0.18,
+            "models": {
+                "meta-llama/Llama-3.3-70B-Instruct-Turbo": {
+                    "cost_per_m": 0.88,
+                    "specialty": "general, strong reasoning",
+                    "context_k": 128
+                },
+                "Qwen/Qwen2.5-72B-Instruct-Turbo": {
+                    "cost_per_m": 0.54,
+                    "specialty": "multilingual, coding, structured output — Chinese research origin",
+                    "context_k": 32
+                },
+                "mistralai/Mixtral-8x22B-Instruct-v0.1": {
+                    "cost_per_m": 1.20,
+                    "specialty": "mixture-of-experts, complex reasoning",
+                    "context_k": 64
+                }
+            }
+        },
+        "hf": {
+            "api_base": "https://api-inference.huggingface.co/models",
+            "env_key": "HF_TOKEN",
+            "protocol": "hf_inference",
+            "cost_per_m": 0.0,
+            "note": "Free tier has rate limits (~10 req/min). Serverless inference, cold starts.",
+            "models": {
+                "Qwen/Qwen2.5-72B-Instruct": {
+                    "cost_per_m": 0.0,
+                    "specialty": "strong open-weight general model, free tier",
+                    "context_k": 32
+                },
+                "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B": {
+                    "cost_per_m": 0.0,
+                    "specialty": "reasoning distillate, free tier, slower",
+                    "context_k": 32
+                },
+                "01-ai/Yi-1.5-34B-Chat": {
+                    "cost_per_m": 0.0,
+                    "specialty": "Yi (Chinese), multilingual, long context",
+                    "context_k": 200
+                },
+                "mistralai/Mixtral-8x7B-Instruct-v0.1": {
+                    "cost_per_m": 0.0,
+                    "specialty": "strong instruction following, free tier",
+                    "context_k": 32
+                }
+            }
+        },
+        "openai": {
+            "api_base": "https://api.openai.com/v1",
+            "env_key": "OPENAI_API_KEY",
+            "protocol": "openai_compat",
+            "cost_per_m": 2.50,
+            "note": "Expensive — use as last resort tiebreaker only",
+            "models": {
+                "gpt-4o-mini": {
+                    "cost_per_m": 0.15,
+                    "specialty": "fast, cheap OpenAI model, good reasoning",
+                    "context_k": 128
+                },
+                "gpt-4o": {
+                    "cost_per_m": 2.50,
+                    "specialty": "strongest OpenAI reasoning — budget blocker",
+                    "context_k": 128,
+                    "note": "Only invoke if debate involves security or irreversible action"
+                }
+            }
+        },
+        "moonshot": {
+            "api_base": "https://api.moonshot.cn/v1",
+            "env_key": "MOONSHOT_API_KEY",
+            "protocol": "openai_compat",
+            "cost_per_m": 0.10,
+            "note": "Kimi — extremely long context, Chinese research origin. Requires CN account.",
+            "models": {
+                "moonshot-v1-128k": {
+                    "cost_per_m": 0.60,
+                    "specialty": "128k context, document analysis, long-chain reasoning",
+                    "context_k": 128
+                }
+            }
+        }
+    }
+}

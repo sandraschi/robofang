@@ -1,6 +1,204 @@
 {
     "version": "1.0.0",
     "fleet_root": "d:/dev/repos",
+    "nodes": {
+        "master": {
+            "name": "Nexus-01",
+            "host": "localhost",
+            "role": "nexus",
+            "port": 10867
+        },
+        "satellite-01": {
+            "name": "Partner-PC-01",
+            "host": "192.168.1.50",
+            "role": "satellite",
+            "port": 10867,
+            "council_members": [
+                "llama3.2:3b",
+                "llama3.2:1b"
+            ]
+        }
+    },
+    "enabled_connectors": [
+        "moltbook"
+    ],
+    "council_members": [
+        "llama3.2:3b",
+        "deepseek-r1:8b",
+        "qwen2.5:7b"
+    ],
+    "connectors": {
+        "discord": {
+            "enabled": false
+        },
+        "slack": {
+            "enabled": false
+        },
+        "whatsapp": {
+            "enabled": false
+        },
+        "teams": {
+            "enabled": false
+        },
+        "zoom": {
+            "enabled": false
+        },
+        "moltbook": {
+            "enabled": true
+        },
+        "resonite": {
+            "enabled": false,
+            "host": "localhost",
+            "port": 4242
+        },
+        "iot": {
+            "enabled": false,
+            "platform": "MQTT"
+        },
+        "plex": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10740",
+            "mcp_frontend": "http://localhost:10741",
+            "description": "Plex Media Server — library browse, playback control"
+        },
+        "calibre": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10720",
+            "mcp_frontend": "http://localhost:10721",
+            "description": "Calibre ebook library — search, metadata, conversion"
+        },
+        "home-assistant": {
+            "enabled": true,
+            "mcp_http": "http://localhost:10782",
+            "mcp_backend": "http://localhost:10835",
+            "description": "Home Assistant — entity states, automations, scenes"
+        },
+        "tapo": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10716",
+            "description": "TP-Link Tapo — cameras, smart plugs, energy monitoring"
+        },
+        "netatmo": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10823",
+            "description": "Netatmo weather station — indoor/outdoor sensors"
+        },
+        "ring": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10728",
+            "description": "Ring security — doorbell, cameras, motion alerts"
+        },
+        "blender": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10849",
+            "description": "Blender — 3D modeling, rendering, scene automation"
+        },
+        "obs": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10819",
+            "description": "OBS Studio — streaming, recording, scene switching"
+        },
+        "davinci-resolve": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10843",
+            "description": "DaVinci Resolve — video editing, color grading"
+        },
+        "reaper": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10797",
+            "description": "Reaper — audio production, mixing, MIDI"
+        },
+        "resolume": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10770",
+            "description": "Resolume Avenue/Arena — live VJ visuals, clip control"
+        },
+        "vrchat": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10712",
+            "description": "VRChat — social VR automation, avatar control, world info"
+        },
+        "virtualization": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10700",
+            "description": "VirtualBox — VM lifecycle, snapshots, network config"
+        },
+        "docker": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10807",
+            "description": "Docker — container lifecycle, image management, compose"
+        },
+        "windows-operations": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10749",
+            "description": "Windows Operations — shell, registry, process, services"
+        },
+        "monitoring": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10809",
+            "description": "System Monitoring — CPU, RAM, disk, GPU, network metrics"
+        },
+        "tailscale": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10821",
+            "description": "Tailscale — mesh VPN peers, routes, exit nodes"
+        },
+        "advanced-memory": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10705",
+            "description": "Advanced Memory MCP — ADN notes, semantic search, projects"
+        },
+        "notion": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10811",
+            "description": "Notion — pages, databases, blocks"
+        },
+        "fastsearch": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10845",
+            "description": "FastSearch MCP — local file indexing, full-text search"
+        },
+        "immich": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10839",
+            "description": "Immich — self-hosted photo library, albums, assets"
+        },
+        "readly": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10863",
+            "description": "Readly MCP — document reading, PDF analysis"
+        },
+        "email": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10813",
+            "description": "Email MCP — inbox management, send, search"
+        },
+        "alexa": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10801",
+            "description": "Alexa MCP — voice commands, smart home, routines"
+        },
+        "rustdesk": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10805",
+            "description": "RustDesk MCP — remote desktop sessions, peers"
+        },
+        "bookmarks": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10803",
+            "description": "Bookmarks MCP — browser bookmarks, collections"
+        },
+        "git-github": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10702",
+            "description": "Git-GitHub MCP — repos, commits, PRs, issues"
+        },
+        "pywinauto": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10789",
+            "description": "PyWinAuto MCP — Windows GUI automation"
+        }
+    },
     "domains": {
         "creative": {
             "blender": {
@@ -51,6 +249,15 @@
                 "capabilities": [
                     "live visuals",
                     "VEE performance"
+                ]
+            },
+            "obs": {
+                "path": "obs-mcp",
+                "capabilities": [
+                    "streaming",
+                    "recording",
+                    "scene switching",
+                    "source control"
                 ]
             },
             "virtualdj": {
@@ -170,21 +377,34 @@
             "home-assistant": {
                 "path": "home-assistant-mcp",
                 "capabilities": [
-                    "smart home automation"
+                    "smart home automation",
+                    "entity control",
+                    "scenes",
+                    "automations"
                 ]
             },
             "tapo": {
                 "path": "tapo-mcp",
                 "capabilities": [
                     "camera monitoring",
-                    "smart plugs"
+                    "smart plugs",
+                    "energy monitoring"
                 ]
             },
             "ring": {
                 "path": "ring-mcp",
                 "capabilities": [
                     "doorbell security",
-                    "motion detection"
+                    "motion detection",
+                    "camera snapshots"
+                ]
+            },
+            "netatmo": {
+                "path": "netatmo-weather-mcp",
+                "capabilities": [
+                    "weather station",
+                    "indoor climate",
+                    "outdoor sensors"
                 ]
             },
             "nest-protect": {
@@ -192,6 +412,25 @@
                 "capabilities": [
                     "smoke detection",
                     "air quality"
+                ]
+            }
+        },
+        "media": {
+            "plex": {
+                "path": "plex-mcp",
+                "capabilities": [
+                    "media streaming",
+                    "library browse",
+                    "playback control",
+                    "search"
+                ]
+            },
+            "calibre": {
+                "path": "calibre-mcp",
+                "capabilities": [
+                    "ebook library",
+                    "metadata editor",
+                    "format conversion"
                 ]
             }
         },

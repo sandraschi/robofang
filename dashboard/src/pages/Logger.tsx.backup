@@ -1,0 +1,196 @@
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import {
+    Search,
+    Download,
+    Trash2,
+    AlertCircle,
+    Info,
+    CheckCircle2,
+    Clock,
+    Terminal,
+    BrainCircuit,
+    FileText
+} from 'lucide-react';
+
+interface LogEntry {
+    id: string;
+    timestamp: string;
+    level: 'info' | 'warn' | 'error' | 'success';
+    source: string;
+    message: string;
+    category: 'system' | 'mcp' | 'agent' | 'auth';
+}
+
+const mockLogs: LogEntry[] = [
+    { id: '1', timestamp: '2026-02-22 16:58:01', level: 'info', source: 'Core', message: 'Orchestrator initialized successfully.', category: 'system' },
+    { id: '2', timestamp: '2026-02-22 16:58:12', level: 'success', source: 'MCP-Manager', message: 'Connected to osc-mcp on port 9000.', category: 'mcp' },
+    { id: '3', timestamp: '2026-02-22 16:58:45', level: 'warn', source: 'Agent-Alpha', message: 'High latency detected in reasoning branch.', category: 'agent' },
+    { id: '4', timestamp: '2026-02-22 16:59:05', level: 'error', source: 'Auth-Provider', message: 'Failed login attempt from IP 192.168.1.45', category: 'auth' },
+    { id: '5', timestamp: '2026-02-22 16:59:30', level: 'info', source: 'Memory-Vault', message: 'New knowledge entity indexed: #vienna-tech', category: 'system' },
+];
+
+const Logger: React.FC = () => {
+    const [searchQuery, setSearchQuery] = useState('');
+    const [selectedLevel, setSelectedLevel] = useState<string>('all');
+    const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+    const getLevelIcon = (level: string) => {
+        switch (level) {
+            case 'info': return <Info size={14} className="text-blue-400" />;
+            case 'warn': return <AlertCircle size={14} className="text-yellow-400" />;
+            case 'error': return <AlertCircle size={14} className="text-red-400" />;
+            case 'success': return <CheckCircle2 size={14} className="text-green-400" />;
+            default: return <Clock size={14} />;
+        }
+    };
+
+    const getLevelColor = (level: string) => {
+        switch (level) {
+            case 'info': return 'text-blue-400 bg-blue-400/10 border-blue-400/20';
+            case 'warn': return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20';
+            case 'error': return 'text-red-400 bg-red-400/10 border-red-400/20';
+            case 'success': return 'text-green-400 bg-green-400/10 border-green-400/20';
+            default: return 'text-slate-400 bg-slate-400/10 border-slate-400/20';
+        }
+    };
+
+    const handleAiAnalysis = () => {
+        setIsAnalyzing(true);
+        setTimeout(() => {
+            setAiAnalysis("Analysis complete: Detected intermittent latency in Agent-Alpha triggered by heavy concurrent MCP tool calls. Auth failure on IP 192.168.1.45 appears to be a misconfigured client rather than a brute force attack. Recommend optimizing the concurrent tool call scheduler.");
+            setIsAnalyzing(false);
+        }, 2000);
+    };
+
+    return (
+        <div className="page-grid">
+            <div className="lg:col-span-12 mb-2 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3 font-heading">
+                        <Terminal className="text-emerald-400" />
+                        Advanced Logger
+                    </h1>
+                    <p className="text-slate-400 mt-1 italic text-xs">Real-time system diagnostics and AI forensics.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleAiAnalysis}
+                        disabled={isAnalyzing}
+                        className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-xl transition-all font-bold text-[10px] uppercase tracking-wider shadow-lg shadow-emerald-500/20"
+                    >
+                        <BrainCircuit size={14} className={isAnalyzing ? 'animate-pulse' : ''} />
+                        {isAnalyzing ? 'Analyzing Patterns...' : 'AI Forensic Analysis'}
+                    </button>
+                    <button className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white rounded-xl border border-white/5 transition-all font-bold text-[10px] uppercase tracking-wider">
+                        <Download size={14} />
+                        Export
+                    </button>
+                </div>
+            </div>
+
+            {aiAnalysis && (
+                <div className="lg:col-span-12">
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="page-card border-emerald-400/30 bg-emerald-400/5 p-4 flex gap-4"
+                    >
+                        <div className="mt-1">
+                            <BrainCircuit className="text-emerald-400" />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-emerald-400 text-xs uppercase tracking-wider">AI Insight</h3>
+                            <p className="text-emerald-100/80 text-sm mt-1 leading-relaxed">{aiAnalysis}</p>
+                            <button
+                                onClick={() => setAiAnalysis(null)}
+                                className="text-[10px] text-emerald-400/60 hover:text-emerald-400 mt-2 transition-colors underline uppercase font-bold tracking-wider"
+                            >
+                                Dismiss Insight
+                            </button>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
+
+            <div className="lg:col-span-12">
+                <div className="page-card h-[600px] flex flex-col p-0 overflow-hidden">
+                    {/* Toolbar */}
+                    <div className="card-header border-b border-white/5 p-4 flex flex-wrap items-center justify-between gap-4 bg-white/[0.02]">
+                        <div className="flex items-center gap-4 flex-1 min-w-[300px]">
+                            <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={14} />
+                                <input
+                                    type="text"
+                                    placeholder="Search logs by source, message, or category..."
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-white text-xs placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                            </div>
+                            <div className="flex items-center gap-2 bg-white/5 p-1 rounded-lg border border-white/10">
+                                {['all', 'info', 'warn', 'error', 'success'].map(lvl => (
+                                    <button
+                                        key={lvl}
+                                        onClick={() => setSelectedLevel(lvl)}
+                                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${selectedLevel === lvl
+                                            ? 'bg-indigo-600 text-white shadow-lg'
+                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                            }`}
+                                    >
+                                        {lvl}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button className="p-2 text-slate-500 hover:text-rose-400 bg-white/5 hover:bg-rose-400/10 rounded-lg transition-all" title="Clear Logs">
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Log Display */}
+                    <div className="flex-1 overflow-y-auto font-mono text-xs p-4 space-y-1 bg-black/20 scrollbar-thin scrollbar-thumb-white/10">
+                        {mockLogs
+                            .filter(log => selectedLevel === 'all' || log.level === selectedLevel)
+                            .filter(log =>
+                                log.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                log.source.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                log.category.toLowerCase().includes(searchQuery.toLowerCase())
+                            )
+                            .map((log) => (
+                                <div key={log.id} className="group flex items-start gap-4 p-2 rounded-lg hover:bg-white/[0.02] transition-colors border border-transparent hover:border-white/5">
+                                    <div className="text-slate-600 whitespace-nowrap pt-0.5 w-[140px] text-[10px]">{log.timestamp}</div>
+                                    <div className={`px-2 py-0.5 rounded border text-[9px] font-bold uppercase w-18 flex items-center justify-center gap-1.5 ${getLevelColor(log.level)}`}>
+                                        {getLevelIcon(log.level)}
+                                        {log.level}
+                                    </div>
+                                    <div className="text-emerald-400 font-bold min-w-[80px] border-r border-white/5 pr-4">{log.source}</div>
+                                    <div className="flex-1 text-slate-400">
+                                        <span className="text-slate-200 group-hover:text-white transition-colors">{log.message}</span>
+                                        <span className="ml-3 px-1.5 py-0.5 rounded-md bg-white/5 text-slate-600 text-[9px] uppercase font-bold tracking-wider">{log.category}</span>
+                                    </div>
+                                </div>
+                            ))}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="p-3 bg-black/40 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500 font-mono tracking-wider">
+                        <div className="flex items-center gap-4">
+                            <span className="flex items-center gap-2"><FileText size={12} className="text-indigo-500" /> Streaming active</span>
+                            <span className="flex items-center gap-2"><Clock size={12} className="text-indigo-500" /> Retention: 7 days</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live Telemetry: Stable
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Logger;

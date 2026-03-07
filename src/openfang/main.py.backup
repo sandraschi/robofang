@@ -1,0 +1,492 @@
+import logging
+import uvicorn
+import httpx
+import os
+import time
+import psutil
+from contextlib import asynccontextmanager
+from fastapi import FastAPI, HTTPException, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional, Dict, Any
+
+from openfang.core.orchestrator import OrchestrationClient
+
+# Bridge start time (epoch seconds)
+_BRIDGE_START_TIME = time.time()
+
+# Setup logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
+logger = logging.getLogger("openfang_bridge")
+
+# Global orchestrator instance
+orchestrator = OrchestrationClient()
+
+# ---------------------------------------------------------------------------
+# MCP backend port map — Wave 1 home/media connectors
+# ---------------------------------------------------------------------------
+
+MCP_BACKENDS: Dict[str, str] = {
+    # Wave 1 — Home / Media
+    "plex":            "http://localhost:10740",
+    "calibre":         "http://localhost:10720",
+    "home-assistant":  "http://localhost:10782",
+    "tapo":            "http://localhost:10716",
+    "netatmo":         "http://localhost:10823",
+    "ring":            "http://localhost:10728",
+    # Wave 2 — Creative Tools
+    "blender":         "http://localhost:10849",
+    "obs":             "http://localhost:10819",
+    "davinci-resolve": "http://localhost:10843",
+    "reaper":          "http://localhost:10797",
+    "resolume":        "http://localhost:10770",
+    "vrchat":          "http://localhost:10712",
+    # Wave 3 — Infrastructure
+    "virtualization":        "http://localhost:10700",
+    "docker":                "http://localhost:10807",
+    "windows-operations":    "http://localhost:10749",
+    "monitoring":            "http://localhost:10809",
+    "tailscale":             "http://localhost:10821",
+    # Wave 4 — Knowledge
+    "advanced-memory":       "http://localhost:10705",
+    "notion":                "http://localhost:10811",
+    "fastsearch":            "http://localhost:10845",
+    "immich":                "http://localhost:10839",
+    "readly":                "http://localhost:10863",
+    # Wave 5 — Comms & Dev
+    "email":                 "http://localhost:10813",
+    "alexa":                 "http://localhost:10801",
+    "rustdesk":              "http://localhost:10805",
+    "bookmarks":             "http://localhost:10803",
+    "git-github":            "http://localhost:10702",
+    "pywinauto":             "http://localhost:10789",
+}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage orchestrator lifecycle with FastAPI lifespan."""
+    logger.info("OpenFang Bridge starting up...")
+    await orchestrator.start()
+    yield
+    logger.info("OpenFang Bridge shutting down...")
+    await orchestrator.stop()
+
+
+app = FastAPI(
+    title="OpenFang Sovereign Bridge",
+    version="0.3.0",
+    lifespan=lifespan,
+)
+
+# Enable CORS for dashboard on port 10864
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:10864",
+        "http://127.0.0.1:10864",
+        "http://localhost:5173",   # Vite dev server
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+# ---------------------------------------------------------------------------
+# Request / Response models
+# ---------------------------------------------------------------------------
+
+
+class AskRequest(BaseModel):
+    message: str
+    use_council: Optional[bool] = False
+    use_rag: Optional[bool] = True
+    subject: Optional[str] = "guest"
+    persona: Optional[str] = "sovereign"
+
+
+class AskResponse(BaseModel):
+    success: bool
+    message: str
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+
+
+class JournalPostRequest(BaseModel):
+    content: str
+    tags: Optional[str] = None
+
+
+class MoltbookRegisterRequest(BaseModel):
+    name: str
+    bio: str
+    personality: str
+    goals: str
+
+
+class SecurityPolicyRequest(BaseModel):
+    subject: str
+    role: str
+    permissions: List[str]
+
+
+class PersonaUpdateRequest(BaseModel):
+    name: str
+    system_prompt: str
+    metadata: Optional[Dict[str, Any]] = None
+
+
+# ---------------------------------------------------------------------------
+# Routes
+# ---------------------------------------------------------------------------
+
+
+@app.get("/health")
+async def health_check():
+    """Basic health probe — also returns connector states."""
+    connector_states = {
+        name: getattr(conn, "active", False)
+        for name, conn in orchestrator.connectors.items()
+    }
+    return {
+        "status": "healthy",
+        "service": "openfang-bridge",
+        "version": "0.3.0",
+        "connectors": connector_states,
+    }
+
+
+@app.get("/system")
+async def system_info():
+    """Extended system info for the Status dashboard."""
+    uptime_seconds = time.time() - _BRIDGE_START_TIME
+    proc = psutil.Process(os.getpid())
+    mem = proc.memory_info()
+
+    connector_states = {}
+    for name, conn in orchestrator.connectors.items():
+        connector_states[name] = {
+            "online": getattr(conn, "active", False),
+            "type": getattr(conn, "connector_type", "connector"),
+        }
+
+    return {
+        "status": "healthy",
+        "service": "openfang-bridge",
+        "version": "0.3.0",
+        "pid": os.getpid(),
+        "uptime_seconds": round(uptime_seconds),
+        "started_at": _BRIDGE_START_TIME,
+        "memory_mb": round(mem.rss / 1024 / 1024, 1),
+        "connectors": connector_states,
+        "connectors_online": sum(1 for v in connector_states.values() if v["online"]),
+        "connectors_total": len(connector_states),
+    }
+
+
+@app.get("/fleet")
+async def get_fleet():
+    """
+    Return the full fleet registry for the Fleet Control dashboard.
+
+    Merges:
+    - Live connectors (orchestrator.connectors) with real .active state
+    - All connector entries from federation_map.json connectors section
+    - All domain agents from federation_map.json domains
+    """
+    # ── 1. Live connector states ──────────────────────────────────────────────
+    live: dict = {}
+    for name, conn in orchestrator.connectors.items():
+        live[name] = {
+            "id": name,
+            "name": name.replace("-", " ").title(),
+            "type": getattr(conn, "connector_type", "connector"),
+            "status": "online" if getattr(conn, "active", False) else "offline",
+            "source": "live",
+            "domain": "connectors",
+            "enabled": True,
+        }
+
+    # ── 2. Federation map: connectors section ─────────────────────────────────
+    topology = orchestrator.topology
+    conn_cfg: dict = topology.get("connectors", {})
+    for name, cfg in conn_cfg.items():
+        if name in live:
+            live[name]["enabled"] = cfg.get("enabled", False)
+            continue
+        live[name] = {
+            "id": name,
+            "name": name.replace("-", " ").title(),
+            "type": "connector",
+            "status": "offline",
+            "enabled": cfg.get("enabled", False),
+            "source": "config",
+            "domain": "connectors",
+        }
+
+    # ── 3. Federation map: domains section ────────────────────────────────────
+    domain_agents: list = []
+    for domain_name, domain_entries in topology.get("domains", {}).items():
+        for agent_id, agent_cfg in domain_entries.items():
+            domain_agents.append({
+                "id": f"{domain_name}/{agent_id}",
+                "name": agent_id.replace("-", " ").title(),
+                "type": "mcp-agent",
+                "status": "discovered",
+                "source": "federation",
+                "domain": domain_name,
+                "path": agent_cfg.get("path", ""),
+                "capabilities": agent_cfg.get("capabilities", []),
+            })
+
+    # ── 4. Summary ────────────────────────────────────────────────────────────
+    connectors_list = list(live.values())
+    online_count = sum(1 for c in connectors_list if c["status"] == "online")
+
+    return {
+        "success": True,
+        "summary": {
+            "connectors_online": online_count,
+            "connectors_total": len(connectors_list),
+            "agents_discovered": len(domain_agents),
+        },
+        "connectors": connectors_list,
+        "agents": domain_agents,
+        "domains": list(topology.get("domains", {}).keys()),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Home Hub proxy routes  — /home/{connector}/{path}
+# Thin reverse proxy: dashboard → bridge (one CORS-safe origin) → MCP backend
+# ---------------------------------------------------------------------------
+
+async def _proxy(connector: str, path: str, request: Request) -> Response:
+    """Generic reverse proxy to an MCP backend."""
+    base = MCP_BACKENDS.get(connector)
+    if not base:
+        raise HTTPException(status_code=404, detail=f"Unknown connector: {connector}")
+
+    url = f"{base}/{path}" if path else base
+    method = request.method
+    body = await request.body()
+    headers = {
+        k: v for k, v in request.headers.items()
+        if k.lower() not in ("host", "content-length")
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.request(method, url, content=body, headers=headers)
+            return Response(
+                content=resp.content,
+                status_code=resp.status_code,
+                media_type=resp.headers.get("content-type", "application/json"),
+            )
+    except httpx.ConnectError:
+        return Response(
+            content=f'{{"error":"MCP backend offline","connector":"{connector}","url":"{url}"}}',
+            status_code=503,
+            media_type="application/json",
+        )
+    except httpx.TimeoutException:
+        return Response(
+            content=f'{{"error":"MCP backend timeout","connector":"{connector}"}}',
+            status_code=504,
+            media_type="application/json",
+        )
+
+
+@app.api_route("/home/{connector}", methods=["GET", "POST", "PUT", "DELETE"])
+async def home_connector_root(connector: str, request: Request):
+    """Proxy to MCP backend root."""
+    return await _proxy(connector, "", request)
+
+
+@app.api_route("/home/{connector}/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
+async def home_connector_path(connector: str, path: str, request: Request):
+    """Proxy to MCP backend sub-path."""
+    return await _proxy(connector, path, request)
+
+
+@app.get("/home")
+async def home_status():
+    """Return live reachability for all Wave 1 home connectors."""
+    results = {}
+    async with httpx.AsyncClient(timeout=4.0) as client:
+        for name, base_url in MCP_BACKENDS.items():
+            try:
+                r = await client.get(f"{base_url}/health")
+                results[name] = {
+                    "online": r.status_code < 500,
+                    "status_code": r.status_code,
+                    "url": base_url,
+                }
+            except Exception as e:
+                results[name] = {
+                    "online": False,
+                    "error": str(e)[:120],
+                    "url": base_url,
+                }
+    return {"success": True, "connectors": results}
+
+
+# ---------------------------------------------------------------------------
+# Existing routes (unchanged)
+# ---------------------------------------------------------------------------
+
+
+@app.post("/ask", response_model=AskResponse)
+async def ask_question(req: AskRequest):
+    try:
+        result = await orchestrator.ask(
+            req.message,
+            use_council=req.use_council,
+            use_rag=req.use_rag,
+            subject=req.subject,
+            persona=req.persona,
+        )
+        if result.get("success"):
+            return AskResponse(
+                success=True,
+                message=result.get("response", ""),
+                data={"model": result.get("model")},
+            )
+        else:
+            return AskResponse(
+                success=False,
+                message="Reasoning failed",
+                error=result.get("error"),
+            )
+    except Exception as e:
+        logger.error(f"Error in /ask route: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/journal/post")
+async def post_journal(req: JournalPostRequest):
+    content = req.content
+    if req.tags:
+        content += f"\n\nTags: {req.tags}"
+    try:
+        result = await orchestrator.moltbook.post("/post", {"content": content})
+        return {"success": result.get("success", False), "data": result}
+    except Exception as e:
+        logger.error(f"Failed to post journal: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/moltbook/register")
+async def register_agent(req: MoltbookRegisterRequest):
+    try:
+        res = await orchestrator.register_agent(req.model_dump())
+        return res
+    except Exception as e:
+        logger.error(f"Failed to register agent: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/moltbook/feed")
+async def get_feed():
+    try:
+        res = await orchestrator.get_moltbook_feed()
+        return res
+    except Exception as e:
+        logger.error(f"Failed to fetch feed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/topology/rules")
+async def get_routing_rules():
+    try:
+        rules = await orchestrator.get_routing_rules()
+        return {"success": True, "rules": rules}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/topology/rules")
+async def update_routing_rule(channel: str, agent: str):
+    try:
+        ok = await orchestrator.update_routing(channel, agent)
+        return {"success": ok}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/skills")
+async def list_skills():
+    try:
+        skills = await orchestrator.list_skills()
+        return {"success": True, "skills": skills}
+    except Exception as e:
+        logger.error(f"Failed to list skills: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class SkillRunRequest(BaseModel):
+    skill_id: str
+    message: str
+
+
+@app.post("/skills/run")
+async def run_skill_augmented(req: SkillRunRequest):
+    try:
+        result = await orchestrator.run_skill(req.skill_id, req.message)
+        if result.get("success"):
+            return AskResponse(
+                success=True,
+                message=result.get("response", ""),
+                data={"model": result.get("model"), "skill_id": req.skill_id},
+            )
+        else:
+            return AskResponse(
+                success=False,
+                message="Skill execution failed",
+                error=result.get("error"),
+            )
+    except Exception as e:
+        logger.error(f"Error in /skills/run route: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/security/policy")
+async def define_security_policy(req: SecurityPolicyRequest):
+    try:
+        orchestrator.security.define_policy(req.subject, req.role, req.permissions)
+        return {"success": True, "message": f"Policy for {req.subject} updated."}
+    except Exception as e:
+        logger.error(f"Failed to update security policy: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/security/policy/{subject}")
+async def get_security_policy(subject: str):
+    policy = orchestrator.security.get_subject_policy(subject)
+    if not policy:
+        raise HTTPException(status_code=404, detail="Subject not found")
+    return {"success": True, "policy": policy}
+
+
+@app.post("/personality/persona")
+async def update_persona(req: PersonaUpdateRequest):
+    try:
+        orchestrator.personality.add_persona(req.name, req.system_prompt)
+        return {"success": True, "message": f"Persona {req.name} updated."}
+    except Exception as e:
+        logger.error(f"Failed to update persona: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/personality/personas")
+async def list_personas():
+    return {"success": True, "personas": orchestrator.personality.list_personas()}
+
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="0.0.0.0", port=10865, reload=False)

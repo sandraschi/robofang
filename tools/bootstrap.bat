@@ -1,0 +1,3 @@
+@echo off
+echo Running bootstrap...
+powershell.exe -ExecutionPolicy Bypass -File %~dp0provision_agent.ps1 > %~dp0..\exchange\sandbox\boot_batch.log 2>&1

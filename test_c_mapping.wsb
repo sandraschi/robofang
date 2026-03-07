@@ -1,0 +1,12 @@
+<Configuration>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>C:\sandbox_test</HostFolder>
+      <SandboxFolder>C:\sandbox_test</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>cmd.exe /c "echo mapping_works > C:\sandbox_test\heartbeat.txt"</Command>
+  </LogonCommand>
+</Configuration>

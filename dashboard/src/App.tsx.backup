@@ -1,0 +1,51 @@
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import AppLayout from './components/AppLayout';
+import Dashboard from './pages/Dashboard.tsx';
+import Knowledge from './pages/Knowledge.tsx';
+import Fleet from './pages/Fleet.tsx';
+import Council from './pages/Council.tsx';
+import Deliberations from './pages/Deliberations.tsx';
+import Connectors from './pages/Connectors.tsx';
+import Pulse from './pages/Pulse.tsx';
+import Logger from './pages/Logger.tsx';
+import Status from './pages/Status.tsx';
+import Help from './pages/Help.tsx';
+import Timeline from './pages/Timeline.tsx';
+import KitchenSink from './pages/KitchenSink.tsx';
+import Settings from './pages/Settings.tsx';
+import LLM from './pages/LLM.tsx';
+import HomeHub from './pages/HomeHub.tsx';
+import CreativeHub from './pages/CreativeHub.tsx';
+import InfraHub from './pages/InfraHub.tsx';
+import KnowledgeHub from './pages/KnowledgeHub.tsx';
+import './index.css';
+
+function App() {
+  return (
+    <Router>
+      <AppLayout>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/council" element={<Council />} />
+          <Route path="/deliberations" element={<Deliberations />} />
+          <Route path="/knowledge" element={<Knowledge />} />
+          <Route path="/fleet" element={<Fleet />} />
+          <Route path="/connectors" element={<Connectors />} />
+          <Route path="/home" element={<HomeHub />} />
+          <Route path="/creative" element={<CreativeHub />} />
+          <Route path="/infra" element={<InfraHub />} />
+          <Route path="/llm" element={<LLM />} />
+          <Route path="/pulse" element={<Pulse />} />
+          <Route path="/logger" element={<Logger />} />
+          <Route path="/status" element={<Status />} />
+          <Route path="/help" element={<Help />} />
+          <Route path="/timeline" element={<Timeline />} />
+          <Route path="/kitchen-sink" element={<KitchenSink />} />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </AppLayout>
+    </Router>
+  );
+}
+
+export default App;

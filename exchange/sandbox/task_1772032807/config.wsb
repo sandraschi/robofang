@@ -1,0 +1,12 @@
+<Configuration>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>D:\Dev\repos\openfang</HostFolder>
+      <SandboxFolder>C:\Users\WDAGUtilityAccount\Desktop\openfang</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>cmd.exe /c "dir C:\Users\WDAGUtilityAccount\Desktop\openfang > C:\Users\WDAGUtilityAccount\Desktop\openfang\exchange\sandbox\mapping_check.log 2>&1"</Command>
+  </LogonCommand>
+</Configuration>
