@@ -1,0 +1,12 @@
+<Configuration>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>C:\openfang_exchange</HostFolder>
+      <SandboxFolder>C:\exchange</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>cmd.exe /c echo guest_is_alive > C:\exchange\sandbox\diag_c_drive.txt</Command>
+  </LogonCommand>
+</Configuration>

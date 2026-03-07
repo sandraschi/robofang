@@ -1,0 +1,12 @@
+<Configuration>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>D:\Dev\repos\openfang</HostFolder>
+      <SandboxFolder>C:\openfang</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell.exe -ExecutionPolicy Bypass -Command "Add-Content -Path 'C:\openfang\exchange\sandbox\boot.log' -Value 'Guest up at $(Get-Date)'"</Command>
+  </LogonCommand>
+</Configuration>

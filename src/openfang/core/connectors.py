@@ -1,0 +1,1408 @@
+"""OpenFang Connectors — sovereign channel adapters.
+
+All heavy imports are deferred inside __init__ / methods so that importing
+BaseConnector (needed by PluginManager at startup) carries zero weight.
+
+Connector status:
+  MoltbookConnector      REAL  HTTP via MoltbookClient
+  EmailConnector         REAL  stdlib smtplib + imaplib (sync in executor, mirrors email-mcp)
+  TapoConnector          REAL  python-kasa async
+  HueConnector           REAL  phue sync in executor
+  ShellyConnector        REAL  httpx REST (Shelly Gen1/Gen2 API)
+  HomeAssistantConnector REAL  httpx REST + WebSocket (HA REST API)
+  RingConnector          REAL  ring_doorbell library
+  PlexConnector          REAL  plexapi library
+  CalibreConnector       REAL  subprocess calibredb CLI
+  DiscordConnector       REAL  discord.py async bot
+  ResoniteConnector      REAL  ResoniteLink WebSocket
+  SocialConnector        STUB  generic placeholder
+  IoTConnector           DEPRECATED  use TapoConnector / HueConnector / ShellyConnector
+  MCPBridgeConnector     REAL  generic bridge to any FastMCP 2.14.x HTTP server
+                               Used for: plex-mcp, calibre-mcp, immich-mcp,
+                                         blender-mcp, gimp-mcp, inkscape-mcp
+"""
+
+import abc
+import asyncio
+import email as email_lib
+import imaplib
+import logging
+import smtplib
+import subprocess
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.header import decode_header as _decode_header
+from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helpers
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _decode_mime_header(value: str) -> str:
+    """Decode RFC-2047 encoded email headers (UTF-8 Base64, Quoted-Printable)."""
+    if not value:
+        return value
+    try:
+        parts = _decode_header(value)
+        result = ""
+        for decoded, encoding in parts:
+            if isinstance(decoded, bytes):
+                result += decoded.decode(encoding or "utf-8", errors="replace")
+            else:
+                result += str(decoded)
+        return result
+    except Exception:
+        return value
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Base
+# ─────────────────────────────────────────────────────────────────────────────
+
+class BaseConnector(abc.ABC):
+    """Base class for all OpenFang sovereign connectors."""
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        self.name = name
+        self.config = config
+        self.logger = logging.getLogger(f"openfang.connectors.{name}")
+        self.active = False
+
+    @abc.abstractmethod
+    async def connect(self) -> bool:
+        """Establish connection to the external service."""
+
+    @abc.abstractmethod
+    async def disconnect(self) -> bool:
+        """Gracefully disconnect from the external service."""
+
+    @abc.abstractmethod
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        """Send a message / command to a specific target."""
+
+    @abc.abstractmethod
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Retrieve recent messages / readings from the service."""
+
+
+ConnectorBase = BaseConnector  # backwards compat alias
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MoltbookConnector
+# ─────────────────────────────────────────────────────────────────────────────
+
+class MoltbookConnector(BaseConnector):
+    """Connector for the Moltbook sovereign journal system.
+
+    config: api_key, base_url (optional)
+    """
+    connector_type = "moltbook"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        import os
+        from openfang.core.moltbook import MoltbookClient  # noqa: PLC0415
+        api_key = config.get("api_key") or os.getenv("MOLTBOOK_API_KEY")
+        self._client = MoltbookClient(
+            api_key=api_key,
+            base_url=config.get("base_url", "https://www.moltbook.com/api/v1"),
+        )
+
+    async def connect(self) -> bool:
+        result = await self._client.get("/feed")
+        self.active = result.get("success", False)
+        if self.active:
+            self.logger.info("Moltbook connection verified.")
+        else:
+            self.logger.warning(f"Moltbook unreachable: {result.get('error')}")
+        return self.active
+
+    async def disconnect(self) -> bool:
+        await self._client.close()
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        result = await self._client.post("/post", {"content": content, **kwargs})
+        ok = result.get("success", False)
+        if not ok:
+            self.logger.warning(f"Moltbook post failed: {result.get('error')}")
+        return ok
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        result = await self._client.get("/feed", params={"limit": str(limit)})
+        if result.get("success"):
+            data = result.get("data", {})
+            return data.get("posts", data) if isinstance(data, dict) else data
+        return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EmailConnector  (stdlib smtplib + imaplib, sync in executor — mirrors email-mcp)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class EmailConnector(BaseConnector):
+    """Connector for email via SMTP (send) + IMAP (read).
+
+    Uses stdlib smtplib/imaplib via run_in_executor — no extra deps.
+    Mirrors the implementation pattern from email-mcp/src/email_mcp/server.py.
+
+    config:
+      smtp_host, smtp_port (default 587), smtp_user, smtp_password, smtp_from
+      imap_host, imap_port (default 993), imap_user, imap_password
+    """
+    connector_type = "email"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        self.smtp_host = config.get("smtp_host", "")
+        self.smtp_port = int(config.get("smtp_port", 587))
+        self.smtp_user = config.get("smtp_user") or config.get("username", "")
+        self.smtp_password = config.get("smtp_password") or config.get("password", "")
+        self.smtp_from = config.get("smtp_from") or self.smtp_user
+        self.imap_host = config.get("imap_host", "")
+        self.imap_port = int(config.get("imap_port", 993))
+        self.imap_user = config.get("imap_user") or self.smtp_user
+        self.imap_password = config.get("imap_password") or self.smtp_password
+
+    async def connect(self) -> bool:
+        if not self.imap_host:
+            self.logger.error("EmailConnector: imap_host not configured.")
+            return False
+        loop = asyncio.get_event_loop()
+        def _check():
+            m = imaplib.IMAP4_SSL(self.imap_host, self.imap_port)
+            m.login(self.imap_user, self.imap_password)
+            m.logout()
+            return True
+        try:
+            await loop.run_in_executor(None, _check)
+            self.active = True
+            self.logger.info(f"IMAP connected: {self.imap_host}:{self.imap_port}")
+            return True
+        except Exception as e:
+            self.logger.error(f"IMAP connection failed: {e}")
+            return False
+
+    async def disconnect(self) -> bool:
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        """Send email. target=recipient, kwargs: subject, html, cc, bcc."""
+        if not self.smtp_host:
+            self.logger.error("EmailConnector: smtp_host not configured.")
+            return False
+        subject = kwargs.get("subject", "OpenFang Notification")
+        html = kwargs.get("html")
+        cc = kwargs.get("cc", [])
+        bcc = kwargs.get("bcc", [])
+        loop = asyncio.get_event_loop()
+
+        def _send():
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = self.smtp_from
+            msg["To"] = target
+            if cc:
+                msg["Cc"] = ", ".join(cc) if isinstance(cc, list) else cc
+            msg.attach(MIMEText(content, "plain"))
+            if html:
+                msg.attach(MIMEText(html, "html"))
+            recipients = [target] + (cc if isinstance(cc, list) else []) + (bcc if isinstance(bcc, list) else [])
+            with smtplib.SMTP(self.smtp_host, self.smtp_port) as s:
+                s.starttls()
+                s.login(self.smtp_user, self.smtp_password)
+                s.sendmail(self.smtp_from, recipients, msg.as_string())
+
+        try:
+            await loop.run_in_executor(None, _send)
+            self.logger.info(f"Email sent to {target}: {subject}")
+            return True
+        except Exception as e:
+            self.logger.error(f"SMTP send failed: {e}")
+            return False
+
+    async def get_messages(self, limit: int = 10, folder: str = "INBOX",
+                           unread_only: bool = False) -> List[Dict[str, Any]]:
+        """Fetch emails from IMAP folder."""
+        if not self.imap_host:
+            return []
+        loop = asyncio.get_event_loop()
+
+        def _fetch():
+            mail = imaplib.IMAP4_SSL(self.imap_host, self.imap_port)
+            mail.login(self.imap_user, self.imap_password)
+            mail.select(folder)
+            criteria = "UNSEEN" if unread_only else "ALL"
+            _, ids = mail.search(None, criteria)
+            email_ids = ids[0].split()[-limit:]
+            results = []
+            for eid in reversed(email_ids):
+                _, data = mail.fetch(eid, "(RFC822)")
+                if data[0] is None:
+                    continue
+                msg = email_lib.message_from_bytes(data[0][1])
+                body = ""
+                if msg.is_multipart():
+                    for part in msg.walk():
+                        if part.get_content_type() == "text/plain":
+                            body = part.get_payload(decode=True).decode("utf-8", errors="replace")
+                            break
+                else:
+                    body = msg.get_payload(decode=True).decode("utf-8", errors="replace")
+                results.append({
+                    "id": eid.decode(),
+                    "subject": _decode_mime_header(msg.get("Subject", "(No Subject)")),
+                    "from": _decode_mime_header(msg.get("From", "Unknown")),
+                    "date": msg.get("Date", ""),
+                    "body_preview": body[:300],
+                })
+            mail.close()
+            mail.logout()
+            return results
+
+        try:
+            return await loop.run_in_executor(None, _fetch)
+        except Exception as e:
+            self.logger.error(f"IMAP fetch failed: {e}")
+            return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TapoConnector (python-kasa)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class TapoConnector(BaseConnector):
+    """Connector for Tapo smart plugs/cameras via python-kasa.
+
+    config:
+      username  — Tapo cloud email
+      password  — Tapo cloud password
+      devices   — list of {host, alias, readonly} dicts
+    """
+    connector_type = "tapo"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        self._devices: Dict[str, Any] = {}
+
+    async def connect(self) -> bool:
+        try:
+            from kasa import Discover, Credentials  # noqa: PLC0415
+        except ImportError:
+            self.logger.error("python-kasa not installed. pip install python-kasa")
+            return False
+
+        username = self.config.get("username", "")
+        password = self.config.get("password", "")
+        creds = Credentials(username, password) if username else None
+        device_list = self.config.get("devices", [])
+
+        ok_count = 0
+        for dev_cfg in device_list:
+            host = dev_cfg.get("host")
+            alias = dev_cfg.get("alias") or dev_cfg.get("device_id") or host
+            if not host:
+                continue
+            try:
+                device = await Discover.discover_single(host, credentials=creds)
+                await device.update()
+                self._devices[alias] = device
+                self.logger.info(f"Tapo: {alias} ({host}) on={device.is_on}")
+                ok_count += 1
+            except Exception as e:
+                self.logger.warning(f"Tapo: {alias} ({host}) unreachable: {e}")
+
+        self.active = ok_count > 0 or not device_list
+        self.logger.info(f"TapoConnector: {ok_count}/{len(device_list)} devices online.")
+        return self.active
+
+    async def disconnect(self) -> bool:
+        self._devices.clear()
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        """Control a Tapo device. content: on|off|toggle|brightness:N"""
+        device = self._devices.get(target)
+        if not device:
+            self.logger.warning(f"Tapo: unknown device '{target}'")
+            return False
+        # Enforce readonly
+        dev_cfg = next(
+            (d for d in self.config.get("devices", [])
+             if (d.get("alias") or d.get("device_id")) == target), {}
+        )
+        if dev_cfg.get("readonly"):
+            self.logger.warning(f"Tapo: '{target}' is readonly.")
+            return False
+        try:
+            await device.update()
+            cmd = content.strip().lower()
+            if cmd == "on":
+                await device.turn_on()
+            elif cmd == "off":
+                await device.turn_off()
+            elif cmd == "toggle":
+                await device.turn_off() if device.is_on else await device.turn_on()
+            elif cmd.startswith("brightness:"):
+                await device.set_brightness(int(cmd.split(":")[1]))
+            else:
+                self.logger.warning(f"Tapo: unknown command '{content}'")
+                return False
+            return True
+        except Exception as e:
+            self.logger.error(f"Tapo command error on {target}: {e}")
+            return False
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        readings = []
+        for alias, device in list(self._devices.items())[:limit]:
+            try:
+                await device.update()
+                entry: Dict[str, Any] = {
+                    "alias": alias, "model": device.model,
+                    "is_on": device.is_on, "host": device.host,
+                }
+                if hasattr(device, "emeter_realtime"):
+                    try:
+                        e = await device.get_emeter_realtime()
+                        entry["power_w"] = e.get("power")
+                    except Exception:
+                        pass
+                readings.append(entry)
+            except Exception as e:
+                readings.append({"alias": alias, "error": str(e)})
+        return readings
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HueConnector (phue)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class HueConnector(BaseConnector):
+    """Connector for Philips Hue via phue (sync in executor).
+
+    config: bridge_ip, username (developer token)
+    """
+    connector_type = "hue"
+    _COLOURS = {
+        "red": [0.675, 0.322], "green": [0.408, 0.517],
+        "blue": [0.167, 0.040], "white": [0.313, 0.329],
+        "warm": [0.440, 0.403], "cool": [0.240, 0.270],
+    }
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        self._bridge: Optional[Any] = None
+
+    async def connect(self) -> bool:
+        try:
+            from phue import Bridge  # noqa: PLC0415
+        except ImportError:
+            self.logger.error("phue not installed. pip install phue")
+            return False
+        bridge_ip = self.config.get("bridge_ip")
+        if not bridge_ip:
+            self.logger.error("HueConnector: bridge_ip not configured.")
+            return False
+        loop = asyncio.get_event_loop()
+        try:
+            def _conn():
+                b = Bridge(bridge_ip, username=self.config.get("username"))
+                b.connect()
+                return b
+            self._bridge = await loop.run_in_executor(None, _conn)
+            lights = await loop.run_in_executor(None, lambda: self._bridge.get_light_objects("name"))
+            self.logger.info(f"Hue bridge connected. Lights: {list(lights.keys())}")
+            self.active = True
+            return True
+        except Exception as e:
+            self.logger.error(f"Hue bridge failed: {e}")
+            return False
+
+    async def disconnect(self) -> bool:
+        self._bridge = None
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        """Control Hue. target=light name or 'all'. content: on|off|bri:N|color:NAME"""
+        if not self._bridge:
+            return False
+        loop = asyncio.get_event_loop()
+        cmd = content.strip().lower()
+
+        def _set():
+            lights = self._bridge.get_light_objects("name")
+            targets = list(lights.values()) if target == "all" else (
+                [lights[target]] if target in lights else []
+            )
+            if not targets:
+                return False
+            for light in targets:
+                if cmd == "on":
+                    light.on = True
+                elif cmd == "off":
+                    light.on = False
+                elif cmd.startswith("bri:"):
+                    light.on = True
+                    light.brightness = int(cmd.split(":")[1])
+                elif cmd.startswith("color:"):
+                    colour = cmd.split(":")[1]
+                    xy = self._COLOURS.get(colour, self._COLOURS["white"])
+                    light.on = True
+                    self._bridge.set_light(light.light_id, "xy", xy)
+            return True
+
+        try:
+            return await loop.run_in_executor(None, _set)
+        except Exception as e:
+            self.logger.error(f"Hue command error: {e}")
+            return False
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        if not self._bridge:
+            return []
+        loop = asyncio.get_event_loop()
+        try:
+            lights = await loop.run_in_executor(
+                None, lambda: self._bridge.get_light_objects("name")
+            )
+            return [
+                {"name": n, "on": l.on, "brightness": l.brightness, "reachable": l.reachable}
+                for n, l in list(lights.items())[:limit]
+            ]
+        except Exception as e:
+            self.logger.error(f"Hue get_messages error: {e}")
+            return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ShellyConnector (httpx REST — no extra deps)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ShellyConnector(BaseConnector):
+    """Connector for Shelly smart devices via local REST API.
+
+    Supports Gen1 (/relay/0) and Gen2+ (rpc/Switch.Set) automatically.
+    No cloud dependency — pure LAN REST.
+
+    config:
+      devices — list of {host, alias, gen (1|2), channel (default 0)} dicts
+    """
+    connector_type = "shelly"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        self._online: Dict[str, Dict[str, Any]] = {}  # alias → device info
+
+    async def _get(self, host: str, path: str) -> Optional[Dict]:
+        import httpx  # noqa: PLC0415
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as c:
+                r = await c.get(f"http://{host}{path}")
+                r.raise_for_status()
+                return r.json()
+        except Exception:
+            return None
+
+    async def _post(self, host: str, path: str, data: Dict) -> Optional[Dict]:
+        import httpx  # noqa: PLC0415
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as c:
+                r = await c.post(f"http://{host}{path}", json=data)
+                r.raise_for_status()
+                return r.json()
+        except Exception:
+            return None
+
+    async def connect(self) -> bool:
+        device_list = self.config.get("devices", [])
+        ok = 0
+        for d in device_list:
+            host = d.get("host")
+            alias = d.get("alias") or host
+            gen = d.get("gen", 1)
+            # Gen1: GET /shinfo  Gen2: GET /rpc/Shelly.GetStatus
+            probe = "/shelly" if gen == 1 else "/rpc/Shelly.GetStatus"
+            info = await self._get(host, probe)
+            if info:
+                self._online[alias] = {**d, "info": info}
+                self.logger.info(f"Shelly Gen{gen}: {alias} ({host}) online")
+                ok += 1
+            else:
+                self.logger.warning(f"Shelly: {alias} ({host}) unreachable")
+        self.active = ok > 0 or not device_list
+        return self.active
+
+    async def disconnect(self) -> bool:
+        self._online.clear()
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        """Control a Shelly device. content: on|off|toggle"""
+        dev = self._online.get(target)
+        if not dev:
+            self.logger.warning(f"Shelly: unknown device '{target}'")
+            return False
+        host = dev["host"]
+        gen = dev.get("gen", 1)
+        ch = dev.get("channel", 0)
+        cmd = content.strip().lower()
+        try:
+            if gen == 1:
+                action = "on" if cmd == "on" else ("off" if cmd == "off" else "toggle")
+                result = await self._get(host, f"/relay/{ch}?turn={action}")
+            else:
+                if cmd == "toggle":
+                    status = await self._get(host, "/rpc/Shelly.GetStatus")
+                    current = status.get("switch:0", {}).get("output", False) if status else False
+                    on_val = not current
+                else:
+                    on_val = cmd == "on"
+                result = await self._post(host, "/rpc/Switch.Set",
+                                          {"id": ch, "on": on_val})
+            ok = result is not None
+            self.logger.info(f"Shelly {target} {cmd} -> {ok}")
+            return ok
+        except Exception as e:
+            self.logger.error(f"Shelly command error on {target}: {e}")
+            return False
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        readings = []
+        for alias, dev in list(self._online.items())[:limit]:
+            host = dev["host"]
+            gen = dev.get("gen", 1)
+            ch = dev.get("channel", 0)
+            try:
+                if gen == 1:
+                    r = await self._get(host, f"/relay/{ch}")
+                    readings.append({
+                        "alias": alias,
+                        "on": r.get("ison") if r else None,
+                        "power_w": r.get("power") if r else None,
+                    })
+                else:
+                    r = await self._get(host, "/rpc/Shelly.GetStatus")
+                    sw = (r or {}).get(f"switch:{ch}", {})
+                    readings.append({
+                        "alias": alias,
+                        "on": sw.get("output"),
+                        "power_w": sw.get("apower"),
+                        "voltage_v": sw.get("voltage"),
+                    })
+            except Exception as e:
+                readings.append({"alias": alias, "error": str(e)})
+        return readings
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# HomeAssistantConnector (httpx REST)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class HomeAssistantConnector(BaseConnector):
+    """Connector for Home Assistant via its REST API.
+
+    Covers entities, services, automations, scripts, events — the entire HA
+    surface area is available through entity_id targeting.
+
+    config:
+      url          — e.g. "http://localhost:8123"
+      access_token — long-lived access token
+    """
+    connector_type = "homeassistant"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        import os
+        self._url = (config.get("url") or os.getenv("HA_URL", "http://localhost:8123")).rstrip("/")
+        self._token = config.get("access_token") or os.getenv("HA_TOKEN", "")
+        self._headers = {
+            "Authorization": f"Bearer {self._token}",
+            "Content-Type": "application/json",
+        }
+
+    async def _api(self, method: str, path: str, data: Optional[Dict] = None) -> Optional[Any]:
+        import httpx  # noqa: PLC0415
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as c:
+                url = f"{self._url}/api{path}"
+                if method == "GET":
+                    r = await c.get(url, headers=self._headers)
+                else:
+                    r = await c.post(url, headers=self._headers, json=data or {})
+                r.raise_for_status()
+                return r.json() if r.content else {}
+        except Exception as e:
+            self.logger.warning(f"HA API error {method} {path}: {e}")
+            return None
+
+    async def connect(self) -> bool:
+        result = await self._api("GET", "/")
+        if result and result.get("message") == "API running.":
+            self.active = True
+            self.logger.info(f"Home Assistant connected: {self._url}")
+            return True
+        self.logger.error(f"HA not reachable at {self._url}")
+        return False
+
+    async def disconnect(self) -> bool:
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        """Call an HA service or fire an event.
+
+        target  — "domain.service" e.g. "light.turn_on", "switch.toggle",
+                  "automation.trigger", or "event:EVENT_TYPE"
+        content — entity_id (or JSON string with extra service data)
+        kwargs  — additional service data fields
+        """
+        import json as _json  # noqa: PLC0415
+        try:
+            if target.startswith("event:"):
+                event_type = target.split(":", 1)[1]
+                result = await self._api("POST", f"/events/{event_type}",
+                                         {"entity_id": content, **kwargs})
+                return result is not None
+
+            domain, service = target.split(".", 1)
+            # content can be a plain entity_id or a JSON string
+            try:
+                service_data = _json.loads(content)
+            except Exception:
+                service_data = {"entity_id": content}
+            service_data.update(kwargs)
+            result = await self._api("POST", f"/services/{domain}/{service}", service_data)
+            self.logger.info(f"HA service {target} called for {content}")
+            return result is not None
+        except Exception as e:
+            self.logger.error(f"HA send_message error: {e}")
+            return False
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Return state of all HA entities (or logbook recent events)."""
+        result = await self._api("GET", "/states")
+        if not result:
+            return []
+        # Return the N most recently changed entities
+        states = sorted(result, key=lambda s: s.get("last_changed", ""), reverse=True)
+        return [
+            {
+                "entity_id": s["entity_id"],
+                "state": s["state"],
+                "last_changed": s.get("last_changed"),
+                "attributes": {k: v for k, v in s.get("attributes", {}).items()
+                               if k in ("friendly_name", "unit_of_measurement", "device_class")},
+            }
+            for s in states[:limit]
+        ]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# RingConnector (ring_doorbell library)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class RingConnector(BaseConnector):
+    """Connector for Ring doorbells and cameras.
+
+    Uses the ring_doorbell library. Token cached in ring_token.cache.
+    config:
+      email      — Ring account email
+      password   — Ring account password
+      token_file — path to token cache (default: ring_token.cache)
+    """
+    connector_type = "ring"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        self._ring: Optional[Any] = None
+
+    async def connect(self) -> bool:
+        try:
+            from ring_doorbell import Ring, Auth  # noqa: PLC0415
+        except ImportError:
+            self.logger.error("ring_doorbell not installed. pip install ring_doorbell")
+            return False
+        import os
+        email = self.config.get("email", "")
+        password = self.config.get("password", "")
+        token_file = self.config.get("token_file", "ring_token.cache")
+        loop = asyncio.get_event_loop()
+
+        def _connect():
+            token_data = None
+            if os.path.exists(token_file):
+                try:
+                    import json as _j
+                    token_data = _j.loads(open(token_file).read())
+                except Exception:
+                    pass
+            auth = Auth("OpenFang/1.0", token_data, lambda t: open(token_file, "w").write(str(t)))
+            if not token_data:
+                auth.fetch_token(email, password)
+            r = Ring(auth)
+            r.update_data()
+            return r
+
+        try:
+            self._ring = await loop.run_in_executor(None, _connect)
+            devices = self._ring.devices()
+            count = sum(len(v) for v in devices.values())
+            self.logger.info(f"Ring connected. Devices: {count}")
+            self.active = True
+            return True
+        except Exception as e:
+            self.logger.error(f"Ring connection failed: {e}")
+            return False
+
+    async def disconnect(self) -> bool:
+        self._ring = None
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        """Trigger a Ring action.
+
+        target  — device name or "all"
+        content — "snapshot" | "live_stream_url"
+        """
+        if not self._ring:
+            return False
+        self.logger.info(f"Ring: {content} on {target} (read-only API, no actuation)")
+        # Ring API is mostly read-only (no remote relay triggers via ring_doorbell lib)
+        return False
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Return recent motion/doorbell events."""
+        if not self._ring:
+            return []
+        loop = asyncio.get_event_loop()
+        try:
+            def _events():
+                results = []
+                for device in self._ring.video_doorbells + self._ring.stickup_cams:
+                    for event in device.history(limit=limit // max(1, len(
+                            self._ring.video_doorbells + self._ring.stickup_cams))):
+                        results.append({
+                            "device": device.name,
+                            "kind": event.get("kind"),
+                            "created_at": event.get("created_at"),
+                            "answered": event.get("answered"),
+                        })
+                return sorted(results, key=lambda e: e.get("created_at", ""), reverse=True)[:limit]
+            return await loop.run_in_executor(None, _events)
+        except Exception as e:
+            self.logger.error(f"Ring get_messages error: {e}")
+            return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PlexConnector (plexapi)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class PlexConnector(BaseConnector):
+    """Connector for Plex Media Server via plexapi.
+
+    config:
+      url   — e.g. "http://localhost:32400"
+      token — Plex X-Plex-Token
+    """
+    connector_type = "plex"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        import os
+        self._url = config.get("url") or os.getenv("PLEX_URL", "http://localhost:32400")
+        self._token = config.get("token") or os.getenv("PLEX_TOKEN", "")
+        self._server: Optional[Any] = None
+
+    async def connect(self) -> bool:
+        try:
+            from plexapi.server import PlexServer  # noqa: PLC0415
+        except ImportError:
+            self.logger.error("plexapi not installed. pip install plexapi")
+            return False
+        loop = asyncio.get_event_loop()
+        try:
+            self._server = await loop.run_in_executor(
+                None, lambda: PlexServer(self._url, self._token)
+            )
+            self.logger.info(f"Plex connected: {self._server.friendlyName}")
+            self.active = True
+            return True
+        except Exception as e:
+            self.logger.error(f"Plex connection failed: {e}")
+            return False
+
+    async def disconnect(self) -> bool:
+        self._server = None
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        """Control Plex playback.
+
+        target  — client name (e.g. "Living Room TV") or "all"
+        content — "play" | "pause" | "stop" | "search:QUERY"
+        """
+        if not self._server:
+            return False
+        loop = asyncio.get_event_loop()
+        cmd = content.strip().lower()
+
+        def _control():
+            clients = self._server.clients()
+            targets = clients if target == "all" else [c for c in clients if c.title == target]
+            if not targets:
+                return False
+            for client in targets:
+                if cmd == "play":
+                    client.play()
+                elif cmd == "pause":
+                    client.pause()
+                elif cmd == "stop":
+                    client.stop()
+                else:
+                    return False
+            return True
+
+        try:
+            return await loop.run_in_executor(None, _control)
+        except Exception as e:
+            self.logger.error(f"Plex control error: {e}")
+            return False
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Return recently added media items."""
+        if not self._server:
+            return []
+        loop = asyncio.get_event_loop()
+        try:
+            def _recent():
+                items = []
+                for section in self._server.library.sections():
+                    for item in section.recentlyAdded(maxresults=limit // max(1, len(self._server.library.sections()))):
+                        items.append({
+                            "title": item.title,
+                            "type": item.type,
+                            "section": section.title,
+                            "added_at": str(item.addedAt),
+                            "year": getattr(item, "year", None),
+                        })
+                return sorted(items, key=lambda i: i["added_at"], reverse=True)[:limit]
+            return await loop.run_in_executor(None, _recent)
+        except Exception as e:
+            self.logger.error(f"Plex get_messages error: {e}")
+            return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CalibreConnector (subprocess calibredb)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class CalibreConnector(BaseConnector):
+    """Connector for Calibre library via calibredb CLI subprocess.
+
+    No extra Python deps — uses calibredb which ships with Calibre.
+
+    config:
+      calibredb_path  — path to calibredb (default: calibredb)
+      library_path    — path to Calibre library folder
+    """
+    connector_type = "calibre"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        self._calibredb = config.get("calibredb_path", "calibredb")
+        self._library = config.get("library_path", "")
+
+    def _cmd(self, *args: str) -> List[str]:
+        cmd = [self._calibredb] + list(args)
+        if self._library:
+            cmd += ["--library-path", self._library]
+        return cmd
+
+    async def connect(self) -> bool:
+        loop = asyncio.get_event_loop()
+        def _check():
+            r = subprocess.run(
+                [self._calibredb, "--version"],
+                capture_output=True, text=True, timeout=10
+            )
+            return r.returncode == 0
+        try:
+            ok = await loop.run_in_executor(None, _check)
+            self.active = ok
+            if ok:
+                self.logger.info("Calibre calibredb reachable.")
+            else:
+                self.logger.error("calibredb not found or returned error.")
+            return ok
+        except Exception as e:
+            self.logger.error(f"Calibre connect failed: {e}")
+            return False
+
+    async def disconnect(self) -> bool:
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        """Add a book to Calibre or set metadata.
+
+        target  — "add" | "set_metadata"
+        content — file path (add) or book_id (set_metadata)
+        kwargs  — for set_metadata: field, value
+        """
+        loop = asyncio.get_event_loop()
+        def _run():
+            if target == "add":
+                r = subprocess.run(
+                    self._cmd("add", content),
+                    capture_output=True, text=True, timeout=30
+                )
+                return r.returncode == 0
+            elif target == "set_metadata":
+                field = kwargs.get("field", "")
+                value = kwargs.get("value", "")
+                r = subprocess.run(
+                    self._cmd("set_metadata", "--field", f"{field}:{value}", content),
+                    capture_output=True, text=True, timeout=15
+                )
+                return r.returncode == 0
+            return False
+        try:
+            return await loop.run_in_executor(None, _run)
+        except Exception as e:
+            self.logger.error(f"Calibre send_message error: {e}")
+            return False
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Return recently added books from the Calibre library."""
+        loop = asyncio.get_event_loop()
+        import json as _json
+        def _list():
+            r = subprocess.run(
+                self._cmd("list", "--fields", "id,title,authors,tags,formats",
+                          "--limit", str(limit), "--sort-by", "timestamp",
+                          "--ascending", "false", "--for-machine"),
+                capture_output=True, text=True, timeout=30
+            )
+            if r.returncode != 0:
+                return []
+            try:
+                return _json.loads(r.stdout)
+            except Exception:
+                return []
+        try:
+            return await loop.run_in_executor(None, _list)
+        except Exception as e:
+            self.logger.error(f"Calibre get_messages error: {e}")
+            return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# DiscordConnector (discord.py)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class DiscordConnector(BaseConnector):
+    """Connector for Discord via discord.py async bot.
+
+    config: token, channel_id (int)
+    """
+    connector_type = "discord"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        self._client: Optional[Any] = None
+        self._bot_task: Optional[asyncio.Task] = None
+        self._ready = asyncio.Event()
+
+    async def connect(self) -> bool:
+        try:
+            import discord  # noqa: PLC0415
+        except ImportError:
+            self.logger.error("discord.py not installed. pip install discord.py")
+            return False
+        import os
+        token = self.config.get("token") or os.getenv("DISCORD_BOT_TOKEN")
+        if not token:
+            self.logger.error("DiscordConnector: no token.")
+            return False
+        intents = discord.Intents.default()
+        intents.message_content = True
+        client = discord.Client(intents=intents)
+        self._client = client
+        self._ready.clear()
+
+        @client.event
+        async def on_ready():
+            self.logger.info(f"Discord bot ready: {client.user}")
+            self.active = True
+            self._ready.set()
+
+        self._bot_task = asyncio.create_task(client.start(token))
+        try:
+            await asyncio.wait_for(self._ready.wait(), timeout=15.0)
+        except asyncio.TimeoutError:
+            self.logger.warning("Discord bot did not become ready within 15s.")
+            return False
+        return self.active
+
+    async def disconnect(self) -> bool:
+        if self._client:
+            await self._client.close()
+        if self._bot_task:
+            self._bot_task.cancel()
+            try:
+                await self._bot_task
+            except (asyncio.CancelledError, Exception):
+                pass
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        if not self._client or not self.active:
+            return False
+        channel_id = int(target) if target != "default" else self.config.get("channel_id")
+        if not channel_id:
+            return False
+        try:
+            channel = self._client.get_channel(channel_id) or await self._client.fetch_channel(channel_id)
+            await channel.send(content)
+            return True
+        except Exception as e:
+            self.logger.error(f"Discord send error: {e}")
+            return False
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        if not self._client or not self.active:
+            return []
+        channel_id = self.config.get("channel_id")
+        if not channel_id:
+            return []
+        try:
+            channel = self._client.get_channel(int(channel_id)) or await self._client.fetch_channel(int(channel_id))
+            return [
+                {"id": str(m.id), "author": str(m.author),
+                 "content": m.content, "timestamp": m.created_at.isoformat()}
+                async for m in channel.history(limit=limit)
+            ]
+        except Exception as e:
+            self.logger.error(f"Discord get_messages error: {e}")
+            return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ResoniteConnector (ResoniteLink WebSocket)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ResoniteConnector(BaseConnector):
+    """Connector for Resonite worlds via ResoniteLink WebSocket.
+
+    config: host (default localhost), port (default 4242)
+    """
+    connector_type = "resonite"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        from openfang.core.resonite_link import ResoniteLinkClient  # noqa: PLC0415
+        self.client = ResoniteLinkClient(
+            host=config.get("host", "localhost"), port=config.get("port", 4242)
+        )
+
+    async def connect(self) -> bool:
+        ok = await self.client.connect()
+        self.active = ok
+        return ok
+
+    async def disconnect(self) -> bool:
+        await self.client.disconnect()
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        if target == "spawn":
+            return await self.client.spawn_object(
+                template_url=content,
+                position=kwargs.get("position", {"x": 0, "y": 0, "z": 0}),
+            )
+        return await self.client.set_component_value(
+            component_id=target, field=kwargs.get("field", "Value"), value=content,
+        )
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        return []  # requires caching from the _listen loop
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Legacy / Generic stubs
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SocialConnector(BaseConnector):
+    """Generic social placeholder. Use DiscordConnector for Discord."""
+    connector_type = "social"
+    async def connect(self) -> bool:
+        self.logger.warning("SocialConnector is a stub.")
+        self.active = True; return True
+    async def disconnect(self) -> bool:
+        self.active = False; return True
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        return False
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        return []
+
+
+class IoTConnector(BaseConnector):
+    """DEPRECATED. Use TapoConnector, HueConnector, or ShellyConnector."""
+    connector_type = "iot"
+    async def connect(self) -> bool:
+        self.logger.warning("IoTConnector deprecated. Use TapoConnector/HueConnector/ShellyConnector.")
+        self.active = True; return True
+    async def disconnect(self) -> bool:
+        self.active = False; return True
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        return False
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        return [{"status": "deprecated — use TapoConnector, HueConnector, or ShellyConnector"}]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MCP Bridge Connector
+# Talks to any of our own FastMCP 2.14.x servers via their HTTP transport.
+# One class, N config entries — no reimplementing protocol layers here.
+# ─────────────────────────────────────────────────────────────────────────────
+
+class MCPBridgeConnector(BaseConnector):
+    """Bridge to any FastMCP 2.14.x server running in HTTP transport mode.
+
+    Instead of reimplementing the protocol layer (plexapi, calibredb, immich REST, etc.)
+    inside OpenFang, we delegate to the dedicated MCP server that already owns that
+    domain.  The MCP server is launched as a sidecar (or is already running) on a
+    configurable port, and we speak to it via the MCP streamable-HTTP protocol.
+
+    Config keys:
+        name        (str)  Human label, e.g. "plex-mcp"
+        url         (str)  Base URL of the MCP HTTP endpoint,
+                           e.g. "http://127.0.0.1:8100/mcp"
+        start_cmd   (list) Optional: command to launch the sidecar if not already up,
+                           e.g. ["python", "-m", "plex_mcp", "--http", "--port", "8100"]
+        start_cwd   (str)  Working directory for start_cmd
+        env         (dict) Extra env vars passed to the sidecar process
+        auto_start  (bool) If True, launch the sidecar on connect() if not reachable.
+                           Default: True
+        timeout     (int)  HTTP request timeout in seconds. Default: 30
+
+    MCP JSON-RPC call format (streamable HTTP):
+        POST <url>
+        Content-Type: application/json
+        { "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+          "params": { "name": "<tool>", "arguments": { ... } } }
+
+    send_message() maps to a direct tool call:
+        target  = tool name, e.g. "plex_library"
+        content = JSON string of arguments, or plain string for "query"
+        kwargs  = merged into arguments
+
+    get_messages() calls the server's tools/list to return available tools,
+    useful as a health check and discovery mechanism.
+    """
+
+    connector_type = "mcp_bridge"
+
+    def __init__(self, connector_id: str, config: Dict[str, Any]):
+        super().__init__(connector_id, config)
+        self._url: str = config.get("url", "http://127.0.0.1:8000/mcp")
+        self._name: str = config.get("name", connector_id)
+        self._start_cmd: Optional[List[str]] = config.get("start_cmd")
+        self._start_cwd: Optional[str] = config.get("start_cwd")
+        self._env: Dict[str, str] = config.get("env", {})
+        self._auto_start: bool = config.get("auto_start", True)
+        self._timeout: int = config.get("timeout", 30)
+        self._proc: Optional[Any] = None  # subprocess.Popen if we launched it
+        self._client: Optional[Any] = None  # httpx.AsyncClient
+
+    async def connect(self) -> bool:
+        import httpx  # noqa: PLC0415
+        self._client = httpx.AsyncClient(timeout=self._timeout)
+
+        # Try to reach the server
+        if await self._ping():
+            self.active = True
+            self.logger.info(f"MCPBridgeConnector '{self._name}' reachable at {self._url}")
+            return True
+
+        # Not up yet — optionally launch sidecar
+        if self._auto_start and self._start_cmd:
+            self.logger.info(f"Starting sidecar: {' '.join(self._start_cmd)}")
+            await self._start_sidecar()
+            # Give it a moment to bind
+            await asyncio.sleep(2)
+            if await self._ping():
+                self.active = True
+                self.logger.info(f"MCPBridgeConnector '{self._name}' sidecar up at {self._url}")
+                return True
+            self.logger.error(f"MCPBridgeConnector '{self._name}' sidecar didn't respond after start")
+            return False
+
+        self.logger.warning(f"MCPBridgeConnector '{self._name}' not reachable at {self._url}")
+        return False
+
+    async def disconnect(self) -> bool:
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+        if self._proc and self._proc.returncode is None:
+            self.logger.info(f"Stopping sidecar '{self._name}'")
+            self._proc.terminate()
+            try:
+                self._proc.wait(timeout=5)
+            except Exception:
+                self._proc.kill()
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        """Call a tool on the bridged MCP server.
+
+        Args:
+            target:  Tool name, e.g. "plex_library", "calibre_search"
+            content: JSON string of arguments OR plain string passed as "query"
+            **kwargs: Additional arguments merged into the tool's arguments dict
+        """
+        import json as _json  # noqa: PLC0415
+        if not self.active or not self._client:
+            return False
+
+        # Build arguments
+        try:
+            args = _json.loads(content) if content.strip().startswith("{") else {"query": content}
+        except Exception:
+            args = {"query": content}
+        args.update(kwargs)
+
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": target, "arguments": args},
+        }
+        try:
+            resp = await self._client.post(
+                self._url,
+                json=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            if "error" in result:
+                self.logger.error(f"MCP tool error from '{self._name}': {result['error']}")
+                return False
+            return True
+        except Exception as exc:
+            self.logger.error(f"MCPBridgeConnector '{self._name}' send_message failed: {exc}")
+            return False
+
+    async def call_tool(self, tool: str, arguments: Dict[str, Any] = None) -> Any:
+        """Call a tool and return the result payload (not just bool).
+
+        This is the preferred method for rich orchestration — send_message() is
+        the BaseConnector compatibility shim.
+        """
+        import json as _json  # noqa: PLC0415
+        if not self.active or not self._client:
+            return None
+
+        payload = {
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "tools/call",
+            "params": {"name": tool, "arguments": arguments or {}},
+        }
+        try:
+            resp = await self._client.post(
+                self._url,
+                json=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            if "error" in result:
+                self.logger.error(f"MCP tool error: {result['error']}")
+                return None
+            # MCP returns content blocks: [{"type": "text", "text": "..."}]
+            content_blocks = result.get("result", {}).get("content", [])
+            texts = [b["text"] for b in content_blocks if b.get("type") == "text"]
+            raw = "\n".join(texts)
+            # Try JSON parse — MCP tools often return JSON in the text block
+            try:
+                return _json.loads(raw)
+            except Exception:
+                return raw
+        except Exception as exc:
+            self.logger.error(f"MCPBridgeConnector '{self._name}' call_tool failed: {exc}")
+            return None
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Return the tool list from the bridged server — used as health/discovery."""
+        if not self.active or not self._client:
+            return []
+        payload = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
+        try:
+            resp = await self._client.post(
+                self._url,
+                json=payload,
+                headers={"Content-Type": "application/json"},
+            )
+            resp.raise_for_status()
+            result = resp.json()
+            tools = result.get("result", {}).get("tools", [])
+            return [
+                {"name": t["name"], "description": t.get("description", "")[:120]}
+                for t in tools[:limit]
+            ]
+        except Exception as exc:
+            self.logger.error(f"MCPBridgeConnector '{self._name}' tools/list failed: {exc}")
+            return []
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+
+    async def _ping(self) -> bool:
+        """Quick liveness check — POST tools/list and expect a 200."""
+        try:
+            payload = {"jsonrpc": "2.0", "id": 0, "method": "tools/list", "params": {}}
+            resp = await self._client.post(
+                self._url,
+                json=payload,
+                headers={"Content-Type": "application/json"},
+                timeout=5,
+            )
+            return resp.status_code == 200
+        except Exception:
+            return False
+
+    async def _start_sidecar(self):
+        """Launch the MCP server as a background subprocess."""
+        import os as _os  # noqa: PLC0415
+        env = _os.environ.copy()
+        env.update(self._env)
+        loop = asyncio.get_event_loop()
+        proc = await loop.run_in_executor(
+            None,
+            lambda: subprocess.Popen(
+                self._start_cmd,
+                cwd=self._start_cwd,
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            ),
+        )
+        self._proc = proc

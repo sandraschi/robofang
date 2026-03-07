@@ -1,0 +1,348 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { Users, Brain, Zap, Target, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+
+import { API_BASE } from '../api';
+
+const BRIDGE = API_BASE;
+
+// Stable animation values — no Math.random() in render
+const MATRIX_ANIMATIONS = [
+    { duration: 2.1, delay: 0.5 }, { duration: 3.2, delay: 0.2 }, { duration: 2.5, delay: 0.8 }, { duration: 3.8, delay: 0.1 },
+    { duration: 2.8, delay: 0.4 }, { duration: 3.5, delay: 0.9 }, { duration: 2.2, delay: 0.3 }, { duration: 3.1, delay: 0.7 },
+    { duration: 2.6, delay: 0.6 }, { duration: 3.3, delay: 0.0 }, { duration: 2.9, delay: 0.2 }, { duration: 3.7, delay: 0.5 },
+    { duration: 2.4, delay: 0.8 }, { duration: 3.0, delay: 0.3 }, { duration: 2.7, delay: 1.0 }, { duration: 3.4, delay: 0.4 },
+];
+
+interface Persona {
+    name: string;
+    system_prompt?: string;
+    role?: string;
+    metadata?: Record<string, unknown>;
+}
+
+interface ConnectorState {
+    online: boolean;
+    type: string;
+}
+
+interface SystemData {
+    connectors: Record<string, ConnectorState>;
+    connectors_online: number;
+    connectors_total: number;
+    uptime_seconds: number;
+    memory_mb: number;
+}
+
+// Derive a display role from the persona name / prompt
+function deriveRole(p: Persona): string {
+    if (p.role) return p.role;
+    const n = (p.name + ' ' + (p.system_prompt ?? '')).toLowerCase();
+    if (n.includes('security') || n.includes('guard')) return 'Guardrail Specialist';
+    if (n.includes('creat') || n.includes('innovat')) return 'Innovation Agent';
+    if (n.includes('reason') || n.includes('logic')) return 'Reductionist Analyst';
+    if (n.includes('sovereign') || n.includes('alpha')) return 'Lead Strategist';
+    if (n.includes('knowledge') || n.includes('memory')) return 'Knowledge Curator';
+    return 'Sovereign Agent';
+}
+
+// Deterministic load % from persona name length (avoids random flicker)
+function derivedLoad(name: string): number {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xFFFF;
+    return 10 + (h % 71); // 10–80
+}
+
+const Council: React.FC = () => {
+    const [personas, setPersonas] = useState<Persona[]>([]);
+    const [systemData, setSystemData] = useState<SystemData | null>(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+
+    const loadData = useCallback(async () => {
+        setLoading(true);
+        setError(null);
+        try {
+            const [pRes, sRes] = await Promise.allSettled([
+                fetch(`${BRIDGE}/personality/personas`),
+                fetch(`${BRIDGE}/system`),
+            ]);
+
+            if (pRes.status === 'fulfilled' && pRes.value.ok) {
+                const data = await pRes.value.json();
+                // API returns { personas: { name: {system_prompt, ...}, ... } } OR { personas: [...] }
+                const raw = data.personas;
+                if (Array.isArray(raw)) {
+                    setPersonas(raw);
+                } else if (raw && typeof raw === 'object') {
+                    setPersonas(Object.entries(raw).map(([name, val]) => ({
+                        name,
+                        ...(typeof val === 'object' && val !== null ? (val as object) : {}),
+                    })));
+                }
+            }
+
+            if (sRes.status === 'fulfilled' && sRes.value.ok) {
+                setSystemData(await sRes.value.json());
+            }
+
+            setLastRefresh(new Date());
+        } catch {
+            setError('Bridge unreachable at :10865');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadData();
+        const id = setInterval(loadData, 30_000);
+        return () => clearInterval(id);
+    }, [loadData]);
+
+    // Connector state feeds the "Global Pulse" timeline
+    const connectorEvents = systemData
+        ? Object.entries(systemData.connectors)
+            .slice(0, 6)
+            .map(([name, state]) => ({
+                title: `${name.replace(/-/g, ' ')} — ${state.online ? 'online' : 'offline'}`,
+                type: state.online ? 'SUCCESS' : 'OFFLINE',
+            }))
+        : [];
+
+    return (
+        <div className="page-grid">
+            {/* Header */}
+            <div className="lg:col-span-12 mb-6 p-1 flex items-start justify-between">
+                <div>
+                    <h1 className="text-4xl font-black text-white font-heading tracking-tight mb-2">
+                        Council of Dozens
+                    </h1>
+                    <p className="text-slate-400 text-sm max-w-2xl leading-relaxed">
+                        Sovereign personas from <span className="font-mono text-indigo-400">/personality/personas</span> ·
+                        Connector states from <span className="font-mono text-indigo-400">/system</span>
+                        {lastRefresh && (
+                            <span className="ml-3 text-slate-500">· {lastRefresh.toLocaleTimeString()}</span>
+                        )}
+                    </p>
+                </div>
+                <button
+                    onClick={loadData}
+                    disabled={loading}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider disabled:opacity-50 transition-all"
+                >
+                    {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                    Refresh
+                </button>
+            </div>
+
+            {/* Error banner */}
+            {error && (
+                <div className="lg:col-span-12 flex items-center gap-3 px-4 py-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-400 text-sm mb-2">
+                    <AlertCircle size={16} />
+                    {error}
+                </div>
+            )}
+
+            {/* Persona cards */}
+            <div className="lg:col-span-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {loading && personas.length === 0 ? (
+                    <div className="lg:col-span-4 flex items-center justify-center py-12 text-slate-500 text-sm gap-2">
+                        <Loader2 className="animate-spin" size={16} />
+                        Loading personas...
+                    </div>
+                ) : personas.length === 0 ? (
+                    <div className="lg:col-span-4 flex items-center justify-center py-12 text-slate-500 text-sm">
+                        No personas registered — bridge offline or none configured.
+                    </div>
+                ) : (
+                    personas.map((p, idx) => {
+                        const load = derivedLoad(p.name);
+                        const role = deriveRole(p);
+                        // Integrated Dark Integration Status Mapping
+                        const status = (idx === 0) ? 'Foreman' :
+                            (idx === 1) ? 'Satisficer' :
+                                (idx % 3 === 2) ? 'Reasoning' : 'Idle';
+
+                        return (
+                            <motion.div
+                                key={p.name}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.1, duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                                className="page-card flex flex-col gap-4 relative overflow-hidden group hover:border-indigo-500/40 hover:shadow-2xl hover:shadow-indigo-500/10 transition-all duration-500 p-6"
+                            >
+                                <div className="absolute top-0 right-0 p-4 opacity-[0.03] group-hover:opacity-10 transition-opacity duration-700 -rotate-12 translate-x-2 -translate-y-2">
+                                    <Users size={80} />
+                                </div>
+
+                                <div className="flex items-center justify-between relative z-10">
+                                    <div className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${(status === 'Foreman' || status === 'Satisficer') ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                            status === 'Reasoning' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 animate-pulse' :
+                                                'bg-slate-500/10 text-slate-500 border border-white/5'
+                                        }`}>
+                                        {status}
+                                    </div>
+                                    <span className="text-[10px] text-slate-600 font-mono font-bold tracking-tighter">
+                                        ID::{String(idx + 1).padStart(3, '0')}
+                                    </span>
+                                </div>
+
+                                <div className="flex flex-col relative z-10">
+                                    <h3 className="text-xl font-bold text-white tracking-tight">{p.name}</h3>
+                                    <span className="text-xs text-indigo-400/80 font-mono font-bold uppercase tracking-wider mt-0.5">{role}</span>
+                                </div>
+
+                                {p.system_prompt && (
+                                    <p className="text-[11px] text-slate-500 leading-relaxed line-clamp-2 relative z-10">
+                                        {p.system_prompt}
+                                    </p>
+                                )}
+
+                                <div className="space-y-5 mt-2 relative z-10">
+                                    <div className="flex flex-col gap-2">
+                                        <div className="flex justify-between text-[10px] uppercase tracking-[0.2em] text-slate-500 font-black">
+                                            <span>Cognitive Load</span>
+                                            <span className={load > 70 ? 'text-rose-500' : 'text-indigo-400'}>{load}%</span>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-white/[0.03] rounded-full overflow-hidden border border-white/[0.02]">
+                                            <motion.div
+                                                initial={{ width: 0 }}
+                                                animate={{ width: `${load}%` }}
+                                                transition={{ duration: 1, ease: 'easeOut' }}
+                                                className={`h-full rounded-full ${load > 70 ? 'bg-gradient-to-r from-rose-500 to-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.4)]' :
+                                                    load > 50 ? 'bg-gradient-to-r from-amber-500 to-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.3)]' :
+                                                        'bg-gradient-to-r from-indigo-500 to-indigo-400 shadow-[0_0_12px_rgba(99,102,241,0.3)]'
+                                                    }`}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-2.5 text-xs text-slate-400 bg-white/[0.02] p-2.5 rounded-xl border border-white/[0.03]">
+                                        <Target size={14} className="text-indigo-500" />
+                                        <span className="font-medium">Domain: <span className="text-indigo-100 font-bold">sovereign</span></span>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3 mt-4 pt-6 border-t border-white/[0.06] relative z-10">
+                                    <button className="flex-1 py-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-[10px] font-black uppercase tracking-widest transition-all border border-white/[0.05] hover:border-white/[0.1] active:scale-95">
+                                        Details
+                                    </button>
+                                    <button className="flex-1 py-2.5 rounded-xl bg-indigo-500/[0.08] hover:bg-indigo-500 text-indigo-400 hover:text-white text-[10px] font-black uppercase tracking-widest transition-all border border-indigo-500/20 hover:border-indigo-500 active:scale-95">
+                                        Deploy
+                                    </button>
+                                </div>
+                            </motion.div>
+                        );
+                    })
+                )}
+            </div>
+
+            {/* Consensus Matrix + Global Pulse */}
+            <div className="lg:col-span-8">
+                <div className="page-card h-[400px] flex flex-col p-0 overflow-hidden relative group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/[0.03] to-purple-600/[0.03] pointer-events-none" />
+                    <div className="card-header p-8 border-b border-white/[0.04] bg-white/[0.01] flex items-center justify-between">
+                        <h2 className="card-title flex items-center gap-4 text-xl font-bold tracking-tight">
+                            <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20">
+                                <Brain className="text-indigo-400" size={24} />
+                            </div>
+                            Consensus Matrix
+                        </h2>
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80">
+                                {personas.length} personas active
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex-1 p-8 flex flex-col items-center justify-center relative">
+                        <div className="w-full h-full bg-[#050507]/40 rounded-3xl flex flex-col items-center justify-center border border-white/[0.03] relative overflow-hidden group-hover:border-indigo-500/20 transition-colors duration-700">
+                            <div className="absolute inset-0 noise-bg opacity-20" />
+                            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-indigo-500/[0.02] to-transparent animate-pulse" />
+                            <div className="relative z-10 flex flex-col items-center gap-6">
+                                <div className="grid grid-cols-4 gap-4">
+                                    {MATRIX_ANIMATIONS.map((anim, i) => (
+                                        <motion.div
+                                            key={i}
+                                            animate={{ opacity: [0.1, 0.4, 0.1], scale: [1, 1.1, 1] }}
+                                            transition={{ duration: anim.duration, repeat: Infinity, delay: anim.delay }}
+                                            className="w-3 h-3 rounded-sm bg-indigo-500/40"
+                                        />
+                                    ))}
+                                </div>
+                                <span className="text-indigo-400/50 font-mono text-[10px] uppercase tracking-[0.3em] font-bold">
+                                    {personas.length > 0
+                                        ? `${personas.length} personas · neural weight distribution mapping...`
+                                        : 'Awaiting persona registration...'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Global Pulse — real connector states */}
+            <div className="lg:col-span-4">
+                <div className="page-card h-[400px] flex flex-col p-0 overflow-hidden relative">
+                    <div className="card-header p-8 border-b border-white/[0.04] bg-white/[0.01]">
+                        <h2 className="card-title flex items-center gap-4 text-xl font-bold tracking-tight">
+                            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20">
+                                <Zap className="text-amber-400" size={24} />
+                            </div>
+                            Connector States
+                        </h2>
+                    </div>
+                    <div className="p-8 space-y-4 overflow-y-auto custom-scrollbar flex-1">
+                        {systemData ? (
+                            connectorEvents.length > 0 ? (
+                                connectorEvents.map((item, i) => (
+                                    <div key={i} className="flex gap-5 items-start group relative">
+                                        <div className="absolute left-[7px] top-[24px] bottom-[-16px] w-[1px] bg-white/[0.05] group-last:hidden" />
+                                        <div className="relative z-10 w-4 h-4 rounded-full bg-[#09090b] border-2 border-indigo-500/40 flex items-center justify-center group-hover:border-indigo-400 transition-colors">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${item.type === 'SUCCESS' ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                                        </div>
+                                        <div className="flex flex-col min-w-0 -mt-0.5">
+                                            <span className="text-sm text-slate-200 font-bold tracking-tight truncate capitalize">{item.title}</span>
+                                            <span className={`text-[9px] font-black tracking-widest mt-1 ${item.type === 'SUCCESS' ? 'text-emerald-500/60' : 'text-rose-400/60'}`}>
+                                                {item.type}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-slate-500 text-xs text-center py-8">No connector data</p>
+                            )
+                        ) : (
+                            <div className="flex items-center justify-center py-12 gap-2 text-slate-500 text-xs">
+                                {loading
+                                    ? <><Loader2 size={14} className="animate-spin" /> Loading...</>
+                                    : 'Bridge offline'}
+                            </div>
+                        )}
+                        {/* System summary footer */}
+                        {systemData && (
+                            <div className="pt-4 border-t border-white/5 text-[10px] text-slate-500 font-mono space-y-1">
+                                <div className="flex justify-between">
+                                    <span>Online</span>
+                                    <span className="text-emerald-400">{systemData.connectors_online}/{systemData.connectors_total}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Uptime</span>
+                                    <span className="text-indigo-400">{Math.round(systemData.uptime_seconds / 60)}m</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Bridge RAM</span>
+                                    <span className="text-indigo-400">{systemData.memory_mb} MB</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Council;

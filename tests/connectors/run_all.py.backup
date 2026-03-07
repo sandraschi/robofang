@@ -1,0 +1,57 @@
+"""Run all connector tests sequentially.
+
+Usage:
+  cd D:\dev\repos\openfang
+  python tests/connectors/run_all.py
+
+Each test handles its own SKIP logic when credentials/hardware are absent.
+Set env vars for the connectors you want to exercise:
+  MOLTBOOK_API_KEY
+  DISCORD_BOT_TOKEN + DISCORD_CHANNEL_ID
+  EMAIL_IMAP_HOST + EMAIL_SMTP_HOST + EMAIL_USER + EMAIL_PASSWORD
+
+Tapo and Hue use hardcoded LAN config (from devices-mcp/config.yaml).
+"""
+
+import asyncio
+import importlib
+import sys
+import traceback
+
+TESTS = [
+    "tests.connectors.test_moltbook",
+    "tests.connectors.test_tapo",
+    "tests.connectors.test_hue",
+    "tests.connectors.test_discord",
+    "tests.connectors.test_email",
+]
+
+
+async def run_all():
+    results = {}
+    for mod_path in TESTS:
+        name = mod_path.split(".")[-1]
+        print(f"\n{'='*60}")
+        print(f"RUNNING: {name}")
+        print('='*60)
+        try:
+            mod = importlib.import_module(mod_path)
+            await mod.main()
+            results[name] = "OK"
+        except Exception as e:
+            print(f"ERROR in {name}: {e}")
+            traceback.print_exc()
+            results[name] = f"ERROR: {e}"
+
+    print(f"\n{'='*60}")
+    print("SUMMARY")
+    print('='*60)
+    for name, status in results.items():
+        icon = "OK" if status == "OK" else "FAIL"
+        print(f"  [{icon}] {name}: {status}")
+
+
+if __name__ == "__main__":
+    sys.path.insert(0, "src")
+    sys.path.insert(0, ".")
+    asyncio.run(run_all())

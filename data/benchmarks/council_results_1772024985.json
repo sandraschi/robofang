@@ -1,0 +1,74 @@
+[
+  {
+    "task_id": "logic_synthesis",
+    "difficulty": "high",
+    "baseline": {
+      "model": "llama3.2",
+      "response_length": 0,
+      "latency_ms": 25.6
+    },
+    "council": {
+      "members": [
+        "llama3.2",
+        "deepseek-r1:1.5b"
+      ],
+      "response_length": 0,
+      "latency_ms": 13.67,
+      "overhead_percent": -46.59
+    }
+  },
+  {
+    "task_id": "security_audit",
+    "difficulty": "medium",
+    "baseline": {
+      "model": "llama3.2",
+      "response_length": 0,
+      "latency_ms": 12.0
+    },
+    "council": {
+      "members": [
+        "llama3.2",
+        "deepseek-r1:1.5b"
+      ],
+      "response_length": 0,
+      "latency_ms": 14.1,
+      "overhead_percent": 17.5
+    }
+  },
+  {
+    "task_id": "coding_efficiency",
+    "difficulty": "medium",
+    "baseline": {
+      "model": "llama3.2",
+      "response_length": 0,
+      "latency_ms": 9.74
+    },
+    "council": {
+      "members": [
+        "llama3.2",
+        "deepseek-r1:1.5b"
+      ],
+      "response_length": 0,
+      "latency_ms": 12.99,
+      "overhead_percent": 33.35
+    }
+  },
+  {
+    "task_id": "philosophy_debate",
+    "difficulty": "high",
+    "baseline": {
+      "model": "llama3.2",
+      "response_length": 0,
+      "latency_ms": 11.04
+    },
+    "council": {
+      "members": [
+        "llama3.2",
+        "deepseek-r1:1.5b"
+      ],
+      "response_length": 0,
+      "latency_ms": 17.03,
+      "overhead_percent": 54.25
+    }
+  }
+]

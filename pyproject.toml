@@ -1,0 +1,55 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "openfang"
+version = "0.3.0"
+description = "OpenFang Sovereign Orchestration Hub"
+requires-python = ">=3.11"
+dependencies = [
+    # Core runtime
+    "fastapi>=0.111",
+    "uvicorn[standard]>=0.29",
+    "httpx>=0.27",
+    "aiohttp>=3.9",
+    "websockets>=12",
+    "psutil>=5.9",
+    "pydantic>=2.7",
+
+    # ── Comms connectors ────────────────────────────────────────────────────
+    "discord.py>=2.3",         # DiscordConnector
+
+    # ── Physical device connectors ──────────────────────────────────────────
+    "python-kasa>=0.7",        # TapoConnector  (smart plugs / cameras)
+    "phue>=1.1",               # HueConnector   (Philips Hue)
+    # ShellyConnector  — pure httpx, no extra dep
+    # HomeAssistantConnector — pure httpx, no extra dep
+    "ring-doorbell>=0.8",      # RingConnector
+
+    # ── Media consumer connectors ────────────────────────────────────────────
+    "plexapi>=4.15",           # PlexConnector
+    # CalibreConnector — subprocess calibredb, no extra dep
+    # EmailConnector   — stdlib smtplib + imaplib, no extra dep
+
+    # MCP 3.1 (Unified Gateway)
+    "fastmcp>=3.1.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "httpx",
+]
+# Install everything including future connector deps
+all = [
+    "openfang[dev]",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[project.scripts]
+openfang-bridge     = "openfang.main:app"
+openfang-supervisor = "openfang.supervisor:app"

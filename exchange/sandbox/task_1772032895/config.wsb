@@ -1,0 +1,12 @@
+<Configuration>
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>D:\Dev\repos\openfang\exchange</HostFolder>
+      <SandboxFolder>C:\exchange</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>cmd.exe /c "echo up > C:\exchange\sandbox\guest_up.log 2>&1"</Command>
+  </LogonCommand>
+</Configuration>

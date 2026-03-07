@@ -1,0 +1,291 @@
+"""OpenFang Orchestrator: Internal gateway for fleet management and tool coordination."""
+
+import asyncio
+import logging
+import json
+from typing import Dict, Any, Optional, List
+from pathlib import Path
+from openfang.core.plugins import PluginManager
+from openfang.core.moltbook import MoltbookClient
+from openfang.core.reasoning import ReasoningEngine
+from openfang.core.skills import SkillManager
+from openfang.core.security import SecurityManager
+from openfang.core.personality import PersonalityEngine
+from openfang.core.storage import OpenFangStorage
+from openfang.core.knowledge import KnowledgeEngine
+from openfang.core.security_secrets import SecretsManager
+
+logger = logging.getLogger(__name__)
+
+# Resolve templates relative to the package root (src/openfang/../../templates)
+_PKG_ROOT = Path(__file__).parent.parent.parent.parent  # repo root
+
+
+class OrchestrationClient:
+    """
+    Sovereign replacement for the legacy OpenClaw Gateway.
+    Handles tool routing, fleet state, and cross-server communication.
+    """
+
+    def __init__(
+        self,
+        config: Optional[Dict[str, Any]] = None,
+        fleet_config_path: Optional[Path] = None,
+        storage: Optional[OpenFangStorage] = None,
+    ):
+        self.config = config or {}
+        self.fleet_config_path = fleet_config_path or (
+            _PKG_ROOT / "configs" / "federation_map.json"
+        )
+        self.logger = logging.getLogger("openfang.orchestrator")
+        self.topology: Dict[str, Any] = {}
+        self.connectors: Dict[str, Any] = {}
+        self.storage = storage or OpenFangStorage()
+        self.moltbook = MoltbookClient(api_key=self.config.get("moltbook_api_key"))
+        self.reasoning = ReasoningEngine(
+            ollama_url=self.config.get("ollama_url", "http://localhost:11434")
+        )
+        self.skills = SkillManager()
+        self.security = SecurityManager(storage=self.storage)
+        self.secrets = SecretsManager(storage=self.storage)
+        self.personality = PersonalityEngine(storage=self.storage)
+        self.knowledge = KnowledgeEngine(storage=self.storage)
+        self.running = False
+        self.heartbeat_task: Optional[asyncio.Task] = None
+
+        self._load_topology()
+        self._init_connectors()
+
+    def _load_topology(self):
+        """Loads the current fleet topology from the federation map."""
+        if self.fleet_config_path.exists():
+            try:
+                with open(self.fleet_config_path, "r", encoding="utf-8") as f:
+                    self.topology = json.load(f)
+                self.logger.info(f"Topology loaded from {self.fleet_config_path}")
+            except Exception as e:
+                self.logger.error(f"Failed to load topology: {e}")
+        else:
+            self.logger.warning(f"Topology map not found at {self.fleet_config_path}")
+
+    def _init_connectors(self):
+        """Initialize enabled connectors lazily using the PluginManager."""
+        manager = PluginManager()
+        discovered = manager.discover_connectors()
+
+        # Determine which connectors should be enabled.
+        # Priority: Environment Var > federation_map.json > []
+        import os
+
+        enabled_str = os.getenv("OPENFANG_CONNECTORS")
+        if enabled_str:
+            enabled_list = [s.strip() for s in enabled_str.split(",") if s.strip()]
+        else:
+            enabled_list = self.topology.get("enabled_connectors", [])
+
+        if not enabled_list:
+            # Fallback to a default set if nothing is specified (e.g., resonite for testing)
+            enabled_list = ["resonite", "moltbook"]
+
+        for conn_type in enabled_list:
+            if conn_type in discovered:
+                conn_class = manager.load_connector(conn_type)
+                if conn_class:
+                    if conn_type == "social" and "social" in self.config:
+                        for platform, cfg in self.config["social"].items():
+                            self.connectors[platform] = conn_class(platform, cfg)
+                    else:
+                        cfg = self.config.get(conn_type, {})
+                        self.connectors[conn_type] = conn_class(conn_type, cfg)
+                else:
+                    self.logger.error(f"Failed to load enabled connector: {conn_type}")
+            else:
+                self.logger.warning(
+                    f"Enabled connector '{conn_type}' not found in registry."
+                )
+
+        self.logger.info(
+            f"Initialized {len(self.connectors)} enabled connector(s): "
+            f"{list(self.connectors.keys()) or 'none'}"
+        )
+
+    async def start(self):
+        self.logger.info("Starting OpenFang Orchestrator...")
+        self.running = True
+        for name, connector in self.connectors.items():
+            try:
+                await connector.connect()
+            except Exception as e:
+                self.logger.error(f"Connector '{name}' failed to connect: {e}")
+
+        # Start the proactive heartbeat loop
+        self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+
+    async def stop(self):
+        self.logger.info("Stopping Orchestrator...")
+        self.running = False
+        if self.heartbeat_task:
+            self.heartbeat_task.cancel()
+            try:
+                await self.heartbeat_task
+            except asyncio.CancelledError:
+                pass
+        for name, connector in self.connectors.items():
+            try:
+                await connector.disconnect()
+            except Exception as e:
+                self.logger.error(f"Connector '{name}' failed to disconnect: {e}")
+        await self.moltbook.close()
+        await self.reasoning.close()
+
+    async def _heartbeat_loop(self):
+        """Main proactive loop for agent self-reflection and fleet pulse."""
+        self.logger.info("[ORCHESTRATOR] Heartbeat loop started.")
+        while self.running:
+            try:
+                # 1. Check connector health (iterate self.connectors, not a nonexistent connector_manager)
+                for name, connector in self.connectors.items():
+                    if not getattr(connector, "active", False):
+                        self.logger.warning(
+                            f"Connector '{name}' reports inactive — attempting reconnect."
+                        )
+                        try:
+                            await connector.connect()
+                        except Exception as e:
+                            self.logger.error(f"Reconnect failed for '{name}': {e}")
+
+                # 2. Soul Synthesis: assemble system prompt from templates
+                templates_dir = _PKG_ROOT / "templates"
+                system_prompt_parts = []
+                for tmpl_name in ("SOUL.md", "HEART.md", "BODY.md"):
+                    tmpl_path = templates_dir / tmpl_name
+                    if tmpl_path.exists():
+                        system_prompt_parts.append(
+                            f"## {tmpl_name.replace('.md', '')}\n"
+                            + tmpl_path.read_text(encoding="utf-8")
+                        )
+                if system_prompt_parts:
+                    self.logger.debug(
+                        f"Soul synthesis loaded {len(system_prompt_parts)} template(s)."
+                    )
+
+                # 3. Pulse Reflection: Summarize fleet status and "think"
+                if self.moltbook.client:
+                    try:
+                        persona_list = list(self.personality.personas.keys())
+                        status_summary = (
+                            f"[OpenFang Pulse] Personas active: {persona_list}. "
+                            f"Connectors: {list(self.connectors.keys())}. "
+                            "Fleet is in a state of high-readiness."
+                        )
+                        await self.moltbook.post("/post", {"content": status_summary})
+                        self.logger.info("Pulse reflection posted to Moltbook.")
+                    except Exception as e:
+                        self.logger.warning(f"Pulse reflection skipped: {e}")
+
+                await asyncio.sleep(300)  # Reflection every 5 minutes
+
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self.logger.error(f"Heartbeat error: {e}")
+                await asyncio.sleep(10)
+
+        self.logger.info("[ORCHESTRATOR] Heartbeat loop stopped.")
+
+    async def register_agent(self, body: Dict[str, Any]) -> Dict[str, Any]:
+        """Register a new agent with Moltbook."""
+        self.logger.info(f"Registering agent: {body.get('name')}")
+        return await self.moltbook.post("/register", body)
+
+    async def get_moltbook_feed(self) -> Dict[str, Any]:
+        """Fetch the Moltbook feed."""
+        return await self.moltbook.get("/feed")
+
+    async def ask(
+        self,
+        prompt: str,
+        use_council: bool = False,
+        subject: str = "guest",
+        persona: str = "sovereign",
+        use_rag: bool = True,
+    ) -> Dict[str, Any]:
+        """Live reasoning via the reasoning engine with optional RAG context."""
+        if not await self.security.is_authorized(subject, "reasoning:ask"):
+            return {
+                "success": False,
+                "error": f"Subject '{subject}' is not authorized for reasoning:ask",
+            }
+
+        # 1. Personality: Get the system prompt
+        system_prompt = self.personality.get_system_prompt(persona)
+
+        # 2. Knowledge: Perform Auto-RAG if enabled
+        context = ""
+        if use_rag:
+            if await self.security.is_authorized(subject, "knowledge:search"):
+                context = await self.knowledge.get_context(prompt, orchestrator=self)
+                self.logger.info(f"Auto-RAG: Context retrieved for {subject}")
+            else:
+                self.logger.warning(
+                    f"Auto-RAG: Subject {subject} denied knowledge:search"
+                )
+
+        # 3. Augment prompt with context
+        final_prompt = prompt
+        if context:
+            final_prompt = f"RELEVANT CONTEXT:\n{context}\n\nUSER REQUEST: {prompt}"
+
+        # 4. Reason
+        if use_council:
+            council = self.topology.get(
+                "council_members", ["llama3", "llama3.1", "phi3"]
+            )
+            self.logger.info(f"Using Council of Dozens: {council}")
+            return await self.reasoning.council_synthesis(final_prompt, council)
+
+        return await self.reasoning.ask(final_prompt, system_prompt=system_prompt)
+
+    async def list_skills(self) -> List[Dict[str, Any]]:
+        """List all discovered skills."""
+        return self.skills.list_skills()
+
+    async def run_skill(
+        self, skill_id: str, user_input: str, subject: str = "agent:cortex"
+    ) -> Dict[str, Any]:
+        """Execute a skill-augmented prompt."""
+        if not await self.security.is_authorized(subject, "skills:run", skill_id):
+            return {
+                "success": False,
+                "error": f"Subject '{subject}' is not authorized for skills:run on {skill_id}",
+            }
+
+        skill_prompt = self.skills.get_skill_prompt(skill_id)
+        if not skill_prompt:
+            return {"success": False, "error": f"Skill {skill_id} not found"}
+
+        full_prompt = f"{skill_prompt}\n\nUser Input: {user_input}"
+        return await self.reasoning.ask(full_prompt)
+
+    async def route_message(self, target: str, content: str, channel: str):
+        if channel in self.connectors:
+            return await self.connectors[channel].send_message(target, content)
+        self.logger.warning(f"No connector registered for channel: {channel}")
+        return False
+
+    async def get_routing_rules(self) -> Dict[str, Any]:
+        """Returns the current channel-to-agent mapping."""
+        return self.topology.get("routing", {})
+
+    async def update_routing(self, channel: str, agent: str) -> bool:
+        """Updates the routing topology in memory and persists to federation_map.json."""
+        if "routing" not in self.topology:
+            self.topology["routing"] = {}
+        self.topology["routing"][channel] = agent
+        try:
+            with open(self.fleet_config_path, "w", encoding="utf-8") as f:
+                json.dump(self.topology, f, indent=4)
+            self.logger.info(f"Routing updated: {channel} -> {agent}")
+        except Exception as e:
+            self.logger.error(f"Failed to persist routing update: {e}")
+        return True
