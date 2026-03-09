@@ -1,8 +1,8 @@
-# OpenFang Connector Taxonomy
+# robofang Connector Taxonomy
 
-This is what differentiates OpenFang from OpenClaw and every other LLM orchestration
+This is what differentiates robofang from OpenClaw and every other LLM orchestration
 layer: real, sovereign, bidirectional control of a physical+digital environment.
-OpenClaw routes messages. OpenFang controls things.
+OpenClaw routes messages. robofang controls things.
 
 ## Status Legend
 - REAL     — fully implemented, tested
@@ -58,7 +58,7 @@ OpenClaw routes messages. OpenFang controls things.
 | inkscape  | REAL   | inkscape-mcp HTTP| 8112 | SVG, PDF, batch conversion             |
 
 **All above use MCPBridgeConnector** — a single generic class that speaks MCP streamable HTTP.
-OpenFang does not reimplement the protocol layer. Each MCP server stays sovereign.
+robofang does not reimplement the protocol layer. Each MCP server stays sovereign.
 Config: `configs/mcp_sidecars.json`. Test: `python tests/connectors/test_mcp_bridge.py [name|all]`
 
 ---
@@ -116,7 +116,7 @@ pip install pyatmo python-miio slack-sdk python-telegram-bot
   instantiated (i.e. when it appears in `enabled_connectors`).
 
 - Connector selection priority in `orchestrator.py`:
-  1. `OPENFANG_CONNECTORS` env var (comma-separated)
+  1. `ROBOFANG_CONNECTORS` env var (comma-separated)
   2. `topology["enabled_connectors"]` in `configs/federation_map.json`
   3. Per-connector `"enabled": true` flags in federation_map
   4. Empty (explicit opt-in required — no hardcoded fallbacks)

@@ -1,12 +1,12 @@
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path("d:/dev/repos/openfang/tools")))
+sys.path.append(str(Path("d:/dev/repos/RoboFang/tools")))
 from council_orchestrator import CouncilOrchestrator
 
 
 def main():
-    root = "d:/dev/repos/openfang"
+    root = "d:/dev/repos/RoboFang"
     orchestrator = CouncilOrchestrator(root)
     session_file = (
         Path(root) / "exchange" / "debates" / "resonite_spatial_vlm_session.json"

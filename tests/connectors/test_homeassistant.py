@@ -30,7 +30,8 @@ HA_CONFIG = {
 
 async def test_connect():
     print("\n=== test_connect ===")
-    from openfang.core.connectors import HomeAssistantConnector
+    from robofang.core.connectors import HomeAssistantConnector
+
     conn = HomeAssistantConnector("ha", HA_CONFIG)
     ok = await conn.connect()
     print(f"connect() -> {ok}, active={conn.active}")
@@ -40,7 +41,8 @@ async def test_connect():
 
 async def test_get_messages():
     print("\n=== test_get_messages (10 most recently changed entities) ===")
-    from openfang.core.connectors import HomeAssistantConnector
+    from robofang.core.connectors import HomeAssistantConnector
+
     conn = HomeAssistantConnector("ha", HA_CONFIG)
     await conn.connect()
     if not conn.active:
@@ -57,7 +59,8 @@ async def test_get_messages():
 
 async def test_light_toggle():
     print("\n=== test_send light.toggle ===")
-    from openfang.core.connectors import HomeAssistantConnector
+    from robofang.core.connectors import HomeAssistantConnector
+
     conn = HomeAssistantConnector("ha", HA_CONFIG)
     await conn.connect()
     if not conn.active:
@@ -83,7 +86,8 @@ async def test_light_toggle():
 
 async def test_switch_control():
     print("\n=== test_send switch.turn_on / turn_off ===")
-    from openfang.core.connectors import HomeAssistantConnector
+    from robofang.core.connectors import HomeAssistantConnector
+
     conn = HomeAssistantConnector("ha", HA_CONFIG)
     await conn.connect()
     if not conn.active:

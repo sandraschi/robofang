@@ -1,12 +1,12 @@
 <Configuration>
   <MappedFolders>
     <MappedFolder>
-      <HostFolder>D:\Dev\repos\openfang</HostFolder>
-      <SandboxFolder>C:\openfang</SandboxFolder>
+      <HostFolder>D:\Dev\repos\robofang</HostFolder>
+      <SandboxFolder>C:\robofang</SandboxFolder>
       <ReadOnly>false</ReadOnly>
     </MappedFolder>
   </MappedFolders>
   <LogonCommand>
-    <Command>cmd.exe /c echo guest_is_alive > C:\openfang\exchange\sandbox\diag_simple.txt</Command>
+    <Command>cmd.exe /c echo guest_is_alive > C:\robofang\exchange\sandbox\diag_simple.txt</Command>
   </LogonCommand>
 </Configuration>

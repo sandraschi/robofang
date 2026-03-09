@@ -1,7 +1,7 @@
 """Run all connector tests sequentially.
 
 Usage:
-  cd D:\dev\repos\openfang
+  cd D:\dev\repos\robofang
   python tests/connectors/run_all.py
 
 Each test handles its own SKIP logic when credentials/hardware are absent.
@@ -43,7 +43,7 @@ async def run_all():
     results = {}
     for mod_path in TESTS:
         name = mod_path.split(".")[-1]
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"RUNNING: {name}")
         print("=" * 60)
         try:
@@ -55,7 +55,7 @@ async def run_all():
             traceback.print_exc()
             results[name] = f"ERROR: {e}"
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("SUMMARY")
     print("=" * 60)
     ok = sum(1 for s in results.values() if s == "OK")

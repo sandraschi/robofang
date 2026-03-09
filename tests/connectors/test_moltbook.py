@@ -17,7 +17,8 @@ MOLTBOOK_API_KEY = os.getenv("MOLTBOOK_API_KEY", "")  # set in env or here
 
 async def test_connect():
     print("\n=== test_connect ===")
-    from openfang.core.connectors import MoltbookConnector
+    from robofang.core.connectors import MoltbookConnector
+
     conn = MoltbookConnector("moltbook", {"api_key": MOLTBOOK_API_KEY})
     ok = await conn.connect()
     print(f"connect() -> {ok}, active={conn.active}")
@@ -28,7 +29,8 @@ async def test_connect():
 
 async def test_get_messages():
     print("\n=== test_get_messages ===")
-    from openfang.core.connectors import MoltbookConnector
+    from robofang.core.connectors import MoltbookConnector
+
     conn = MoltbookConnector("moltbook", {"api_key": MOLTBOOK_API_KEY})
     await conn.connect()
     msgs = await conn.get_messages(limit=5)
@@ -42,10 +44,13 @@ async def test_get_messages():
 
 async def test_send_message():
     print("\n=== test_send_message ===")
-    from openfang.core.connectors import MoltbookConnector
+    from robofang.core.connectors import MoltbookConnector
+
     conn = MoltbookConnector("moltbook", {"api_key": MOLTBOOK_API_KEY})
     await conn.connect()
-    ok = await conn.send_message("feed", "[OpenFang test] MoltbookConnector scaffold check")
+    ok = await conn.send_message(
+        "feed", "[robofang test] MoltbookConnector scaffold check"
+    )
     print(f"send_message() -> {ok}")
     await conn.disconnect()
     assert isinstance(ok, bool)

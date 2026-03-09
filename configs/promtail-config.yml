@@ -16,10 +16,10 @@ scrape_configs:
     labels:
       job: metanmc
       __path__: /var/log/meta_mcp/*.log
-- job_name: openfang
+- job_name: robofang
   static_configs:
   - targets:
       - localhost
     labels:
-      job: openfang
-      __path__: /var/log/openfang/*.log
+      job: robofang
+      __path__: /var/log/robofang/*.log

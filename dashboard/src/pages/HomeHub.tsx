@@ -1,7 +1,7 @@
 /**
  * HomeHub — Wave 1 connector dashboard
  *
- * Six connectors proxied through the OpenFang bridge at :10865/home/{connector}/...
+ * Six connectors proxied through the RoboFang bridge at :10865/home/{connector}/...
  *   plex            → Plex MCP  :10740
  *   calibre         → Calibre MCP :10720
  *   home-assistant  → HA MCP :10782

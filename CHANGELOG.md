@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to OpenFang are documented here.
+All notable changes to RoboFang are documented here.
 Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 
 ---
@@ -8,7 +8,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 ## [2.1.0] — 2026-02-26
 
 ### Added
-- **Neural Media RAG Portmanteau** (`tools/openfang_rag.py`): Integrated LanceDB semantic search capabilities directly into OpenFang. The `@mcp.tool()` `openfang_rag` allows natural language querying of media databases with an internal Delta-Sync caching system to rapidly isolate unindexed items.
+- **Neural Media RAG Portmanteau** (`tools/RoboFang_rag.py`): Integrated LanceDB semantic search capabilities directly into RoboFang. The `@mcp.tool()` `RoboFang_rag` allows natural language querying of media databases with an internal Delta-Sync caching system to rapidly isolate unindexed items.
 
 ---
 
@@ -18,10 +18,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 - **Embodied Council Members** (`tools/osc_council_bridge.py`): Resonite vbots and
   virtual sensor agents (e.g. Dreame D20 Pro robohoover) can now participate in the
   Council of Dozens via OSC round-trip. URL scheme: `resonite://host:port/label` or
-  `osc://host:port/label` in `OPENFANG_COUNCIL_MODELS`.
+  `osc://host:port/label` in `RoboFang_COUNCIL_MODELS`.
 - **Cloud SaaS Adviser Bridge** (`tools/cloud_council_bridge.py`): Unified async
   interface covering Groq, DeepSeek, Together.ai, HuggingFace Inference API, OpenAI,
-  and Moonshot (Kimi). Hard cost guard per call (`OPENFANG_CLOUD_BUDGET_USD`, default
+  and Moonshot (Kimi). Hard cost guard per call (`RoboFang_CLOUD_BUDGET_USD`, default
   $0.05). URL scheme: `groq://model`, `deepseek://model`, `hf://org/model`, etc.
 - **Cloud Adviser Registry** (`configs/council_advisers.json`): Maintained list of
   providers, models, cost-per-million-token annotations, specialisation notes, and

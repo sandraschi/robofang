@@ -1,4 +1,4 @@
-# OpenFang Documentation
+# robofang Documentation
 
 This directory contains detailed technical specifications, architectural diagrams, and protocol definitions.
 

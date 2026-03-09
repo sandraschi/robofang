@@ -16,16 +16,32 @@ TAPO_CONFIG = {
     "username": "sandraschipal@hotmail.com",
     "password": "Sec1060ta#",
     "devices": [
-        {"host": "192.168.0.17",  "alias": "tapo_aircon",  "device_id": "tapo_p115_aircon",  "readonly": False},
-        {"host": "192.168.0.138", "alias": "tapo_kitchen", "device_id": "tapo_p115_kitchen", "readonly": False},
-        {"host": "192.168.0.38",  "alias": "tapo_server",  "device_id": "tapo_p115_server",  "readonly": True},
+        {
+            "host": "192.168.0.17",
+            "alias": "tapo_aircon",
+            "device_id": "tapo_p115_aircon",
+            "readonly": False,
+        },
+        {
+            "host": "192.168.0.138",
+            "alias": "tapo_kitchen",
+            "device_id": "tapo_p115_kitchen",
+            "readonly": False,
+        },
+        {
+            "host": "192.168.0.38",
+            "alias": "tapo_server",
+            "device_id": "tapo_p115_server",
+            "readonly": True,
+        },
     ],
 }
 
 
 async def test_connect():
     print("\n=== test_connect ===")
-    from openfang.core.connectors import TapoConnector
+    from robofang.core.connectors import TapoConnector
+
     conn = TapoConnector("tapo", TAPO_CONFIG)
     ok = await conn.connect()
     print(f"connect() -> {ok}, devices online: {list(conn._devices.keys())}")
@@ -35,7 +51,8 @@ async def test_connect():
 
 async def test_get_messages():
     print("\n=== test_get_messages (device state) ===")
-    from openfang.core.connectors import TapoConnector
+    from robofang.core.connectors import TapoConnector
+
     conn = TapoConnector("tapo", TAPO_CONFIG)
     await conn.connect()
     readings = await conn.get_messages(limit=10)
@@ -48,7 +65,8 @@ async def test_get_messages():
 
 async def test_send_readonly_rejected():
     print("\n=== test_send_readonly_rejected ===")
-    from openfang.core.connectors import TapoConnector
+    from robofang.core.connectors import TapoConnector
+
     conn = TapoConnector("tapo", TAPO_CONFIG)
     await conn.connect()
     # Server plug is readonly — command must be rejected
@@ -60,7 +78,8 @@ async def test_send_readonly_rejected():
 
 async def test_send_toggle():
     print("\n=== test_send_toggle (kitchen — non-readonly) ===")
-    from openfang.core.connectors import TapoConnector
+    from robofang.core.connectors import TapoConnector
+
     conn = TapoConnector("tapo", TAPO_CONFIG)
     await conn.connect()
     if "tapo_kitchen" not in conn._devices:

@@ -1,7 +1,7 @@
 <Configuration>
   <MappedFolders>
     <MappedFolder>
-      <HostFolder>D:\Dev\repos\openfang</HostFolder>
+      <HostFolder>D:\Dev\repos\robofang</HostFolder>
       <SandboxFolder>C:\Users\WDAGUtilityAccount\Desktop</SandboxFolder>
       <ReadOnly>false</ReadOnly>
     </MappedFolder>

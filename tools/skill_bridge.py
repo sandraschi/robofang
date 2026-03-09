@@ -4,8 +4,8 @@ from typing import List, Dict
 
 class SkillBridge:
     """
-    OpenFang Skill Facility Bridge
-    Connects OpenFang to the Anthropic/OpenClaw skill repository.
+    RoboFang Skill Facility Bridge
+    Connects RoboFang to the Anthropic/OpenClaw skill repository.
     """
 
     def __init__(self, skills_root: str = "C:/Users/sandr/.gemini/antigravity/skills"):

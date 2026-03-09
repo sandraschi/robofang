@@ -24,7 +24,7 @@
     <!-- Snout and Mouth -->
     <path d="M450 180 L580 220 L620 300 L560 380 L480 400" fill="none" stroke="#2d2d44" stroke-width="4" stroke-linejoin="round"/>
     
-    <!-- Fangs (The "OpenFang" characteristic) -->
+    <!-- Fangs (The "robofang" characteristic) -->
     <!-- Upper Fangs -->
     <path d="M570 240 L590 320 L550 260 Z" fill="#f0f0f5" filter="url(#glow)"/>
     <path d="M540 250 L560 310 L520 270 Z" fill="#f0f0f5" filter="url(#glow)"/>
@@ -42,7 +42,7 @@
     <path d="M180 420 L120 480 L200 460 L160 520 L280 490" fill="none" stroke="#2d2d44" stroke-width="3"/>
   </g>
   
-  <!-- "OPENFANG" Text (Minimalist) -->
-  <text x="256" y="440" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#f0f0f5" text-anchor="middle" letter-spacing="8" style="text-transform: uppercase;">OpenFang</text>
+  <!-- "robofang" Text (Minimalist) -->
+  <text x="256" y="440" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#f0f0f5" text-anchor="middle" letter-spacing="8" style="text-transform: uppercase;">robofang</text>
   <text x="256" y="465" font-family="Arial, sans-serif" font-size="12" fill="#2d2d44" text-anchor="middle" letter-spacing="4" style="text-transform: uppercase;">Sovereign Orchestration Hub</text>
 </svg>

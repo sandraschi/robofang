@@ -6,7 +6,7 @@ export default function Apps() {
         <div className="space-y-8">
             <div>
                 <h1 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">App Hub</h1>
-                <p className="text-slate-400 mt-2">OpenFang ecosystem expansion and modular agentic nodes.</p>
+                <p className="text-slate-400 mt-2">RoboFang ecosystem expansion and modular agentic nodes.</p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -6,8 +6,8 @@ import os
 # Add src to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
 
-from openfang.core.orchestrator import OrchestrationClient
-from openfang.core.storage import OpenFangStorage
+from robofang.core.orchestrator import OrchestrationClient
+from robofang.core.storage import robofangStorage
 
 
 async def verify_rag():
@@ -18,7 +18,7 @@ async def verify_rag():
     if os.path.exists(db_path):
         os.remove(db_path)
 
-    storage = OpenFangStorage(db_path=db_path)
+    storage = robofangStorage(db_path=db_path)
     client = OrchestrationClient(storage=storage)
 
     print("\n--- Phase 8: Auto-RAG Verification ---")

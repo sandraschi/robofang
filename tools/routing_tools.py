@@ -1,10 +1,10 @@
-"""OpenFang Routing Tools: Management of fleet topology and message routing."""
+"""RoboFang Routing Tools: Management of fleet topology and message routing."""
 
 from typing import Dict, Any, Literal
 from fastmcp import Context, FastMCP
-from openfang.core.orchestrator import OrchestrationClient
+from robofang.core.orchestrator import OrchestrationClient
 
-mcp = FastMCP("openfang-routing")
+mcp = FastMCP("RoboFang-routing")
 orchestrator = OrchestrationClient()
 
 
@@ -16,7 +16,7 @@ async def fang_routing(
     agent: str | None = None,
 ) -> Dict[str, Any]:
     """
-    OpenFang routing operations (OpenClaw Parity).
+    RoboFang routing operations (OpenClaw Parity).
 
     Operations:
     - get_routing_rules: List channel-to-agent mappings.

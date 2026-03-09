@@ -1,7 +1,7 @@
-# bootstrap-sandbox.ps1 - OpenFang Burner Bootstrap
+# bootstrap-sandbox.ps1 - robofang Burner Bootstrap
 # Executes inside Windows Sandbox to warm up the environment
 
-Write-Host "Initializing OpenFang Burner Environment..." -ForegroundColor Yellow
+Write-Host "Initializing robofang Burner Environment..." -ForegroundColor Yellow
 
 # 1. Install Essential Tooling
 Write-Host "Installing Dev Tools via Winget..."
@@ -20,4 +20,4 @@ if (-not (Test-Path "C:\Users\WDAGUtilityAccount\Desktop\exchange")) {
     New-Item -ItemType Directory -Path "C:\Users\WDAGUtilityAccount\Desktop\exchange" -Force
 }
 
-Write-Host "OpenFang Burner Ready. Awaiting instructions." -ForegroundColor Green
+Write-Host "robofang Burner Ready. Awaiting instructions." -ForegroundColor Green

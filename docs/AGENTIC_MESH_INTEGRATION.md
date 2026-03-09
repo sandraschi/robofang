@@ -1,8 +1,8 @@
-# Agentic Mesh Integration — OpenFang
+# Agentic Mesh Integration — robofang
 
 **Status:** Design — Phase 4 target  
 **Date:** 2026-02-23  
-**Full spec:** [mcp-central-docs/architecture/AGENTIC_MESH_OPENFANG_INTEGRATION.md](../../mcp-central-docs/architecture/AGENTIC_MESH_OPENFANG_INTEGRATION.md)  
+**Full spec:** [mcp-central-docs/architecture/AGENTIC_MESH_robofang_INTEGRATION.md](../../mcp-central-docs/architecture/AGENTIC_MESH_robofang_INTEGRATION.md)  
 **Architecture:** [mcp-central-docs/architecture/AGENTIC_MESH_ARCHITECTURE.md](../../mcp-central-docs/architecture/AGENTIC_MESH_ARCHITECTURE.md)  
 **Security:** [mcp-central-docs/architecture/AGENTIC_MESH_SECURITY.md](../../mcp-central-docs/architecture/AGENTIC_MESH_SECURITY.md)
 
@@ -10,7 +10,7 @@
 
 ## What This Is
 
-OpenFang becomes the trust-enforcing orchestrator for a mesh of MCP servers that can delegate to each other via sampling bridges. Each server exposes bridge functions — plain Python callables that call other servers. These are passed as `tools=` to `ctx.sample()`. The LLM autonomously orchestrates, gets structured validated results, no client round-trips.
+robofang becomes the trust-enforcing orchestrator for a mesh of MCP servers that can delegate to each other via sampling bridges. Each server exposes bridge functions — plain Python callables that call other servers. These are passed as `tools=` to `ctx.sample()`. The LLM autonomously orchestrates, gets structured validated results, no client round-trips.
 
 The **Council of Dozens** maps directly onto this: each council member is a `ctx.sample()` meta-tool with a specific set of bridges and a Pydantic result type.
 
@@ -19,10 +19,10 @@ The **Council of Dozens** maps directly onto this: each council member is a `ctx
 ## Files to Create (Phase 4)
 
 ```
-openfang/
+robofang/
 ├── configs/
 │   └── bridge_registry.json         ← which server can call which + scope constraints
-├── src/openfang/
+├── src/robofang/
 │   ├── bridges/
 │   │   └── factory.py               ← BridgeFactory: generates validated callables from registry
 │   ├── security/

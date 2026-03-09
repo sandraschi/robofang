@@ -5,12 +5,11 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from openfang.core.reasoning import ReasoningEngine
+from robofang.core.reasoning import ReasoningEngine
 
 # Setup logging
 logging.basicConfig(
@@ -36,7 +35,7 @@ CANONICAL_TASKS = [
     },
     {
         "id": "philosophy_debate",
-        "prompt": "If an agent has a SOUL.md but no BODY.md, is it still a sovereign entity in the OpenFang fleet?",
+        "prompt": "If an agent has a SOUL.md but no BODY.md, is it still a sovereign entity in the robofang fleet?",
         "difficulty": "high",
     },
 ]

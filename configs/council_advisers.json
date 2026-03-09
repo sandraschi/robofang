@@ -1,5 +1,5 @@
 {
-    "_comment": "OpenFang Council Adviser Registry. Kept current — update whenever cheaper/better models appear.",
+    "_comment": "robofang Council Adviser Registry. Kept current — update whenever cheaper/better models appear.",
     "_last_updated": "2026-02-25",
     "_cost_unit": "USD per million tokens (input/output averaged, approximate)",
     "tiebreaker_policy": {

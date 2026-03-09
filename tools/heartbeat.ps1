@@ -1,9 +1,9 @@
-# heartbeat.ps1 - OpenFang Federated Fleet Surveiller
+# heartbeat.ps1 - robofang Federated Fleet Surveiller
 # Native PowerShell Syntax Mandatory
 
 $pulsePath = "$PSScriptRoot/../configs/pulse.json"
 $fleetRoot = "d:/dev/repos"
-$targetPorts = 10700..10800 # OpenFang standard port range
+$targetPorts = 10700..10800 # robofang standard port range
 
 function Get-SystemPulse {
     $pulse = @{
@@ -55,7 +55,7 @@ function Get-SystemPulse {
     return $pulse | ConvertTo-Json -Depth 10
 }
 
-Write-Host "OpenFang Federated Heartbeat started. Monitoring fleet at $fleetRoot..." -ForegroundColor Cyan
+Write-Host "robofang Federated Heartbeat started. Monitoring fleet at $fleetRoot..." -ForegroundColor Cyan
 while ($true) {
     try {
         $currentPulse = Get-SystemPulse

@@ -6,14 +6,14 @@ physical robot, etc.) and waits for an OSC reply with timeout.
 
 OSC Message Protocol
 ====================
-SEND:  /openfang/council/prompt   [round_id: int, adjudicator: str, prompt: str]
-RECV:  /openfang/council/response [round_id: int, response: str]
+SEND:  /RoboFang/council/prompt   [round_id: int, adjudicator: str, prompt: str]
+RECV:  /RoboFang/council/response [round_id: int, response: str]
 
 Resonite Setup (ProtoFlux)
 ==========================
-1. Add an OSC Input > String receiver on address /openfang/council/prompt
+1. Add an OSC Input > String receiver on address /RoboFang/council/prompt
 2. Wire to a local LLM node (or a LogiX string output for scripted vbot responses)
-3. Send reply to /openfang/council/response via OSC Output > String
+3. Send reply to /RoboFang/council/response via OSC Output > String
    with the same round_id as the corresponding prompt.
 
 Virtual Sensor Agent Example (D20 Pro Robohoover):
@@ -41,7 +41,7 @@ import logging
 import uuid
 from typing import Dict, Any, Optional
 
-logger = logging.getLogger("openfang.osc_council_bridge")
+logger = logging.getLogger("RoboFang.osc_council_bridge")
 
 # Try to import python-osc; fall back gracefully so the module can always be imported
 try:
@@ -68,7 +68,7 @@ _listener_port: Optional[int] = None
 
 
 def _osc_response_handler(address: str, round_id: str, response: str):
-    """Called by the OSC server when a /openfang/council/response arrives."""
+    """Called by the OSC server when a /RoboFang/council/response arrives."""
     if round_id in _pending_rounds:
         fut = _pending_rounds.pop(round_id)
         if not fut.done():
@@ -88,7 +88,7 @@ async def _ensure_listener(listen_port: int = 9010) -> None:
         return
 
     dispatcher = Dispatcher()
-    dispatcher.map("/openfang/council/response", _osc_response_handler)
+    dispatcher.map("/RoboFang/council/response", _osc_response_handler)
 
     server = AsyncIOOSCUDPServer(
         ("0.0.0.0", listen_port), dispatcher, asyncio.get_event_loop()
@@ -158,7 +158,7 @@ async def query_osc_agent(
     # Send prompt
     try:
         client = SimpleUDPClient(host, port)
-        client.send_message("/openfang/council/prompt", [round_id, adjudicator, prompt])
+        client.send_message("/RoboFang/council/prompt", [round_id, adjudicator, prompt])
         logger.info(
             f"OSC prompt sent → {host}:{port} | round={round_id} | agent={adjudicator}"
         )

@@ -32,7 +32,7 @@ const guides: GuideItem[] = [
         title: 'Understanding Orchestration',
         description: 'How the council of agents coordinates complex workflows.',
         category: 'basics',
-        content: 'OpenFang uses a Federated Agent model where specialized agents collaborate on tasks. The process involves Dispatching a requirement, Deliberating on a strategy, and Executing via MCP toolsets. This ensures high-latency reasoning is separated from low-latency actions.',
+        content: 'RoboFang uses a Federated Agent model where specialized agents collaborate on tasks. The process involves Dispatching a requirement, Deliberating on a strategy, and Executing via MCP toolsets. This ensures high-latency reasoning is separated from low-latency actions.',
         icon: <Zap size={20} className="text-yellow-400" />
     },
     {

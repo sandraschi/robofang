@@ -7,7 +7,7 @@ def main():
     # d:\dev\repos -> C:\Users\WDAGUtilityAccount\Desktop\repos (or similar for SBie)
     # Since dispatcher handles paths, we just want to see if we can read the file
     consensus_path = Path(
-        "repos/openfang/exchange/synthesized/resonite_vlm_consensus.md"
+        "repos/RoboFang/exchange/synthesized/resonite_vlm_consensus.md"
     )
 
     # Note: This is an example script to be dispatched

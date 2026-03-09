@@ -1,72 +1,77 @@
-# 🐺 OpenFang Sovereign Orchestration Hub
+# RoboFang: MCP Orchestration & Robotics Hub
 
-> [!IMPORTANT]
-> **Sovereign Status**: OpenFang is the primary orchestration node for the Sandra-class federated fleet.
+<p align="center">
+  <img src="assets/robofang-logo.png" width="160" alt="RoboFang Logo" />
+</p>
 
-OpenFang is a high-performance orchestration layer designed to coordinate a distributed fleet of **Model Context Protocol (MCP)** servers. It features an autonomous "Council of Dozens" for complex synthesis and a premium "Sovereign Dashboard" for fleet-wide observability.
+RoboFang is a Python-based orchestration layer designed for managing federated fleets of Model Context Protocol (MCP) servers and physical robotics hardware.
 
-### 🌑 v2.0 "Dark Integration" Flow
-OpenFang v2.0 introduces a 3-phase high-fidelity reasoning cycle:
-1.  **Enrich (The Foreman)**: High-intelligence specification generation from raw vibes/prompts.
-2.  **Execute (The Labor)**: Agentic ReAct loop for tool utilization and execution.
-3.  **Audit (The Satisficer)**: Post-execution verification against the initial specification.
+---
 
-## 🚀 Key Features
+## LLM Connection Methods
 
-- **Neural Media RAG Portmanteau**: High-speed LanceDB semantic retrieval via the `openfang_rag` unified tool, featuring Delta-Sync caching for massive media sets.
-- **Council of Dozens**: Multi-agent adversarial synthesis with specialized roles (**Foreman**, **Satisficer**, **Adjudicator**).
-- **Dark Reasoning Bridge**: Real-time forensic observation via `/deliberations` event stream.
-- **Sovereign Dashboard**: A premium SOTA interface (Port 10864): LLM (Ollama model list/load), Chat, Help, Status, Council, Fleet, Deliberations.
-- **MCP 3.1 Unified Gateway**: Bridge and MCP in one process (default port 10871). Connect Cursor/Claude to `http://localhost:10871/sse`. Tools: status, help, ask, fleet, deliberations, agentic workflow (sampling).
-- **Local LLM**: Ollama proxy at `/api/llm/models`, `/api/llm/load`, `/api/llm/generate`; dashboard uses Bridge as single origin.
-- **Skill Bridge**: Direct integration with the `memops` skill facility repository.
-- **Hardware Sync**: Virtual-to-Physical motion synchronization for VROID Studio and Unitree robotics.
-- **Sandbox Orchestration**: Automated deployment and tasking within isolated Windows Sandbox environments.
-- **Security & Safety**: Multi-phase protection via [DTU (Dark Twin Universe)](docs/SAFETY.md) and [Bastion resource monitoring](docs/SAFETY.md).
+RoboFang supports multiple backend configurations for Large Language Models:
 
-## 🛠️ Installation
+1.  **OpenAI Cloud**: Standard API connectivity. High latency and variable operating costs.
+2.  **Local Ollama**: Local inference via Ollama. 
+    > [!TIP]
+    > **Hardware Recommendation**: An NVIDIA GPU with at least 16GB VRAM is advisable for optimal performance with 20B+ parameter models.
+3.  **Remote LM Studio (Tailscale)**: Connect to remote LM Studio instances. Designed for scenarios where the inference engine runs on a dedicated remote PC, connected via a secure Tailscale tunnel.
 
-OpenFang requires `uv` for high-speed dependency management and Python 3.10+.
+---
+
+## Ecosystem Integration
+
+### Federated Fleet Management
+RoboFang acts as the central bridge for the internal MCP server and webapp fleet. It provides:
+- **Unified Tooling**: Dynamic discovery and execution of tools across the fleet.
+- **Observability**: Real-time logs and status monitoring for all connected nodes.
+- **Port Management**: Automated culling and allocation in the `10700-10800` range.
+
+### Multi-Agent Pipeline
+The system utilizes a 3-phase reasoning loop:
+- **Enrich**: Drafting technical specifications from initial prompts.
+- **Execute**: Tool-based execution via ReAct patterns.
+- **Audit**: Verification of output against original specifications.
+
+### Robotics & Virtual Sync
+- **Hardware**: Native control for Unitree G1 and Go2 robotics.
+- **Virtual**: Real-time motion synchronization for VROID models and VRChat/Unity3D environments via OSC.
+
+---
+
+## Quick Start
+
+RoboFang manages dependencies using `uv`.
 
 ```powershell
-git clone https://github.com/sandraschi/openfang.git
-cd openfang
-uv venv
-source .venv/Scripts/activate
-uv pip install -e .
+# 1. Environment Setup
+git clone https://github.com/sandraschi/robofang.git
+cd robofang
+uv venv; .venv\Scripts\activate
+
+# 2. Launch Services
+.\start_all.ps1
 ```
 
-## 🌐 Sovereign Dashboard
+**Dashboard:** `http://localhost:10864`
 
-OpenFang includes a dedicated web interface for fleet management.
+---
 
-- **Port**: `10864` (dashboard), `10871` (Bridge + MCP)
-- **Location**: `/dashboard` (React/Vite app)
-- **Pages**: LLM (Ollama models, load, inference test), Chat (hub chat + Council toggle), Help (guides + MCP help from Bridge), Status (bridge health, supervisor, connectors), Council, Fleet, Deliberations, Logger, etc.
-- **Visuals**: Premium Dark Mode, Glassmorphism, real-time synthesis feed.
+## Documentation
 
-### Startup
-```powershell
-# Bridge (and MCP) — default port 10871
-uv run python -m openfang.main
-# or: openfang-bridge
+- **[TECHNICAL_DESCRIPTION.md](docs/TECHNICAL_DESCRIPTION.md)**: Architectural details and protocol specifications.
+- **[docs/AGENTIC_OS_PHILOSOPHY.md](docs/AGENTIC_OS_PHILOSOPHY.md)**: Core design principles for sovereign agents.
+- **[docs/SAFETY.md](docs/SAFETY.md)**: Logic regarding the Dark Twin Universe (DTU) and resource limits.
 
-# Dashboard — port 10864
-cd dashboard
-.\start.bat
-```
+---
 
-## 📂 Repository Structure
+## Relationship to OpenFang
 
-- `/dashboard`: React/Vite frontend (Sovereign Interface).
-- `/tools`: Core orchestration logic (`council_orchestrator.py`, `skill_bridge.py`).
-- `/configs`: Federation maps and adjudicator templates.
-- `/containers`: Sandbox provisioners and `.wsb` templates.
-- `/docs`: Detailed protocol and architectural documentation.
-  - **[OPENFANG_MCP_AND_ROADMAP.md](docs/OPENFANG_MCP_AND_ROADMAP.md)** — Architecture, MCP 3.1 unified gateway, and roadmap.
-  - **[docs/skills/openfang-operator.md](docs/skills/openfang-operator.md)** — Operator skill: when to use which tool, Council workflow.
-- `/tests`: Validation suite.
+> [!NOTE]
+> RoboFang is a specialized fork/evolution of the [RightNow-AI/OpenFang](https://github.com/RightNow-AI/openfang) project. While the source project provides a high-performance Rust-based "Agent OS" for general use, RoboFang is tailored specifically for **Vertical Robotics Integration**, **Multi-agent Council logic**, and **Local-first Sovereign stacks**.
 
-## 📜 License
+---
 
-Distributed under the **MIT License**. See `LICENSE` for more information.
+## License
+Distributed under the MIT License.

@@ -1,7 +1,7 @@
 <Configuration>
   <MappedFolders>
     <MappedFolder>
-      <HostFolder>D:\Dev\repos\openfang\exchange</HostFolder>
+      <HostFolder>D:\Dev\repos\robofang\exchange</HostFolder>
       <SandboxFolder>C:\exchange</SandboxFolder>
       <ReadOnly>false</ReadOnly>
     </MappedFolder>

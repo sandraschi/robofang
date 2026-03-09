@@ -5,7 +5,7 @@ from docling.document_converter import DocumentConverter
 
 def digest_paper(source_url: str, output_dir: Path):
     """
-    OpenFang ArXiv Digestor
+    RoboFang ArXiv Digestor
     Uses Docling to extract LaTeX, tables, and graphs into RAG-ready markdown.
     """
     print(f"[*] Extracting high-entropy data from: {source_url}")

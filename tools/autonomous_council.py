@@ -1,12 +1,12 @@
 """
-autonomous_council.py — OpenFang Council of Dozens: Fully Autonomous Mode.
+autonomous_council.py — RoboFang Council of Dozens: Fully Autonomous Mode.
 
 Each adjudicator is a first-class reasoner routed to the appropriate backend:
   - Ollama model   →  local LLM on any ollama-compatible endpoint
   - osc://         →  any agent reachable via OSC UDP (sensor, robot, script)
   - resonite://    →  Resonite vbot / avatar running ProtoFlux OSC handler
 
-Model routing (per adjudicator, via env var OPENFANG_COUNCIL_MODELS):
+Model routing (per adjudicator, via env var ROBOFANG_COUNCIL_MODELS):
   Plain model name:          "llama3"                  → Ollama local
   osc:// URL:                "osc://127.0.0.1:9001/robohoover-d20"
   resonite:// URL:           "resonite://127.0.0.1:9002/vbot-aria"
@@ -19,8 +19,8 @@ Embodied council members surface grounded world-state that LLMs cannot hallucina
     grounded epistemic input that changes the council's risk assessment.
 
 Resonite OSC Protocol (both sending and receiving):
-  PROMPT  /openfang/council/prompt   [round_id: str, adjudicator: str, prompt: str]
-  REPLY   /openfang/council/response [round_id: str, response: str]
+  PROMPT  /RoboFang/council/prompt   [round_id: str, adjudicator: str, prompt: str]
+  REPLY   /RoboFang/council/response [round_id: str, response: str]
 
 Install prerequisites:
   uv pip install python-osc
@@ -40,7 +40,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from council_orchestrator import CouncilOrchestrator, ADJUDICATORS
 from equilibrium_synthesizer import synthesize
-from openfang.core.reasoning import ReasoningEngine
+from robofang.core.reasoning import ReasoningEngine
 from osc_council_bridge import query_osc_agent, parse_osc_url
 from cloud_council_bridge import (
     is_cloud_url,
@@ -49,24 +49,24 @@ from cloud_council_bridge import (
     tiebreaker_call,
 )
 
-logger = logging.getLogger("openfang.council")
+logger = logging.getLogger("RoboFang.council")
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
-MODEL_DEFAULT = os.environ.get("OPENFANG_COUNCIL_DEFAULT_MODEL", "llama3")
-MODEL_HIGH_INTEL = os.environ.get("OPENFANG_COUNCIL_HIGH_INTEL_MODEL", "llama3.1")
+MODEL_DEFAULT = os.environ.get("ROBOFANG_COUNCIL_DEFAULT_MODEL", "llama3")
+MODEL_HIGH_INTEL = os.environ.get("ROBOFANG_COUNCIL_HIGH_INTEL_MODEL", "llama3.1")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 
 # Optional per-adjudicator model map from env
-_custom_models_raw = os.environ.get("OPENFANG_COUNCIL_MODELS", "")
+_custom_models_raw = os.environ.get("ROBOFANG_COUNCIL_MODELS", "")
 ADJUDICATOR_MODELS: dict[str, str] = {}
 if _custom_models_raw:
     try:
         ADJUDICATOR_MODELS = json.loads(_custom_models_raw)
     except json.JSONDecodeError:
-        logger.warning("OPENFANG_COUNCIL_MODELS is not valid JSON — using defaults.")
+        logger.warning("ROBOFANG_COUNCIL_MODELS is not valid JSON — using defaults.")
 
 # High-intel slots: Instigator (mission setting) and Adjudicator-in-Chief (synthesis)
 HIGH_INTEL_ADJUDICATORS = {"Instigator", "Adjudicator-in-Chief"}
@@ -94,7 +94,7 @@ def _is_cloud(model: str) -> bool:
 def _system_prompt_for(adj: dict) -> str:
     """Build a persona-specific system prompt for an adjudicator round."""
     return (
-        f"You are the {adj['name']} on the OpenFang Council of Dozens.\n"
+        f"You are the {adj['name']} on the RoboFang Council of Dozens.\n"
         f"Your critical lens: {adj['focus']}\n\n"
         "Review the debate history and prior rounds. Apply your specialised perspective "
         "to the current task. Be concise, blunt, and reductionist. "
@@ -180,7 +180,7 @@ class AutonomousCouncil:
                             port=cfg["port"],
                             adjudicator=cfg["label"],
                             prompt=osc_prompt,
-                            timeout=float(os.environ.get("OPENFANG_OSC_TIMEOUT", "15")),
+                            timeout=float(os.environ.get("ROBOFANG_OSC_TIMEOUT", "15")),
                         )
                         output = result["response"] if result["success"] else None
                         if not result["success"]:
@@ -336,7 +336,7 @@ def main():
     )
 
     parser = argparse.ArgumentParser(
-        description="OpenFang Autonomous Council of Dozens — Live LLM Debate"
+        description="RoboFang Autonomous Council of Dozens — Live LLM Debate"
     )
     parser.add_argument(
         "--task", type=str, required=True, help="Task name (short label)"
@@ -350,8 +350,8 @@ def main():
     parser.add_argument(
         "--root",
         type=str,
-        default="d:/dev/repos/openfang",
-        help="OpenFang repo root",
+        default="d:/dev/repos/RoboFang",
+        help="RoboFang repo root",
     )
     args = parser.parse_args()
 

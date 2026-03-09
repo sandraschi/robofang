@@ -1,15 +1,15 @@
-# OpenFang Agent Provisioning Script (Sandbox)
+# robofang Agent Provisioning Script (Sandbox)
 # This script runs inside the Windows Sandbox to prepare the environment.
 
-Write-Host "--- OpenFang Agent Bootstrapping ---" -ForegroundColor Cyan
+Write-Host "--- robofang Agent Bootstrapping ---" -ForegroundColor Cyan
 
 # 1. Set up Paths
-$OpenFangPath = Split-Path -Parent $PSScriptRoot
-$LogPath = "$OpenFangPath\exchange\sandbox\boot.log"
+$robofangPath = Split-Path -Parent $PSScriptRoot
+$LogPath = "$robofangPath\exchange\sandbox\boot.log"
 
 "--- Bootstrapping started at $(Get-Date) ---" | Out-File -FilePath $LogPath
 "PSScriptRoot: $PSScriptRoot" | Out-File -FilePath $LogPath -Append
-"OpenFangPath: $OpenFangPath" | Out-File -FilePath $LogPath -Append
+"robofangPath: $robofangPath" | Out-File -FilePath $LogPath -Append
 
 # 2. Install Essentials (if not present)
 # Note: Sandbox is disposable, but we want fast startup.
@@ -24,7 +24,7 @@ Write-Host "Installing core dependencies..."
 pip install mcp --quiet
 
 # 4. Map Federation Logic
-if (Test-Path "$OpenFangPath\configs\federation_map.json") {
+if (Test-Path "$robofangPath\configs\federation_map.json") {
     Write-Host "Federation Map found. Agent is context-aware." -ForegroundColor Green
 }
 else {
@@ -33,7 +33,7 @@ else {
 
 # 5. Execute Staged Task
 Write-Host "Searching for staged tasks..." -ForegroundColor Cyan
-$SandboxExchange = "$OpenFangPath\exchange\sandbox"
+$SandboxExchange = "$robofangPath\exchange\sandbox"
 
 if (Test-Path $SandboxExchange) {
     $LatestTask = Get-ChildItem -Path $SandboxExchange -Directory | Sort-Object LastWriteTime -Descending | Select-Object -First 1

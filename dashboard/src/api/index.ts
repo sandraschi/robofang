@@ -89,6 +89,23 @@ export const runFleetForensics = async () => {
     return response.data;
 };
 
+// ── Autonomous Hands API (SOTA-2026) ───────────────────────────────────────
+
+export const getHands = async () => {
+    const response = await api.get('/api/hands');
+    return response.data;
+};
+
+export const activateHand = async (id: string) => {
+    const response = await api.post(`/api/hands/${id}/activate`);
+    return response.data;
+};
+
+export const pauseHand = async (id: string) => {
+    const response = await api.post(`/api/hands/${id}/pause`);
+    return response.data;
+};
+
 // ── Supervisor endpoints ───────────────────────────────────────────────────────
 // These hit port 10866 (the supervisor), not the bridge itself.
 

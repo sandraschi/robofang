@@ -58,7 +58,7 @@ const Deliberations: React.FC = () => {
         <div className="space-y-8 max-w-6xl mx-auto">
             <div className="flex flex-col gap-2 p-1">
                 <h1 className="text-4xl font-black text-white font-heading tracking-tight">Sovereign Deliberations</h1>
-                <p className="text-slate-400 text-sm leading-relaxed">Live reasoning stream from the OpenFang orchestration layer. High-fidelity log of inter-agent cognitive cycles.</p>
+                <p className="text-slate-400 text-sm leading-relaxed">Live reasoning stream from the RoboFang orchestration layer. High-fidelity log of inter-agent cognitive cycles.</p>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">

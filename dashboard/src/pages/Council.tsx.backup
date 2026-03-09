@@ -12,7 +12,7 @@ const MATRIX_ANIMATIONS = [
 
 const Council: React.FC = () => {
     const councilMembers = [
-        { id: '1', name: 'OpenFang Alpha', role: 'Lead Strategist', status: 'Active', load: 45, focus: 'System Health' },
+        { id: '1', name: 'robofang Alpha', role: 'Lead Strategist', status: 'Active', load: 45, focus: 'System Health' },
         { id: '2', name: 'Logic Engine', role: 'Reductionist Analyst', status: 'Reasoning', load: 82, focus: 'Quadratic Failure' },
         { id: '3', name: 'Creative Synthesis', role: 'Innovation Agent', status: 'Idle', load: 12, focus: 'None' },
         { id: '4', name: 'Security Monitor', role: 'Guardrail Specialist', status: 'Active', load: 28, focus: 'Port Scanning' },

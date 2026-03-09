@@ -3,9 +3,9 @@ requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "openfang"
+name = "robofang"
 version = "0.3.0"
-description = "OpenFang Sovereign Orchestration Hub"
+description = "robofang Sovereign Orchestration Hub"
 requires-python = ">=3.11"
 dependencies = [
     # Core runtime
@@ -41,11 +41,11 @@ dev = [
 ]
 # Install everything including future connector deps
 all = [
-    "openfang[dev]",
+    "robofang[dev]",
 ]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [project.scripts]
-openfang-bridge = "openfang.main:app"
+robofang-bridge = "robofang.main:app"

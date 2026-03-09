@@ -31,7 +31,8 @@ async def test_connect():
     if not DISCORD_CONFIG["token"]:
         print("SKIP: DISCORD_BOT_TOKEN not set")
         return
-    from openfang.core.connectors import DiscordConnector
+    from robofang.core.connectors import DiscordConnector
+
     conn = DiscordConnector("discord", DISCORD_CONFIG)
     ok = await conn.connect()
     print(f"connect() -> {ok}, active={conn.active}")
@@ -44,14 +45,17 @@ async def test_send_message():
     if not DISCORD_CONFIG["token"] or not DISCORD_CONFIG["channel_id"]:
         print("SKIP: token or channel_id not set")
         return
-    from openfang.core.connectors import DiscordConnector
+    from robofang.core.connectors import DiscordConnector
+
     conn = DiscordConnector("discord", DISCORD_CONFIG)
     await conn.connect()
     if not conn.active:
         print("SKIP: not connected")
         await conn.disconnect()
         return
-    ok = await conn.send_message("default", "[OpenFang test] DiscordConnector scaffold check")
+    ok = await conn.send_message(
+        "default", "[robofang test] DiscordConnector scaffold check"
+    )
     print(f"send_message() -> {ok}")
     await conn.disconnect()
     print("PASS" if ok else "WARN")
@@ -62,7 +66,8 @@ async def test_get_messages():
     if not DISCORD_CONFIG["token"] or not DISCORD_CONFIG["channel_id"]:
         print("SKIP: token or channel_id not set")
         return
-    from openfang.core.connectors import DiscordConnector
+    from robofang.core.connectors import DiscordConnector
+
     conn = DiscordConnector("discord", DISCORD_CONFIG)
     await conn.connect()
     if not conn.active:

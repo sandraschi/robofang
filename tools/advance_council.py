@@ -1,12 +1,12 @@
 import sys
 from pathlib import Path
 
-sys.path.append(str(Path("d:/dev/repos/openfang/tools")))
+sys.path.append(str(Path("d:/dev/repos/RoboFang/tools")))
 from council_orchestrator import CouncilOrchestrator
 
 
 def main():
-    root = "d:/dev/repos/openfang"
+    root = "d:/dev/repos/RoboFang"
     orchestrator = CouncilOrchestrator(root)
 
     # 1. Start or Resume the Resonite Session

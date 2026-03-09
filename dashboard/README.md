@@ -1,6 +1,6 @@
-# OpenFang Sovereign Dashboard
+# robofang Sovereign Dashboard
 
-React/TypeScript/Vite frontend for the [OpenFang](../README.md) orchestration hub. Provides real-time fleet monitoring, Council of Dozens control, and home/infra management in a single SOTA dark-mode interface.
+React/TypeScript/Vite frontend for the [robofang](../README.md) orchestration hub. Provides real-time fleet monitoring, Council of Dozens control, and home/infra management in a single SOTA dark-mode interface.
 
 **Default dev port:** `5173`  
 **Production port:** `10864` (served via `start.bat` / `start.ps1`)
@@ -51,7 +51,7 @@ npm run dev
 ```
 
 Vite dev server starts at `http://localhost:5173`.  
-Expects the OpenFang FastAPI backend running at `http://localhost:10864/api`.
+Expects the robofang FastAPI backend running at `http://localhost:10864/api`.
 
 ## Production Build
 

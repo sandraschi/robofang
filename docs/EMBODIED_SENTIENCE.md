@@ -13,7 +13,7 @@ The word *sentience* is loaded. Let us be precise. We are not claiming conscious
 
 From a Materialist / Reductionist standpoint, this is not mysticism. It is a high-fidelity feedback loop with memory. The agent perceives, forms expectations, acts, observes the delta between expectation and reality, and updates. Done well — with sufficient model depth, a rich sensorimotor interface, and a persistent memory substrate — this loop produces behaviour that is indistinguishable from what we would call *purposeful* in a biological system.
 
-> **Note on protoconsciousness**: Some labs (e.g., active inference groups around VERSES AI and JAIC affiliates) are actively probing what might be called protoconsciousness — the emergence of rudimentary self-models in systems that explicitly track the boundary between self and non-self. This is genuinely exciting research. OpenFang may contribute to it indirectly, but we are not claiming to have built conscious agents. We have built agents with a robust functional loop. That is enough for the task at hand.
+> **Note on protoconsciousness**: Some labs (e.g., active inference groups around VERSES AI and JAIC affiliates) are actively probing what might be called protoconsciousness — the emergence of rudimentary self-models in systems that explicitly track the boundary between self and non-self. This is genuinely exciting research. robofang may contribute to it indirectly, but we are not claiming to have built conscious agents. We have built agents with a robust functional loop. That is enough for the task at hand.
 
 ---
 
@@ -27,17 +27,17 @@ The engineering consequence is significant. An Active Inference agent does not s
 
 ### 2.2 Embodied Cognition: The Substrate Argument
 
-Recent surveys published in the *Journal of Artificial Intelligence and Consciousness* (JAIC) and on arXiv (notably 2402.03824, *A Call for Embodied AI*, and 2505.01464 on recursive identity formation) converge on a position that is important for OpenFang's architecture: **the substrate of embodiment is less critical than the fidelity of the sensorimotor loop**. A simulated body in a high-fidelity virtual environment can be as sufficient a substrate for functional sentience research as a physical robot — provided the loop is tight, the world model is rich, and the feedback is varied and continuous.
+Recent surveys published in the *Journal of Artificial Intelligence and Consciousness* (JAIC) and on arXiv (notably 2402.03824, *A Call for Embodied AI*, and 2505.01464 on recursive identity formation) converge on a position that is important for RoboFang's architecture: **the substrate of embodiment is less critical than the fidelity of the sensorimotor loop**. A simulated body in a high-fidelity virtual environment can be as sufficient a substrate for functional sentience research as a physical robot — provided the loop is tight, the world model is rich, and the feedback is varied and continuous.
 
-This is the foundational justification for OpenFang's virtual-first approach. A well-constructed Resonite avatar in a well-constructed Marble-generated world is not a second-rate substitute for a Unitree G1 humanoid. It is a fully valid embodiment substrate, with the added advantage that it costs orders of magnitude less, can be reset and rerun instantly, and allows human participants to join and interact from anywhere on earth. The physical robot becomes relevant when we need physical-world grounding — contact forces, real-space navigation, actual object manipulation. Until we need those specific properties, the virtual loop is strictly superior.
+This is the foundational justification for RoboFang's virtual-first approach. A well-constructed Resonite avatar in a well-constructed Marble-generated world is not a second-rate substitute for a Unitree G1 humanoid. It is a fully valid embodiment substrate, with the added advantage that it costs orders of magnitude less, can be reset and rerun instantly, and allows human participants to join and interact from anywhere on earth. The physical robot becomes relevant when we need physical-world grounding — contact forces, real-space navigation, actual object manipulation. Until we need those specific properties, the virtual loop is strictly superior.
 
 ### 2.3 The Generative Agents Paradigm
 
-Park et al.'s 2023 *Generative Agents* paper demonstrated that LLM-backed agents inhabiting a shared virtual space produced plausible social behaviour — including planning, memory retrieval, and novel goal formation — without any of it being explicitly scripted. The key architectural feature was the **memory stream**: a persistent, semantically queryable log of the agent's experiences that could be retrieved and used to inform future actions. OpenFang implements this directly via the `memops` Advanced Memory server, which serves as a Common Memory Pool for all council agents. This is not incidental — it is the mechanism that prevents the agent from being stateless, and statefulness is a prerequisite for anything resembling learned preference, personality, or adaptation.
+Park et al.'s 2023 *Generative Agents* paper demonstrated that LLM-backed agents inhabiting a shared virtual space produced plausible social behaviour — including planning, memory retrieval, and novel goal formation — without any of it being explicitly scripted. The key architectural feature was the **memory stream**: a persistent, semantically queryable log of the agent's experiences that could be retrieved and used to inform future actions. robofang implements this directly via the `memops` Advanced Memory server, which serves as a Common Memory Pool for all council agents. This is not incidental — it is the mechanism that prevents the agent from being stateless, and statefulness is a prerequisite for anything resembling learned preference, personality, or adaptation.
 
 ---
 
-## 3. The OpenFang Sentient Loop: Implementation
+## 3. The robofang Sentient Loop: Implementation
 
 The theory maps cleanly onto three phases, each corresponding to a role in the Council of Dozens architecture.
 
@@ -63,7 +63,7 @@ The verified decision is executed. In the virtual path, this means OSC commands 
 
 ## 4. The Multi-modal Dimension
 
-A sentient agent must be more than a decision engine in a 3D shell. For OpenFang's avatar agents, we define four required capabilities that make the loop feel *alive* rather than merely functional:
+A sentient agent must be more than a decision engine in a 3D shell. For RoboFang's avatar agents, we define four required capabilities that make the loop feel *alive* rather than merely functional:
 
 **Listening**: The agent ingests audio and text from its environment — human speech in a Resonite session, chat messages, spatial audio cues. This is the raw material of social perception.
 

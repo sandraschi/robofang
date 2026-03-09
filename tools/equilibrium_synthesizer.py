@@ -3,7 +3,7 @@ from pathlib import Path
 
 
 def synthesize(session_file: Path, synthesis_output: str):
-    root = Path("d:/dev/repos/openfang")
+    root = Path("d:/dev/repos/RoboFang")
     output_dir = root / "exchange" / "synthesized"
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -17,7 +17,7 @@ def synthesize(session_file: Path, synthesis_output: str):
 {synthesis_output}
 
 ---
-*Synthesized by OpenFang Council of Dozens.*
+*Synthesized by RoboFang Council of Dozens.*
 """
 
     output_path = output_dir / f"{session_file.stem}_consensus.md"

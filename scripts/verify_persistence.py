@@ -5,20 +5,20 @@ import asyncio
 # Add src to path
 sys.path.append(os.path.abspath("src"))
 
-from openfang.core.storage import OpenFangStorage
-from openfang.core.security import SecurityManager
-from openfang.core.personality import PersonalityEngine
+from robofang.core.storage import robofangStorage
+from robofang.core.security import SecurityManager
+from robofang.core.personality import PersonalityEngine
 
 
 async def verify_persistence():
     print("--- Phase 7 Persistence Verification ---")
 
     # Use a test database
-    db_path = "openfang_test.db"
+    db_path = "robofang_test.db"
     if os.path.exists(db_path):
         os.remove(db_path)
 
-    storage = OpenFangStorage(db_path=db_path)
+    storage = robofangStorage(db_path=db_path)
 
     print("\n[SCENARIO 1] Security Persistence")
     security = SecurityManager(storage=storage)
@@ -43,7 +43,7 @@ async def verify_persistence():
 
     print("\n[SCENARIO 3] Restart Persistence")
     # Simulate restart by creating new instances with same DB
-    storage2 = OpenFangStorage(db_path=db_path)
+    storage2 = robofangStorage(db_path=db_path)
     security2 = SecurityManager(storage=storage2)
     personality2 = PersonalityEngine(storage=storage2)
 

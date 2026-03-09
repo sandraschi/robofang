@@ -1252,60 +1252,6 @@ wheels = [
 ]
 
 [[package]]
-name = "openfang"
-version = "0.3.0"
-source = { editable = "." }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "discord-py" },
-    { name = "fastapi" },
-    { name = "fastmcp" },
-    { name = "httpx" },
-    { name = "phue" },
-    { name = "plexapi" },
-    { name = "psutil" },
-    { name = "pydantic" },
-    { name = "python-kasa" },
-    { name = "ring-doorbell" },
-    { name = "uvicorn", extra = ["standard"] },
-    { name = "websockets" },
-]
-
-[package.optional-dependencies]
-all = [
-    { name = "httpx" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-dev = [
-    { name = "httpx" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiohttp", specifier = ">=3.9" },
-    { name = "discord-py", specifier = ">=2.3" },
-    { name = "fastapi", specifier = ">=0.111" },
-    { name = "fastmcp", specifier = ">=3.1.0" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "httpx", marker = "extra == 'dev'" },
-    { name = "openfang", extras = ["dev"], marker = "extra == 'all'" },
-    { name = "phue", specifier = ">=1.1" },
-    { name = "plexapi", specifier = ">=4.15" },
-    { name = "psutil", specifier = ">=5.9" },
-    { name = "pydantic", specifier = ">=2.7" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
-    { name = "python-kasa", specifier = ">=0.7" },
-    { name = "ring-doorbell", specifier = ">=0.8" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.29" },
-    { name = "websockets", specifier = ">=12" },
-]
-provides-extras = ["dev", "all"]
-
-[[package]]
 name = "opentelemetry-api"
 version = "1.40.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1940,6 +1886,60 @@ sdist = { url = "https://files.pythonhosted.org/packages/42/fb/bd2c1466525c0e67d
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b0/69/125824998fa56a81972ee26b3fc32675199143227f5e08da87b3823f651b/ring_doorbell-0.9.13-py3-none-any.whl", hash = "sha256:efe57e94666b671ca5eb2f46eeb4c94dbdea229761fb257f0c8f95d90e778551", size = 49725, upload-time = "2024-11-26T14:09:29.702Z" },
 ]
+
+[[package]]
+name = "robofang"
+version = "0.3.0"
+source = { editable = "." }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "discord-py" },
+    { name = "fastapi" },
+    { name = "fastmcp" },
+    { name = "httpx" },
+    { name = "phue" },
+    { name = "plexapi" },
+    { name = "psutil" },
+    { name = "pydantic" },
+    { name = "python-kasa" },
+    { name = "ring-doorbell" },
+    { name = "uvicorn", extra = ["standard"] },
+    { name = "websockets" },
+]
+
+[package.optional-dependencies]
+all = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+dev = [
+    { name = "httpx" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", specifier = ">=3.9" },
+    { name = "discord-py", specifier = ">=2.3" },
+    { name = "fastapi", specifier = ">=0.111" },
+    { name = "fastmcp", specifier = ">=3.1.0" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "httpx", marker = "extra == 'dev'" },
+    { name = "phue", specifier = ">=1.1" },
+    { name = "plexapi", specifier = ">=4.15" },
+    { name = "psutil", specifier = ">=5.9" },
+    { name = "pydantic", specifier = ">=2.7" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
+    { name = "python-kasa", specifier = ">=0.7" },
+    { name = "ring-doorbell", specifier = ">=0.8" },
+    { name = "robofang", extras = ["dev"], marker = "extra == 'all'" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.29" },
+    { name = "websockets", specifier = ">=12" },
+]
+provides-extras = ["dev", "all"]
 
 [[package]]
 name = "rpds-py"

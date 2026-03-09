@@ -31,7 +31,7 @@ const KitchenSink: React.FC = () => {
                 <div className="relative glass-panel overflow-hidden border- amber-500/20">
                     <img
                         src="/assets/kitchen_sink_premium_illustration_1771779765087.png"
-                        alt="A futuristic kitchen sink representing the exhaustive nature of OpenFang"
+                        alt="A futuristic kitchen sink representing the exhaustive nature of RoboFang"
                         className="w-full h-auto object-cover transform transition-transform duration-700 group-hover:scale-105"
                     />
 

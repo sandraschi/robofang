@@ -1,4 +1,4 @@
-# PRD: OpenFang Sovereign Orchestration Hub
+# PRD: RoboFang Sovereign Orchestration Hub
 
 **Status**: ACTIVE DRAFT (Phase 4)  
 **Owner**: Sandra Schipal  
@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-OpenFang is the nervous system for a distributed fleet of AI-driven tools. It moves beyond simple tool-calling into **Active Synthesis** through a "Council of Dozens" architecture, where multiple specialised agents adjudicate complex workflows in parallel, debate their conclusions adversarially, and converge on a unified execution plan — all within containerised safe-zones that prevent runaway side-effects.
+RoboFang is the nervous system for a distributed fleet of AI-driven tools. It moves beyond simple tool-calling into **Active Synthesis** through a "Council of Dozens" architecture, where multiple specialised agents adjudicate complex workflows in parallel, debate their conclusions adversarially, and converge on a unified execution plan — all within containerised safe-zones that prevent runaway side-effects.
 
 The project sits at an unusual intersection of engineering and neurophilosophy. The Council's architecture — perceive, think, act, audit — is not a metaphor borrowed from biology; it is a deliberate structural imitation of the mammalian sensorimotor loop, as formalised by Karl Friston's Free Energy Principle. The practical claim is modest and falsifiable: an agent with a persistent memory substrate, a rich sensorimotor interface, and an adversarial self-reflection layer will produce demonstrably more coherent and explainable behaviour than a stateless tool-caller. We are not building consciousness. We are building a very good feedback loop, and measuring the results.
 
@@ -20,7 +20,7 @@ The project sits at an unusual intersection of engineering and neurophilosophy. 
 
 ### I. Federated Orchestration (Fleet Management)
 
-OpenFang's primary operational role is maintaining a live map of the entire Sandra-class MCP fleet — currently 20+ repositories spanning robotics, 3D tooling, social VR, security, and memory systems. The fleet indexer performs continuous discovery across `D:/Dev/repos`, extracting tool schemas, port bindings, and health signals from each server. The result is a capability graph: a queryable, semantic index of what every server in the fleet can do, what it currently is doing, and whether it is healthy. Council agents consult this graph when forming execution plans; the Sovereign Dashboard surfaces it for human inspection in real time.
+RoboFang's primary operational role is maintaining a live map of the entire Sandra-class MCP fleet — currently 20+ repositories spanning robotics, 3D tooling, social VR, security, and memory systems. The fleet indexer performs continuous discovery across `D:/Dev/repos`, extracting tool schemas, port bindings, and health signals from each server. The result is a capability graph: a queryable, semantic index of what every server in the fleet can do, what it currently is doing, and whether it is healthy. Council agents consult this graph when forming execution plans; the Sovereign Dashboard surfaces it for human inspection in real time.
 
 ### II. The Council of Dozens (Active Synthesis)
 
@@ -34,7 +34,7 @@ The Sovereign Dashboard (port 10864) is the human interface to the entire system
 
 ### IV. Simulation Layer (Embodiment Substrate)
 
-The Simulation Layer is the substrate through which OpenFang's agents interact with a world. It comprises two complementary components.
+The Simulation Layer is the substrate through which RoboFang's agents interact with a world. It comprises two complementary components.
 
 **World Generation** is handled by `worldlabs-mcp`, which wraps the World Labs Marble API. Given a natural language prompt ("a busy Vienna coffee shop, afternoon light, wooden tables"), Marble produces a photorealistic 3D Gaussian Splat (SPZ) for visuals and a matching GLB collision mesh for physics. These assets are routed downstream to `blender-mcp` or `unity3d-mcp` for processing, and ultimately into Resonite headless for deployment. The pipeline runs end-to-end under Council orchestration: a single task dispatched to the relevant agents produces a navigable, human-joinable 3D environment within minutes.
 
@@ -68,7 +68,7 @@ The simulation pipeline runs: `worldlabs-mcp` → Marble API → SPZ (visual) + 
 
 ### Frontend Stack
 
-React + Vite + TypeScript with Vanilla CSS (glassmorphism, dark mode, micro-animations). Port allocation: **10864** (Sovereign Dashboard frontend), **10865** (OpenFang API / backend bridge).
+React + Vite + TypeScript with Vanilla CSS (glassmorphism, dark mode, micro-animations). Port allocation: **10864** (Sovereign Dashboard frontend), **10865** (RoboFang API / backend bridge).
 
 ### Infrastructure
 
@@ -78,4 +78,4 @@ Windows Sandbox (`.wsb`) and Sandboxie-Plus provide isolated execution environme
 
 ## 4. Success Metrics
 
-OpenFang's success is measured on five axes. **Synthesis speed**: sub-10 seconds for a full Council round-trip from raw prompt to unified execution plan. **Fleet availability**: 99.9% visibility across all registered MCP repositories, with sub-second health polling. **Aesthetic integrity**: zero runt designs in the dashboard; strictly premium, industrial-grade interface quality. **Sentience validation**: measurable improvement in response coherence, contextual appropriateness, and memory utilisation across successive Resonite HRI sessions — tracked statistically across the Forensic Trace logs. **Inference cost**: council operations at ≤€0.01 per session, with cloud API spend below €20/month under normal research load. The **Virtual-First Gate** is a hard policy metric: no physical hardware purchase proceeds without a passing 48-hour adversarial HRI run in Resonite.
+RoboFang's success is measured on five axes. **Synthesis speed**: sub-10 seconds for a full Council round-trip from raw prompt to unified execution plan. **Fleet availability**: 99.9% visibility across all registered MCP repositories, with sub-second health polling. **Aesthetic integrity**: zero runt designs in the dashboard; strictly premium, industrial-grade interface quality. **Sentience validation**: measurable improvement in response coherence, contextual appropriateness, and memory utilisation across successive Resonite HRI sessions — tracked statistically across the Forensic Trace logs. **Inference cost**: council operations at ≤€0.01 per session, with cloud API spend below €20/month under normal research load. The **Virtual-First Gate** is a hard policy metric: no physical hardware purchase proceeds without a passing 48-hour adversarial HRI run in Resonite.

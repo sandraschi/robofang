@@ -5,7 +5,7 @@ from typing import Dict
 
 class ContextGenerator:
     """
-    OpenFang Context Generator
+    RoboFang Context Generator
     Transforms the federation_map.json into LLM-readable tool manifests.
     """
 
@@ -44,5 +44,5 @@ class ContextGenerator:
 
 
 if __name__ == "__main__":
-    generator = ContextGenerator("d:/dev/repos/openfang")
+    generator = ContextGenerator("d:/dev/repos/RoboFang")
     print(generator.generate_tool_manifest())

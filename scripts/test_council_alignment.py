@@ -5,7 +5,7 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from openfang.core.reasoning import ReasoningEngine
+from robofang.core.reasoning import ReasoningEngine
 
 
 async def test_council():

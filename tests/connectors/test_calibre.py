@@ -17,23 +17,29 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 # Adjust library path to your Calibre library location
 CALIBRE_CONFIG = {
     "calibredb_path": os.getenv("CALIBREDB_PATH", "calibredb"),
-    "library_path":   os.getenv("CALIBRE_LIBRARY", ""),  # e.g. D:\Media\Calibre Library
+    "library_path": os.getenv("CALIBRE_LIBRARY", ""),  # e.g. D:\Media\Calibre Library
 }
 
 
 async def test_connect():
     print("\n=== test_connect (calibredb --version) ===")
-    from openfang.core.connectors import CalibreConnector
+    from robofang.core.connectors import CalibreConnector
+
     conn = CalibreConnector("calibre", CALIBRE_CONFIG)
     ok = await conn.connect()
     print(f"connect() -> {ok}, active={conn.active}")
     await conn.disconnect()
-    print("PASS" if ok else "WARN: calibredb not found — is Calibre installed and on PATH?")
+    print(
+        "PASS"
+        if ok
+        else "WARN: calibredb not found — is Calibre installed and on PATH?"
+    )
 
 
 async def test_get_messages():
     print("\n=== test_get_messages (10 most recent books) ===")
-    from openfang.core.connectors import CalibreConnector
+    from robofang.core.connectors import CalibreConnector
+
     conn = CalibreConnector("calibre", CALIBRE_CONFIG)
     await conn.connect()
     if not conn.active:
@@ -51,21 +57,34 @@ async def test_get_messages():
 
 async def test_search():
     print("\n=== search for 'python' ===")
-    from openfang.core.connectors import CalibreConnector
+    from robofang.core.connectors import CalibreConnector
+
     conn = CalibreConnector("calibre", CALIBRE_CONFIG)
     await conn.connect()
     if not conn.active:
         print("SKIP")
         return
     import asyncio as _a
+
     loop = _a.get_event_loop()
-    import subprocess, json as _j
+    import subprocess
+    import json as _j
+
     def _search():
         r = subprocess.run(
-            conn._cmd("list", "--search", "python",
-                      "--fields", "id,title,authors",
-                      "--limit", "5", "--for-machine"),
-            capture_output=True, text=True, timeout=30
+            conn._cmd(
+                "list",
+                "--search",
+                "python",
+                "--fields",
+                "id,title,authors",
+                "--limit",
+                "5",
+                "--for-machine",
+            ),
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         if r.returncode == 0:
             try:
@@ -73,6 +92,7 @@ async def test_search():
             except Exception:
                 return []
         return []
+
     results = await loop.run_in_executor(None, _search)
     for b in results:
         print(f"  {b.get('id'):>6} | {b.get('title', '')[:50]}")

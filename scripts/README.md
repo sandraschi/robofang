@@ -1,4 +1,4 @@
-# OpenFang Utility Scripts
+# robofang Utility Scripts
 
 This directory contains standalone scripts for system maintenance, port management, and sandbox provisioning.
 
