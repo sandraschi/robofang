@@ -1,12 +1,12 @@
 """
-cloud_council_bridge.py — Cloud LLM adviser bridge for OpenFang Council of Dozens.
+cloud_council_bridge.py — Cloud LLM adviser bridge for RoboFang Council of Dozens.
 
 Provides a unified async interface for external SaaS advisers: Groq, DeepSeek,
 Together.ai, HuggingFace Inference API, OpenAI, and Moonshot (Kimi).
 
 All providers are wrapped in a single call: query_cloud_adviser().
 
-URL scheme in OPENFANG_COUNCIL_MODELS / --tiebreaker flag:
+URL scheme in ROBOFANG_COUNCIL_MODELS / --tiebreaker flag:
     groq://llama-3.1-8b-instant
     deepseek://deepseek-reasoner
     together://Qwen/Qwen2.5-72B-Instruct-Turbo
@@ -15,7 +15,7 @@ URL scheme in OPENFANG_COUNCIL_MODELS / --tiebreaker flag:
     moonshot://moonshot-v1-128k
 
 Cost enforcement:
-    All calls are gated against OPENFANG_CLOUD_BUDGET_USD (default: $0.05 per call).
+    All calls are gated against ROBOFANG_CLOUD_BUDGET_USD (default: $0.05 per call).
     The registry (council_advisers.json) carries cost_per_m annotations.
     If the estimated cost exceeds budget, the call is refused and logged.
 """
@@ -29,15 +29,15 @@ from typing import Any, Dict, Optional
 
 import httpx
 
-logger = logging.getLogger("openfang.cloud_council")
+logger = logging.getLogger("RoboFang.cloud_council")
 
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
 
 _REGISTRY_PATH = Path(__file__).parent.parent / "configs" / "council_advisers.json"
-_CLOUD_BUDGET_USD = float(os.environ.get("OPENFANG_CLOUD_BUDGET_USD", "0.05"))
-_TIMEOUT = float(os.environ.get("OPENFANG_CLOUD_TIMEOUT", "30"))
+_CLOUD_BUDGET_USD = float(os.environ.get("ROBOFANG_CLOUD_BUDGET_USD", "0.05"))
+_TIMEOUT = float(os.environ.get("ROBOFANG_CLOUD_TIMEOUT", "30"))
 
 
 def _load_registry() -> Dict[str, Any]:
@@ -219,7 +219,7 @@ async def query_cloud_adviser(
             "error": (
                 f"Cost guard: estimated ${estimated_cost:.4f} for {provider}/{model} "
                 f"exceeds budget ${budget_usd:.4f}. "
-                "Raise OPENFANG_CLOUD_BUDGET_USD or choose a cheaper model."
+                "Raise ROBOFANG_CLOUD_BUDGET_USD or choose a cheaper model."
             ),
         }
 
@@ -336,7 +336,7 @@ async def tiebreaker_call(
     logger.info(f"Tiebreaker triggered → {adviser_url} (budget: ${cap:.4f})")
 
     tiebreaker_prompt = (
-        "You are an external expert adviser called in to break a deadlock on the OpenFang Council of Dozens.\n\n"
+        "You are an external expert adviser called in to break a deadlock on the RoboFang Council of Dozens.\n\n"
         f"ORIGINAL TASK: {task_desc}\n\n"
         f"COUNCIL SYNTHESIS (split/inconclusive):\n{synthesis}\n\n"
         "Cast a decisive vote. Start with 'APPROVE' or 'REJECT', "

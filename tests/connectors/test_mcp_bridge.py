@@ -17,6 +17,7 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 
 # Load sidecar configs
 import pathlib
+
 _config_path = pathlib.Path("configs/mcp_sidecars.json")
 
 PYTHON = r"C:\Users\sandr\AppData\Local\Programs\Python\Python313\python.exe"
@@ -28,12 +29,33 @@ FALLBACK_CONFIGS = {
         "url": "http://127.0.0.1:8101/mcp",
         "auto_start": False,  # don't auto-start in test unless config confirms it
     },
-    "calibre": {"name": "calibre-mcp", "url": "http://127.0.0.1:8102/mcp", "auto_start": False},
-    "immich":  {"name": "immich-mcp",  "url": "http://127.0.0.1:8103/mcp", "auto_start": False},
-    "blender": {"name": "blender-mcp", "url": "http://127.0.0.1:8110/mcp", "auto_start": False},
-    "gimp":    {"name": "gimp-mcp",    "url": "http://127.0.0.1:8111/mcp", "auto_start": False},
-    "inkscape":{"name": "inkscape-mcp","url": "http://127.0.0.1:8112/mcp", "auto_start": False},
+    "calibre": {
+        "name": "calibre-mcp",
+        "url": "http://127.0.0.1:8102/mcp",
+        "auto_start": False,
+    },
+    "immich": {
+        "name": "immich-mcp",
+        "url": "http://127.0.0.1:8103/mcp",
+        "auto_start": False,
+    },
+    "blender": {
+        "name": "blender-mcp",
+        "url": "http://127.0.0.1:8110/mcp",
+        "auto_start": False,
+    },
+    "gimp": {
+        "name": "gimp-mcp",
+        "url": "http://127.0.0.1:8111/mcp",
+        "auto_start": False,
+    },
+    "inkscape": {
+        "name": "inkscape-mcp",
+        "url": "http://127.0.0.1:8112/mcp",
+        "auto_start": False,
+    },
 }
+
 
 def load_config(sidecar: str) -> dict:
     if _config_path.exists():
@@ -46,7 +68,8 @@ def load_config(sidecar: str) -> dict:
 
 async def test_connect(sidecar: str = "plex"):
     print(f"\n=== test_connect [{sidecar}] ===")
-    from openfang.core.connectors import MCPBridgeConnector
+    from robofang.core.connectors import MCPBridgeConnector
+
     cfg = load_config(sidecar)
     conn = MCPBridgeConnector(sidecar, cfg)
     ok = await conn.connect()
@@ -54,14 +77,19 @@ async def test_connect(sidecar: str = "plex"):
     await conn.disconnect()
     if not ok:
         print(f"WARN: {sidecar} sidecar not reachable.")
-        print(f"  Start it manually: cd {cfg.get('start_cwd','D:/Dev/repos/'+sidecar)}")
-        print(f"  Then: MCP_TRANSPORT=http MCP_PORT={cfg['url'].split(':')[-1].split('/')[0]} python -m <module> --http")
+        print(
+            f"  Start it manually: cd {cfg.get('start_cwd', 'D:/Dev/repos/' + sidecar)}"
+        )
+        print(
+            f"  Then: MCP_TRANSPORT=http MCP_PORT={cfg['url'].split(':')[-1].split('/')[0]} python -m <module> --http"
+        )
     return ok
 
 
 async def test_tools_list(sidecar: str = "plex"):
     print(f"\n=== test_tools_list [{sidecar}] ===")
-    from openfang.core.connectors import MCPBridgeConnector
+    from robofang.core.connectors import MCPBridgeConnector
+
     cfg = load_config(sidecar)
     conn = MCPBridgeConnector(sidecar, cfg)
     ok = await conn.connect()
@@ -80,7 +108,8 @@ async def test_tools_list(sidecar: str = "plex"):
 
 async def test_call_tool(sidecar: str = "plex", tool: str = None, args: dict = None):
     print(f"\n=== test_call_tool [{sidecar}] tool={tool} ===")
-    from openfang.core.connectors import MCPBridgeConnector
+    from robofang.core.connectors import MCPBridgeConnector
+
     cfg = load_config(sidecar)
     conn = MCPBridgeConnector(sidecar, cfg)
     ok = await conn.connect()
@@ -89,7 +118,7 @@ async def test_call_tool(sidecar: str = "plex", tool: str = None, args: dict = N
         return
     result = await conn.call_tool(tool, args or {})
     if result is None:
-        print(f"WARN: call_tool returned None — tool may not exist or errored")
+        print("WARN: call_tool returned None — tool may not exist or errored")
     else:
         if isinstance(result, dict):
             print(f"  Result keys: {list(result.keys())}")
@@ -106,12 +135,12 @@ async def test_call_tool(sidecar: str = "plex", tool: str = None, args: dict = N
 
 SIDECAR_SMOKE_CALLS = {
     # tool name, arguments
-    "plex":    ("plex_library",   {"action": "list_sections"}),
+    "plex": ("plex_library", {"action": "list_sections"}),
     "calibre": ("calibre_search", {"query": "python", "limit": 5}),
-    "immich":  ("search_photos",  {"query": "dog", "limit": 5}),
+    "immich": ("search_photos", {"query": "dog", "limit": 5}),
     "blender": ("blender_status", {}),
-    "gimp":    ("gimp_status",    {}),
-    "inkscape":("inkscape_info",  {}),
+    "gimp": ("gimp_status", {}),
+    "inkscape": ("inkscape_info", {}),
 }
 
 
@@ -130,7 +159,9 @@ async def run_sidecar(sidecar: str):
         else:
             # Try first available tool with empty args
             if tool_names:
-                print(f"\nSmoke tool '{tool}' not found — trying '{tool_names[0]}' instead")
+                print(
+                    f"\nSmoke tool '{tool}' not found — trying '{tool_names[0]}' instead"
+                )
                 await test_call_tool(sidecar, tool_names[0], {})
 
 

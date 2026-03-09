@@ -149,7 +149,7 @@ const BridgeBanner: React.FC<{
                             </div>
                             <div className="text-sm text-slate-400 mt-1">
                                 {supOffline
-                                    ? 'Start the supervisor: python -m openfang.supervisor'
+                                    ? 'Start the supervisor: python -m RoboFang.supervisor'
                                     : 'Use the controls below to start the bridge.'
                                 }
                             </div>

@@ -8,6 +8,6 @@
     "BASTIO_API_KEY": "",
     "BASTIO_BASE_URL": "https://api.bastio.com",
     "DTU_PROXY_URL": "http://localhost:8001",
-    "OPENFANG_SECURITY_LEVEL": "STRICT"
+    "robofang_SECURITY_LEVEL": "STRICT"
   }
 }

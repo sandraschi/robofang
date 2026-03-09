@@ -1,5 +1,5 @@
 {
-  "server_name": "openfang-[domain]-[app]-mcp",
+  "server_name": "robofang-[domain]-[app]-mcp",
   "version": "1.0.0",
   "domain": "[creative|knowledge|comms|system]",
   "app_target": "[Blender|GIMP|Plex|etc]",
@@ -11,7 +11,7 @@
     "type": "uv",
     "port": 0,
     "env": {
-      "OPENFANG_MODE": "SOVEREIGN",
+      "robofang_MODE": "SOVEREIGN",
       "PULSE_CHECK": "../../configs/pulse.json"
     }
   },

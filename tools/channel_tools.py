@@ -1,10 +1,10 @@
-"""OpenFang Channel Tools: Interaction with communication channels (Discord, Telegram, OSC)."""
+"""RoboFang Channel Tools: Interaction with communication channels (Discord, Telegram, OSC)."""
 
 from typing import Dict, Any, Literal
 from fastmcp import Context, FastMCP
-from openfang.core.orchestrator import OrchestrationClient
+from robofang.core.orchestrator import OrchestrationClient
 
-mcp = FastMCP("openfang-channels")
+mcp = FastMCP("RoboFang-channels")
 orchestrator = OrchestrationClient()
 
 
@@ -17,7 +17,7 @@ async def fang_channels(
     to: str | None = None,
 ) -> Dict[str, Any]:
     """
-    OpenFang channel operations (OpenClaw Parity).
+    RoboFang channel operations (OpenClaw Parity).
 
     Operations:
     - list_channels: List active communication channels.

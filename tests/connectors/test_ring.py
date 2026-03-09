@@ -14,8 +14,8 @@ sys.path.insert(0, "src")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
 RING_CONFIG = {
-    "email":      "sandraschipal@hotmail.com",
-    "password":   "Sec1000ri#",
+    "email": "sandraschipal@hotmail.com",
+    "password": "Sec1000ri#",
     # Use the already-cached token from devices-mcp to avoid 2FA prompt
     "token_file": r"D:\dev\repos\devices-mcp\ring_token.cache",
 }
@@ -23,7 +23,8 @@ RING_CONFIG = {
 
 async def test_connect():
     print("\n=== test_connect ===")
-    from openfang.core.connectors import RingConnector
+    from robofang.core.connectors import RingConnector
+
     conn = RingConnector("ring", RING_CONFIG)
     ok = await conn.connect()
     print(f"connect() -> {ok}, active={conn.active}")
@@ -38,7 +39,8 @@ async def test_connect():
 
 async def test_get_messages():
     print("\n=== test_get_messages (recent events) ===")
-    from openfang.core.connectors import RingConnector
+    from robofang.core.connectors import RingConnector
+
     conn = RingConnector("ring", RING_CONFIG)
     await conn.connect()
     if not conn.active:

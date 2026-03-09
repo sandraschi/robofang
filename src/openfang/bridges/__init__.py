@@ -1,1 +1,0 @@
-# OpenFang bridges subpackage

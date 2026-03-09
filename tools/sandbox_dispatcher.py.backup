@@ -5,12 +5,12 @@ import sys
 from typing import Dict, Any
 from pathlib import Path
 
-# Add src to path if needed to find openfang.core
+# Add src to path if needed to find robofang.core
 sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 try:
-    from openfang.core.bastion import LocalBastionManager
-    from openfang.core.bastio import BastioGateway
+    from robofang.core.bastion import LocalBastionManager
+    from robofang.core.bastio import BastioGateway
 except ImportError:
     # Fallback for isolated execution
     LocalBastionManager = None
@@ -19,7 +19,7 @@ except ImportError:
 
 class SandboxDispatcher:
     """
-    OpenFang Sandbox Dispatcher
+    robofang Sandbox Dispatcher
     Orchestrates the execution of tasks within Windows Sandboxes.
     """
 
@@ -101,7 +101,7 @@ class SandboxDispatcher:
             "BASTIO_API_KEY": os.environ.get("BASTIO_API_KEY", "MOCK_KEY"),
             "BASTIO_BASE_URL": "https://api.bastio.com",
             "DTU_PROXY_URL": self.dtu_url if self.use_dtu else None,
-            "OPENFANG_SECURITY_LEVEL": "STRICT",
+            "robofang_SECURITY_LEVEL": "STRICT",
         }
 
         manifest = {
@@ -139,11 +139,11 @@ class SandboxDispatcher:
     def _launch_sandboxie(self, script_path: Path):
         """
         Launches the script using Sandboxie-Plus CLI (SbieCtrl.exe).
-        Example: SbieCtrl.exe /box:OpenFang /start C:\Python312\python.exe C:\repos\openfang\exchange\sandbox\...\execute_me.py
+        Example: SbieCtrl.exe /box:robofang /start C:\Python312\python.exe C:\repos\robofang\exchange\sandbox\...\execute_me.py
         """
         # Note: Paths must be converted to host-visible paths for the Sandboxie process
         print(f"[*] Triggering Sandboxie-Plus for {script_path.name}")
-        # subprocess.Popen(["C:\\Program Files\\Sandboxie-Plus\\SbieCtrl.exe", "/box:OpenFang", "/start", "python", str(script_path)])
+        # subprocess.Popen(["C:\\Program Files\\Sandboxie-Plus\\SbieCtrl.exe", "/box:robofang", "/start", "python", str(script_path)])
 
     def poll_result(self, task_id: str, timeout: int = 300):
         """
@@ -163,7 +163,7 @@ class SandboxDispatcher:
 
 
 if __name__ == "__main__":
-    dispatcher = SandboxDispatcher("d:/dev/repos/openfang")
+    dispatcher = SandboxDispatcher("d:/dev/repos/robofang")
     # Sample Task: Verify server health within sandbox
     sample_script = "import os; print('Hello from Sandbox'); import json; with open('result.json', 'w') as f: json.dump({'status': 'SUCCESS', 'output': 'Sandbox Verified'}, f)"
     task_id = dispatcher.dispatch_task("Sandbox Health Check", sample_script)

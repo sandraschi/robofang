@@ -12,6 +12,6 @@
     </MappedFolder>
   </MappedFolders>
   <LogonCommand>
-    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\Users\WDAGUtilityAccount\Desktop\repos\openfang\tools\provision_agent.ps1</Command>
+    <Command>powershell.exe -ExecutionPolicy Bypass -File C:\Users\WDAGUtilityAccount\Desktop\repos\robofang\tools\provision_agent.ps1</Command>
   </LogonCommand>
 </Configuration>

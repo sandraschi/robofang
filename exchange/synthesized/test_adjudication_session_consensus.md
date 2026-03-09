@@ -6,4 +6,4 @@
 Consensus reached across all domains. Infrastructure ready for deployment.
 
 ---
-*Synthesized by OpenFang Council of Dozens.*
+*Synthesized by robofang Council of Dozens.*

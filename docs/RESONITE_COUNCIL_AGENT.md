@@ -3,7 +3,7 @@
 **Version**: 1.0 | **Last Updated**: 2026-02-25
 
 This guide explains how to make a Resonite avatar (vbot) or virtual sensor agent
-participate in OpenFang Council of Dozens debates as a first-class adjudicator.
+participate in robofang Council of Dozens debates as a first-class adjudicator.
 
 ---
 
@@ -25,14 +25,14 @@ adding another LLM cannot.
 
 ## OSC Protocol
 
-OpenFang sends prompts and receives responses on fixed OSC addresses:
+robofang sends prompts and receives responses on fixed OSC addresses:
 
 | Direction | Address | Arguments |
 | :-------- | :------ | :-------- |
-| Prompt → Resonite | `/openfang/council/prompt` | `round_id: str`, `adjudicator: str`, `prompt: str` |
-| Response ← Resonite | `/openfang/council/response` | `round_id: str`, `response: str` |
+| Prompt → Resonite | `/robofang/council/prompt` | `round_id: str`, `adjudicator: str`, `prompt: str` |
+| Response ← Resonite | `/robofang/council/response` | `round_id: str`, `response: str` |
 
-> **Critical**: The `round_id` must be echoed back in the response. OpenFang uses it 
+> **Critical**: The `round_id` must be echoed back in the response. robofang uses it 
 > to match responses to pending futures.
 
 ---
@@ -42,7 +42,7 @@ OpenFang sends prompts and receives responses on fixed OSC addresses:
 ### 1. OSC Receiver Node
 
 ```
-OSC Input > String  →  address: /openfang/council/prompt
+OSC Input > String  →  address: /robofang/council/prompt
 Output: String[0] = round_id
 Output: String[1] = adjudicator_label
 Output: String[2] = prompt_text
@@ -73,7 +73,7 @@ String Builder: "Covered: {pct}% | Obstacle: {pos} | Last sweep: {ts}"
 ### 3. OSC Sender Node (Response)
 
 ```
-OSC Output > String  →  address: /openfang/council/response
+OSC Output > String  →  address: /robofang/council/response
 Input: String[0] = round_id   (from receiver, echoed back)
 Input: String[1] = response_string
 ```
@@ -82,7 +82,7 @@ Input: String[1] = response_string
 
 ## Registering an Embodied Council Member
 
-Set `OPENFANG_COUNCIL_MODELS` env var (JSON):
+Set `robofang_council_MODELS` env var (JSON):
 
 ```json
 {
@@ -125,7 +125,7 @@ risk assessment in the actual state of the physical (or simulated) world.
 
 | Service | Port | Notes |
 | :------ | :--- | :---- |
-| OpenFang OSC listener | 9010 | Default `OPENFANG_OSC_LISTEN_PORT` |
+| robofang OSC listener | 9010 | Default `robofang_OSC_LISTEN_PORT` |
 | Resonite avatar OSC | 9001 | Configure in Resonite world session settings |
 | Robohoover sensor agent | 9002 | Set in sensor agent config |
 | Resonite world default OSC | 9000 | Resonite built-in, avoid collision |
@@ -134,6 +134,6 @@ risk assessment in the actual state of the physical (or simulated) world.
 
 ## Timeout Handling
 
-OSC agents that don't respond within `OPENFANG_OSC_TIMEOUT` (default: 15s) produce
+OSC agents that don't respond within `robofang_OSC_TIMEOUT` (default: 15s) produce
 an `[OFFLINE]` entry in the debate record. The council continues without them — 
 a missing agent degrades the quality of debate but does not halt the session.

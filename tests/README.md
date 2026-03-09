@@ -1,4 +1,4 @@
-# OpenFang Test Suite
+# robofang Test Suite
 
 This directory contains unit, integration, and E2E tests for the orchestration hub.
 

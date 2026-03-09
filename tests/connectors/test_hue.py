@@ -19,7 +19,8 @@ HUE_CONFIG = {
 
 async def test_connect():
     print("\n=== test_connect ===")
-    from openfang.core.connectors import HueConnector
+    from robofang.core.connectors import HueConnector
+
     conn = HueConnector("hue", HUE_CONFIG)
     ok = await conn.connect()
     print(f"connect() -> {ok}, active={conn.active}")
@@ -29,7 +30,8 @@ async def test_connect():
 
 async def test_get_messages():
     print("\n=== test_get_messages (light states) ===")
-    from openfang.core.connectors import HueConnector
+    from robofang.core.connectors import HueConnector
+
     conn = HueConnector("hue", HUE_CONFIG)
     await conn.connect()
     lights = await conn.get_messages(limit=10)
@@ -42,7 +44,8 @@ async def test_get_messages():
 
 async def test_send_on_off():
     print("\n=== test_send on/off cycle ===")
-    from openfang.core.connectors import HueConnector
+    from robofang.core.connectors import HueConnector
+
     conn = HueConnector("hue", HUE_CONFIG)
     await conn.connect()
     if not conn.active:
@@ -69,7 +72,8 @@ async def test_send_on_off():
 
 async def test_send_color():
     print("\n=== test_send color:warm ===")
-    from openfang.core.connectors import HueConnector
+    from robofang.core.connectors import HueConnector
+
     conn = HueConnector("hue", HUE_CONFIG)
     await conn.connect()
     if not conn.active:

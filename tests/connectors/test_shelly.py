@@ -28,7 +28,8 @@ async def test_connect():
     if not SHELLY_CONFIG["devices"]:
         print("SKIP: no devices configured in SHELLY_CONFIG")
         return
-    from openfang.core.connectors import ShellyConnector
+    from robofang.core.connectors import ShellyConnector
+
     conn = ShellyConnector("shelly", SHELLY_CONFIG)
     ok = await conn.connect()
     print(f"connect() -> {ok}, online: {list(conn._online.keys())}")
@@ -41,7 +42,8 @@ async def test_get_messages():
     if not SHELLY_CONFIG["devices"]:
         print("SKIP")
         return
-    from openfang.core.connectors import ShellyConnector
+    from robofang.core.connectors import ShellyConnector
+
     conn = ShellyConnector("shelly", SHELLY_CONFIG)
     await conn.connect()
     readings = await conn.get_messages()
@@ -57,7 +59,8 @@ async def test_send_on_off():
     if not SHELLY_CONFIG["devices"]:
         print("SKIP")
         return
-    from openfang.core.connectors import ShellyConnector
+    from robofang.core.connectors import ShellyConnector
+
     conn = ShellyConnector("shelly", SHELLY_CONFIG)
     await conn.connect()
     if not conn._online:

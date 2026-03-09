@@ -19,13 +19,13 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 
 # Fill these in or set env vars
 EMAIL_CONFIG = {
-    "smtp_host":     os.getenv("EMAIL_SMTP_HOST", "smtp.gmail.com"),
-    "smtp_port":     int(os.getenv("EMAIL_SMTP_PORT", "587")),
-    "smtp_user":     os.getenv("EMAIL_USER", ""),
+    "smtp_host": os.getenv("EMAIL_SMTP_HOST", "smtp.gmail.com"),
+    "smtp_port": int(os.getenv("EMAIL_SMTP_PORT", "587")),
+    "smtp_user": os.getenv("EMAIL_USER", ""),
     "smtp_password": os.getenv("EMAIL_PASSWORD", ""),
-    "smtp_from":     os.getenv("EMAIL_FROM", ""),
-    "imap_host":     os.getenv("EMAIL_IMAP_HOST", "imap.gmail.com"),
-    "imap_port":     int(os.getenv("EMAIL_IMAP_PORT", "993")),
+    "smtp_from": os.getenv("EMAIL_FROM", ""),
+    "imap_host": os.getenv("EMAIL_IMAP_HOST", "imap.gmail.com"),
+    "imap_port": int(os.getenv("EMAIL_IMAP_PORT", "993")),
 }
 TEST_RECIPIENT = os.getenv("EMAIL_TEST_TO", EMAIL_CONFIG["smtp_user"])
 
@@ -41,7 +41,8 @@ async def test_connect():
     print("\n=== test_connect (IMAP) ===")
     if _skip_if_unconfigured():
         return
-    from openfang.core.connectors import EmailConnector
+    from robofang.core.connectors import EmailConnector
+
     conn = EmailConnector("email", EMAIL_CONFIG)
     ok = await conn.connect()
     print(f"connect() -> {ok}, active={conn.active}")
@@ -53,7 +54,8 @@ async def test_get_messages():
     print("\n=== test_get_messages (recent INBOX) ===")
     if _skip_if_unconfigured():
         return
-    from openfang.core.connectors import EmailConnector
+    from robofang.core.connectors import EmailConnector
+
     conn = EmailConnector("email", EMAIL_CONFIG)
     await conn.connect()
     if not conn.active:
@@ -71,7 +73,8 @@ async def test_get_unread():
     print("\n=== test_get_messages unread_only ===")
     if _skip_if_unconfigured():
         return
-    from openfang.core.connectors import EmailConnector
+    from robofang.core.connectors import EmailConnector
+
     conn = EmailConnector("email", EMAIL_CONFIG)
     await conn.connect()
     if not conn.active:
@@ -87,13 +90,14 @@ async def test_send_message():
     print(f"\n=== test_send_message -> {TEST_RECIPIENT} ===")
     if _skip_if_unconfigured():
         return
-    from openfang.core.connectors import EmailConnector
+    from robofang.core.connectors import EmailConnector
+
     conn = EmailConnector("email", EMAIL_CONFIG)
     await conn.connect()
     ok = await conn.send_message(
         TEST_RECIPIENT,
-        "OpenFang EmailConnector test — stdlib smtplib path. If you see this, it works.",
-        subject="[OpenFang test] EmailConnector scaffold",
+        "robofang EmailConnector test — stdlib smtplib path. If you see this, it works.",
+        subject="[robofang test] EmailConnector scaffold",
     )
     print(f"send_message() -> {ok}")
     await conn.disconnect()

@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import pytest
 from pathlib import Path
 
@@ -11,19 +10,19 @@ MCP_CENTRAL_DOCS_PATH = os.environ.get(
 if MCP_CENTRAL_DOCS_PATH not in sys.path:
     sys.path.append(MCP_CENTRAL_DOCS_PATH)
 
-# Add openfang to path
-OPENFANG_SRC_PATH = str(Path(__file__).parent.parent / "src")
-if OPENFANG_SRC_PATH not in sys.path:
-    sys.path.insert(0, OPENFANG_SRC_PATH)
+# Add robofang to path
+robofang_SRC_PATH = str(Path(__file__).parent.parent / "src")
+if robofang_SRC_PATH not in sys.path:
+    sys.path.insert(0, robofang_SRC_PATH)
 
-from openfang.core.openfang_rag import OpenFangRAG
+from robofang.core.robofang_rag import robofangRAG
 
 
 @pytest.fixture
 def temp_rag(tmp_path):
     # Use a temporary directory for LanceDB and tracking JSON
     db_path = str(tmp_path / "lancedb")
-    rag = OpenFangRAG(db_path=db_path, table_name="test_media")
+    rag = robofangRAG(db_path=db_path, table_name="test_media")
     return rag, tmp_path
 
 

@@ -6,6 +6,6 @@ scrape_configs:
   - job_name: 'meta_mcp'
     static_configs:
       - targets: ['host.docker.internal:10711'] # Scrape meta_mcp API for metrics
-  - job_name: 'openfang'
+  - job_name: 'robofang'
     static_configs:
-      - targets: ['host.docker.internal:10701'] # Scrape OpenFang API
+      - targets: ['host.docker.internal:10701'] # Scrape robofang API

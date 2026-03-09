@@ -4,7 +4,7 @@ from pathlib import Path
 
 class CouncilOrchestrator:
     """
-    OpenFang Council of Dozens Orchestrator
+    robofang Council of Dozens Orchestrator
     Manages the multi-round debate state between Opus, Sonnet, and Gemini.
     """
 
@@ -180,7 +180,7 @@ class CouncilOrchestrator:
 
 
 if __name__ == "__main__":
-    orchestrator = CouncilOrchestrator("d:/dev/repos/openfang")
+    orchestrator = CouncilOrchestrator("d:/dev/repos/robofang")
     # Example usage
     # session = orchestrator.start_debate("Open Blender Fang", "Refine the Unity-to-Blender FBX pipeline for high-performance VR avatars.")
     # print(orchestrator.get_round_prompt(session))

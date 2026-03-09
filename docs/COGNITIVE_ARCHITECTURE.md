@@ -1,14 +1,14 @@
-# 🧠 OpenFang v2.0: Cognitive Architecture & Forensic Mirroring
+# 🧠 robofang v2.0: Cognitive Architecture & Forensic Mirroring
 
 > [!IMPORTANT]
-> This document defines the advanced cognitive layers of the OpenFang "Dark Integration" architecture, bridging the gap between raw tool execution and autonomous self-reflection.
+> This document defines the advanced cognitive layers of the robofang "Dark Integration" architecture, bridging the gap between raw tool execution and autonomous self-reflection.
 
 ## 1. The Semantic Memory Pool (Infinite Context)
 
-OpenFang leverages the `memops` MCP server as a **Common Memory Pool**. This acts as a Retrieval-Augmented Generation (RAG) substrate for the entire Council.
+robofang leverages the `memops` MCP server as a **Common Memory Pool**. This acts as a Retrieval-Augmented Generation (RAG) substrate for the entire Council.
 
 - **Semantic Querying**: Agents do not just rely on conversation history. They perform semantic searches against the `memops` knowledge base to retrieve similar past implementation patterns, user preferences, and project-specific "lessons learned".
-- **Agentic RAG**: Unlike static RAG, OpenFang agents autonomously decide *when* to query the pool and *how* to refine the context before execution.
+- **Agentic RAG**: Unlike static RAG, robofang agents autonomously decide *when* to query the pool and *how* to refine the context before execution.
 - **Research Anchor**: 
   - *Generative Agents: Interactive Simulacra of Human Behavior* (Park et al., 2023) - Introduces the "Memory Stream" concept.
   - *MA-RAG: Multi-Agent Retrieval-Augmented Generation* (2024) - Orchestration of collaborative agents for retrieval.
@@ -36,7 +36,7 @@ The "Voice in the Head" is implemented as the **Forensic Trace** (Reasoning Log)
 
 ## 4. Implementation Status (v2.0)
 
-| Concept | OpenFang v2.0 Implementation | Status |
+| Concept | robofang v2.0 Implementation | Status |
 | :--- | :--- | :--- |
 | **Memory Pool** | `memops` semantic bridge + `adn_knowledge` | ✅ ACTIVE |
 | **Voice in Head** | High-fidelity internal `ForensicTrace` buffer | ✅ ACTIVE |

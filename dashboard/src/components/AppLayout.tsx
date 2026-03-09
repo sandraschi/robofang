@@ -14,6 +14,7 @@ import {
     Sparkles,
     PanelLeftClose,
     Brain,
+    Layers,
     Home,
     Palette,
     MonitorDot,
@@ -22,6 +23,7 @@ import {
     Grid,
     MessageSquare,
     HelpCircle,
+    Monitor,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -41,7 +43,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 className={`flex flex-col border-r border-white/5 bg-[#0a0a16]/90 backdrop-blur-3xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] z-40 relative ${isCollapsed ? 'w-[64px]' : 'w-[240px]'}`}
             >
                 {/* Sidebar Header */}
-                <div className="h-[72px] px-6 flex items-center justify-between border-b border-white/5" title="OpenFang Platform">
+                <div className="h-[72px] px-6 flex items-center justify-between border-b border-white/5" title="RoboFang Platform">
                     {!isCollapsed ? (
                         <motion.div
                             initial={{ opacity: 0, x: -10 }}
@@ -51,7 +53,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
                                 <Activity size={18} className="text-white" />
                             </div>
-                            <span className="font-heading font-bold text-xl tracking-tight text-white">OpenFang</span>
+                            <span className="font-heading font-bold text-xl tracking-tight text-white">RoboFang</span>
                         </motion.div>
                     ) : (
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto shadow-lg shadow-indigo-600/30">
@@ -64,7 +66,9 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <nav className="flex-1 py-6 px-4 space-y-1.5 overflow-y-auto custom-scrollbar">
                     <NavItem to="/" icon={<LayoutDashboard size={20} />} label="Dashboard" isCollapsed={isCollapsed} active={location.pathname === '/'} />
                     <NavItem to="/council" icon={<UsersRound size={20} />} label="Council" isCollapsed={isCollapsed} active={location.pathname === '/council'} />
+                    <NavItem to="/showroom" icon={<Monitor size={20} />} label="Showroom" isCollapsed={isCollapsed} active={location.pathname === '/showroom'} />
                     <NavItem to="/fleet" icon={<Cpu size={20} />} label="Fleet" isCollapsed={isCollapsed} active={location.pathname === '/fleet'} />
+                    <NavItem to="/hands" icon={<Layers size={20} />} label="Hands" isCollapsed={isCollapsed} active={location.pathname === '/hands'} />
                     <NavItem to="/home" icon={<Home size={20} />} label="Home Hub" isCollapsed={isCollapsed} active={location.pathname === '/home'} />
                     <NavItem to="/creative" icon={<Palette size={20} />} label="Creative Hub" isCollapsed={isCollapsed} active={location.pathname === '/creative'} />
                     <NavItem to="/infra" icon={<MonitorDot size={20} />} label="Infra Hub" isCollapsed={isCollapsed} active={location.pathname === '/infra'} />

@@ -3,6 +3,7 @@ import AppLayout from './components/AppLayout';
 import Dashboard from './pages/Dashboard.tsx';
 import Knowledge from './pages/Knowledge.tsx';
 import Fleet from './pages/Fleet.tsx';
+import Hands from './pages/Hands.tsx';
 import Council from './pages/Council.tsx';
 import Deliberations from './pages/Deliberations.tsx';
 import Connectors from './pages/Connectors.tsx';
@@ -20,6 +21,7 @@ import CreativeHub from './pages/CreativeHub.tsx';
 import InfraHub from './pages/InfraHub.tsx';
 import KnowledgeHub from './pages/KnowledgeHub.tsx';
 import Tools from './pages/Tools.tsx';
+import Showroom from './pages/Showroom.tsx';
 import Apps from './pages/Apps.tsx';
 import './index.css';
 
@@ -33,6 +35,7 @@ function App() {
           <Route path="/deliberations" element={<Deliberations />} />
           <Route path="/knowledge" element={<Knowledge />} />
           <Route path="/fleet" element={<Fleet />} />
+          <Route path="/hands" element={<Hands />} />
           <Route path="/connectors" element={<Connectors />} />
           <Route path="/home" element={<HomeHub />} />
           <Route path="/creative" element={<CreativeHub />} />
@@ -43,6 +46,7 @@ function App() {
           <Route path="/logger" element={<Logger />} />
           <Route path="/status" element={<Status />} />
           <Route path="/tools" element={<Tools />} />
+          <Route path="/showroom" element={<Showroom />} />
           <Route path="/apps" element={<Apps />} />
           <Route path="/help" element={<Help />} />
           <Route path="/chat" element={<Chat />} />

@@ -1,12 +1,12 @@
 <Configuration>
   <MappedFolders>
     <MappedFolder>
-      <HostFolder>D:\Dev\repos\openfang</HostFolder>
-      <SandboxFolder>C:\openfang</SandboxFolder>
+      <HostFolder>D:\Dev\repos\robofang</HostFolder>
+      <SandboxFolder>C:\robofang</SandboxFolder>
       <ReadOnly>false</ReadOnly>
     </MappedFolder>
   </MappedFolders>
   <LogonCommand>
-    <Command>C:\openfang\tools\bootstrap.bat</Command>
+    <Command>C:\robofang\tools\bootstrap.bat</Command>
   </LogonCommand>
 </Configuration>

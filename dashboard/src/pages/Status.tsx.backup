@@ -89,7 +89,7 @@ const BridgeBanner: React.FC<{
                             )}
                             {!lastSeen && state === 'offline' && (
                                 <div className="text-xs text-slate-500 mt-2">
-                                    Start the bridge: <code className="font-mono bg-white/[0.06] px-1.5 py-0.5 rounded text-red-300">cd openfang &amp;&amp; python -m openfang.main</code>
+                                    Start the bridge: <code className="font-mono bg-white/[0.06] px-1.5 py-0.5 rounded text-red-300">cd robofang &amp;&amp; python -m robofang.main</code>
                                 </div>
                             )}
                         </div>

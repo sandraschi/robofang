@@ -15,7 +15,7 @@ sys.path.insert(0, "src")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
 PLEX_CONFIG = {
-    "url":   os.getenv("PLEX_URL", "http://localhost:32400"),
+    "url": os.getenv("PLEX_URL", "http://localhost:32400"),
     "token": os.getenv("PLEX_TOKEN", ""),  # X-Plex-Token from your Plex account
 }
 
@@ -31,7 +31,8 @@ async def test_connect():
     print("\n=== test_connect ===")
     if _skip():
         return
-    from openfang.core.connectors import PlexConnector
+    from robofang.core.connectors import PlexConnector
+
     conn = PlexConnector("plex", PLEX_CONFIG)
     ok = await conn.connect()
     print(f"connect() -> {ok}")
@@ -45,7 +46,8 @@ async def test_get_messages():
     print("\n=== test_get_messages (recently added) ===")
     if _skip():
         return
-    from openfang.core.connectors import PlexConnector
+    from robofang.core.connectors import PlexConnector
+
     conn = PlexConnector("plex", PLEX_CONFIG)
     await conn.connect()
     if not conn.active:
@@ -53,7 +55,9 @@ async def test_get_messages():
         return
     items = await conn.get_messages(limit=10)
     for item in items:
-        print(f"  [{item['type']:8s}] {item['title']} ({item.get('year','')}) — {item['section']}")
+        print(
+            f"  [{item['type']:8s}] {item['title']} ({item.get('year', '')}) — {item['section']}"
+        )
     await conn.disconnect()
     assert isinstance(items, list)
     print(f"PASS — {len(items)} items")
@@ -63,7 +67,8 @@ async def test_library_sections():
     print("\n=== library sections ===")
     if _skip():
         return
-    from openfang.core.connectors import PlexConnector
+    from robofang.core.connectors import PlexConnector
+
     conn = PlexConnector("plex", PLEX_CONFIG)
     await conn.connect()
     if not conn.active:
@@ -81,7 +86,8 @@ async def test_active_sessions():
     print("\n=== active sessions (what's playing) ===")
     if _skip():
         return
-    from openfang.core.connectors import PlexConnector
+    from robofang.core.connectors import PlexConnector
+
     conn = PlexConnector("plex", PLEX_CONFIG)
     await conn.connect()
     if not conn.active:

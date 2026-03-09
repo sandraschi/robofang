@@ -2,7 +2,7 @@
 CouncilOrchestrator — manages multi-round adjudicator debate sessions.
 
 The system prompt is resolved in this priority order:
-  1. OPENFANG_COUNCIL_PROMPT env var (full path to a .md file)
+  1. ROBOFANG_COUNCIL_PROMPT env var (full path to a .md file)
   2. <repo_root>/configs/council_debate_prompt.md  (committed default)
   3. Inline fallback string (so startup never hard-crashes)
 """
@@ -21,13 +21,13 @@ _REPO_ROOT = Path(__file__).parent.parent
 def _resolve_system_prompt() -> str:
     """Load council debate system prompt from config, env, or inline fallback."""
     # 1. Explicit env override
-    env_path = os.environ.get("OPENFANG_COUNCIL_PROMPT", "")
+    env_path = os.environ.get("ROBOFANG_COUNCIL_PROMPT", "")
     if env_path:
         p = Path(env_path)
         if p.exists():
             logger.info(f"Council prompt loaded from env: {p}")
             return p.read_text(encoding="utf-8")
-        logger.warning(f"OPENFANG_COUNCIL_PROMPT set but file not found: {p}")
+        logger.warning(f"ROBOFANG_COUNCIL_PROMPT set but file not found: {p}")
 
     # 2. Default repo-local path
     default_path = _REPO_ROOT / "configs" / "council_debate_prompt.md"
@@ -38,10 +38,10 @@ def _resolve_system_prompt() -> str:
     # 3. Inline fallback — never crashes startup
     logger.warning(
         "No council_debate_prompt.md found. Using inline fallback. "
-        "Set OPENFANG_COUNCIL_PROMPT env var or create configs/council_debate_prompt.md."
+        "Set ROBOFANG_COUNCIL_PROMPT env var or create configs/council_debate_prompt.md."
     )
     return (
-        "You are an adjudicator in the OpenFang Council of Dozens. "
+        "You are an adjudicator in the RoboFang Council of Dozens. "
         "Analyse the task from your specific critical lens and provide concise, "
         "actionable output. Refer to previous rounds when contradicting them."
     )

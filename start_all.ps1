@@ -1,5 +1,5 @@
 # start_all.ps1
-# OpenFang - start supervisor + dashboard in one command.
+# robofang - start supervisor + dashboard in one command.
 # Run from the repo root:  .\start_all.ps1
 
 param(
@@ -19,7 +19,7 @@ $TempDir = "D:\Dev\repos\temp"
 if (-not (Test-Path $TempDir)) { New-Item -ItemType Directory -Path $TempDir | Out-Null }
 
 Write-Host ""
-Write-Host "  OpenFang Launcher" -ForegroundColor Cyan
+Write-Host "  robofang Launcher" -ForegroundColor Cyan
 Write-Host "  ---------------------------------------------" -ForegroundColor DarkGray
 Write-Host "  Repo:       $RepoRoot" -ForegroundColor DarkGray
 Write-Host "  Python:     $Python" -ForegroundColor DarkGray
@@ -62,7 +62,7 @@ Write-Host "[1/3] Starting supervisor on :10872 ..." -ForegroundColor Yellow
 $SupLog = "$TempDir\supervisor_$(Get-Date -Format 'HHmmss').log"
 $SupProc = Start-Process `
     -FilePath $Python `
-    -ArgumentList "-m", "openfang.supervisor" `
+    -ArgumentList "-m", "robofang.supervisor" `
     -WorkingDirectory $RepoRoot `
     -RedirectStandardOutput $SupLog `
     -RedirectStandardError  "$SupLog.err" `
@@ -86,7 +86,7 @@ Write-Host "[1.1/3] Starting MCP Substrate on :10867 ..." -ForegroundColor Yello
 $McpLog = "$TempDir\mcp_substrate_$(Get-Date -Format 'HHmmss').log"
 $McpProc = Start-Process `
     -FilePath $Python `
-    -ArgumentList "-m", "openfang.mcp_server", "sse" `
+    -ArgumentList "-m", "robofang.mcp_server", "sse" `
     -WorkingDirectory $RepoRoot `
     -RedirectStandardOutput $McpLog `
     -RedirectStandardError  "$McpLog.err" `

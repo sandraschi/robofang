@@ -24,7 +24,7 @@ import subprocess
 from pathlib import Path
 from typing import Dict, List, Optional
 
-logger = logging.getLogger("openfang.arxiv_rag")
+logger = logging.getLogger("RoboFang.arxiv_rag")
 
 
 # ---------------------------------------------------------------------------
@@ -271,7 +271,7 @@ def push_to_adn(
         logger.warning(f"subprocess ADN push error: {e}")
 
     # Final fallback: print payload for manual copy
-    print(f"\n[!] ADN push failed — note payload for manual ingestion:")
+    print("\n[!] ADN push failed — note payload for manual ingestion:")
     print(json.dumps(payload, indent=2, ensure_ascii=False))
     print(
         "\nInstall memops in your environment or ensure the CLI is accessible via `uv run`."
@@ -287,7 +287,7 @@ def main():
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(
-        description="OpenFang ArXiv RAG Bridge — parse PDF and push to ADN memory"
+        description="RoboFang ArXiv RAG Bridge — parse PDF and push to ADN memory"
     )
     parser.add_argument("path", help="Path to the arXiv PDF file")
     parser.add_argument(

@@ -6,12 +6,12 @@ import sys
 from typing import Dict, Any
 from pathlib import Path
 
-# Add src to path so openfang.core is importable when run standalone
+# Add src to path so RoboFang.core is importable when run standalone
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 try:
-    from openfang.core.bastion import LocalBastionManager
-    from openfang.core.bastio import BastioGateway
+    from robofang.core.bastion import LocalBastionManager
+    from robofang.core.bastio import BastioGateway
 except ImportError:
     LocalBastionManager = None  # type: ignore
     BastioGateway = None  # type: ignore
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 class SandboxDispatcher:
     """
-    OpenFang Sandbox Dispatcher.
+    RoboFang Sandbox Dispatcher.
     Orchestrates task execution within isolated Windows Sandbox environments.
     """
 
@@ -31,7 +31,7 @@ class SandboxDispatcher:
         self.exchange_dir.mkdir(parents=True, exist_ok=True)
         self.wsb_template = self.root / "containers" / "agent_template.wsb"
         self.use_dtu = use_dtu
-        self.logger = logging.getLogger("openfang.sandbox")
+        self.logger = logging.getLogger("RoboFang.sandbox")
         self.dtu_url = os.environ.get("DTU_PROXY_URL", "http://localhost:8001")
 
         # Security primitives — both are optional
@@ -94,7 +94,7 @@ class SandboxDispatcher:
             "BASTIO_API_KEY": os.environ.get("BASTIO_API_KEY", ""),
             "BASTIO_BASE_URL": "https://api.bastio.com",
             "DTU_PROXY_URL": self.dtu_url if self.use_dtu else "",
-            "OPENFANG_SECURITY_LEVEL": "STRICT",
+            "ROBOFANG_SECURITY_LEVEL": "STRICT",
         }
 
         manifest = {
@@ -169,12 +169,12 @@ class SandboxDispatcher:
   <MappedFolders>
     <MappedFolder>
       <HostFolder>{host_root}</HostFolder>
-      <SandboxFolder>C:\openfang</SandboxFolder>
+      <SandboxFolder>C:\RoboFang</SandboxFolder>
       <ReadOnly>false</ReadOnly>
     </MappedFolder>
   </MappedFolders>
   <LogonCommand>
-    <Command>cmd.exe /c "echo Guest Up > C:\openfang\exchange\sandbox\guest_up.log"</Command>
+    <Command>cmd.exe /c "echo Guest Up > C:\RoboFang\exchange\sandbox\guest_up.log"</Command>
   </LogonCommand>
 </Configuration>"""
         output_path.write_text(wsb_content, encoding="utf-8")
@@ -226,7 +226,7 @@ class SandboxDispatcher:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    dispatcher = SandboxDispatcher("d:/dev/repos/openfang")
+    dispatcher = SandboxDispatcher("d:/dev/repos/RoboFang")
     sample_script = (
         "import json\n"
         "with open('result.json', 'w') as f:\n"

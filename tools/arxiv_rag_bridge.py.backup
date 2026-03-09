@@ -3,7 +3,7 @@ import json
 import argparse
 from typing import Dict, List
 
-# Note: In a production OpenFang environment, this script would leverage
+# Note: In a production robofang environment, this script would leverage
 # Docling (IBM) or Nougat (Meta) for multimodal PDF parsing.
 # For this implementation, we provide the glue to connect ArXiv data to memops.
 
@@ -26,7 +26,7 @@ def parse_arxiv_paper(file_path: str) -> Dict:
 def push_to_adn(data: Dict):
     """
     Prepares the payload for the write_note memops tool.
-    In OpenFang, this is the "Deep Memory" update.
+    In robofang, this is the "Deep Memory" update.
     """
     note_content = f"# {data['title']}\n\n{data['content']}\n\nSource: {data['metadata']['source']}"
     print(f"Prepared ADN Note: {data['title']}")
@@ -35,7 +35,7 @@ def push_to_adn(data: Dict):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="OpenFang ArXiv Graph-Ingestor")
+    parser = argparse.ArgumentParser(description="robofang ArXiv Graph-Ingestor")
     parser.add_param("path", help="Path to the ArXiv PDF")
     # args = parser.parse_args()
 

@@ -1,7 +1,7 @@
-# OpenFang v2.0: Safety & Security Architecture
+# robofang v2.0: Safety & Security Architecture
 
 > [!IMPORTANT]
-> OpenFang v2.0 "Dark Integration" enforces a strict isolation and monitoring policy to ensure agentic autonomy does not compromise host stability or data integrity.
+> robofang v2.0 "Dark Integration" enforces a strict isolation and monitoring policy to ensure agentic autonomy does not compromise host stability or data integrity.
 
 ## 1. DTU: Dark Twin Universe (The Safety Proxy)
 
@@ -29,7 +29,7 @@ The **Dark Twin Universe (DTU)** is the primary isolation layer for Phase 2 (Exe
 
 ## 4. Federated Safety (Multi-Repo)
 
-When OpenFang operates across multiple repositories:
+When robofang operates across multiple repositories:
 1. Each repository root requires a local `Bastion` instance.
 2. The `Sovereign Dashboard` aggregates safety heartbeats from all active Bastions.
 3. Centralized `AGENT_PROTOCOLS.md` rules define the global "Right to Intervene" for the human operator.

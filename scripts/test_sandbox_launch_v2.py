@@ -25,7 +25,7 @@ with open(log_path, 'w') as f:
 
     task_id = dispatcher.dispatch_task("Sandbox V2 Verification", script)
     print(f"Task dispatched: {task_id}")
-    print("Check d:/Dev/repos/openfang/exchange/sandbox/guest_up.log in a few seconds.")
+    print("Check d:/Dev/repos/robofang/exchange/sandbox/guest_up.log in a few seconds.")
 
 
 if __name__ == "__main__":

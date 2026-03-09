@@ -1,8 +1,8 @@
-# OpenFang ↔ WorldLabs + Resonite Integration
+# robofang ↔ WorldLabs + Resonite Integration
 
 **Status**: Architectural Plan · February 2026  
 **Author**: Sandra Schipal  
-**Location**: `d:/Dev/repos/openfang/docs/`
+**Location**: `d:/Dev/repos/robofang/docs/`
 
 ---
 
@@ -24,16 +24,16 @@ In this session we built two complete MCP server webapps and integration pipelin
 
 ---
 
-## 2. Why This Matters for OpenFang
+## 2. Why This Matters for robofang
 
-OpenFang is the orchestration hub for the federated MCP fleet. The PRD explicitly mentions:
+robofang is the orchestration hub for the federated MCP fleet. The PRD explicitly mentions:
 - **Hardware Sync**: "Virtual-to-Physical motion sync for VROID Studio and Unitree robotics"
 - **Council of Dozens**: Multi-agent synthesis across the fleet
 
 WorldLabs + Resonite are the **world simulation layer** for this stack. Here's how they slot in:
 
 ```
-OpenFang Council of Dozens
+robofang Council of Dozens
         │
         ├── worldlabs-mcp ──► Marble API ──► 3D World (SPZ + GLB)
         │                                         │
@@ -92,7 +92,7 @@ osc-mcp → /avatar/joint/* → Resonite → Robot avatar moves
                           → ROS2 behaviour tree
 ```
 
-### Phase D — OpenFang Council Integration
+### Phase D — robofang Council Integration
 The Council of Dozens can orchestrate this entire pipeline as a workflow:
 
 ```python
@@ -108,14 +108,14 @@ council.dispatch(
 )
 ```
 
-Each agent calls the relevant MCP tool. OpenFang orchestrates the sequence.
+Each agent calls the relevant MCP tool. robofang orchestrates the sequence.
 
 ---
 
-## 4. Adding worldlabs-mcp to OpenFang Fleet
+## 4. Adding worldlabs-mcp to robofang Fleet
 
 ### Step 1: Register in fleet config
-Add to `d:/Dev/repos/openfang/configs/`:
+Add to `d:/Dev/repos/robofang/configs/`:
 
 ```json
 {
@@ -143,7 +143,7 @@ Add to `d:/Dev/repos/openfang/configs/`:
 ```
 
 ### Step 3: Wire in the Sovereign Dashboard
-The OpenFang dashboard should surface:
+The robofang dashboard should surface:
 - worldlabs-mcp generation queue widget
 - Resonite active sessions panel
 - One-click "Deploy world to Resonite" button
@@ -166,7 +166,7 @@ The OpenFang dashboard should surface:
 
 ---
 
-## 6. OpenFang PRD Update Needed
+## 6. robofang PRD Update Needed
 
 The existing PRD mentions "Hardware Sync" but lacks specificity. Recommend adding to PRD:
 
@@ -185,7 +185,7 @@ The existing PRD mentions "Hardware Sync" but lacks specificity. Recommend addin
 | P1 | Add `WORLDLABS_API_KEY` to `.env` and test world generation | Sandra |
 | P1 | Test SPZ download + Blender import via blender-mcp | Sandra |
 | P2 | Set `RESONITE_USER_ID` + `RESONITE_TOKEN`, test `resonite_rest_get_sessions` | Sandra |
-| P2 | Register worldlabs-mcp + resonite-mcp in OpenFang fleet config | Sandra |
+| P2 | Register worldlabs-mcp + resonite-mcp in robofang fleet config | Sandra |
 | P3 | Wire OSC joint control in a Resonite test session (manual ProtoFlux first) | Sandra |
 | P3 | Design Council task schema for "HRI test" workflow | Sandra |
 | P4 | Unitree G1 URDF → GLB avatar for Resonite | Sandra |

@@ -29,7 +29,7 @@ async def test_connect():
     if not EMAIL_CONFIG["imap_host"] or not EMAIL_CONFIG["username"]:
         print("SKIP: EMAIL_IMAP_HOST or EMAIL_USER not set")
         return
-    from openfang.core.connectors import EmailConnector
+    from robofang.core.connectors import EmailConnector
     conn = EmailConnector("email", EMAIL_CONFIG)
     ok = await conn.connect()
     print(f"connect() -> {ok}, active={conn.active}")
@@ -42,7 +42,7 @@ async def test_get_messages():
     if not EMAIL_CONFIG["imap_host"] or not EMAIL_CONFIG["username"]:
         print("SKIP")
         return
-    from openfang.core.connectors import EmailConnector
+    from robofang.core.connectors import EmailConnector
     conn = EmailConnector("email", EMAIL_CONFIG)
     await conn.connect()
     if not conn.active:
@@ -62,13 +62,13 @@ async def test_send_message():
     if not EMAIL_CONFIG["smtp_host"] or not EMAIL_CONFIG["username"]:
         print("SKIP: EMAIL_SMTP_HOST or EMAIL_USER not set")
         return
-    from openfang.core.connectors import EmailConnector
+    from robofang.core.connectors import EmailConnector
     conn = EmailConnector("email", EMAIL_CONFIG)
     await conn.connect()
     ok = await conn.send_message(
         TEST_RECIPIENT,
-        "OpenFang EmailConnector scaffold check — if you see this it works.",
-        subject="[OpenFang test] EmailConnector",
+        "robofang EmailConnector scaffold check — if you see this it works.",
+        subject="[robofang test] EmailConnector",
     )
     print(f"send_message() -> {ok}")
     await conn.disconnect()

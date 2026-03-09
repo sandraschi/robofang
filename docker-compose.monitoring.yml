@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: containers/Dockerfile.prometheus
-    container_name: openfang-prometheus
+    container_name: robofang-prometheus
     volumes:
       - prometheus_data:/prometheus
     ports:
@@ -22,7 +22,7 @@ services:
     build:
       context: .
       dockerfile: containers/Dockerfile.loki
-    container_name: openfang-loki
+    container_name: robofang-loki
     ports:
       - "3100:3100"
     command: -config.file=/etc/loki/local-config.yaml
@@ -32,7 +32,7 @@ services:
     build:
       context: .
       dockerfile: containers/Dockerfile.promtail
-    container_name: openfang-promtail
+    container_name: robofang-promtail
     volumes:
       - shared_logs:/var/log/fleet_logs
       - d:/Dev/repos/meta_mcp:/var/log/meta_mcp
@@ -45,7 +45,7 @@ services:
     build:
       context: .
       dockerfile: containers/Dockerfile.grafana
-    container_name: openfang-grafana
+    container_name: robofang-grafana
     volumes:
       - grafana_data:/var/lib/grafana
     environment:
