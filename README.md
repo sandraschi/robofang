@@ -4,6 +4,13 @@
   <img src="assets/robofang-logo.png" width="160" alt="RoboFang Logo" />
 </p>
 
+<p align="center">
+  <img src="https://img.shields.io/badge/Language-Python%203.11+-blue?style=flat-square" alt="Python" />
+  <img src="https://img.shields.io/badge/MCP-3.1%20Unified-orange?style=flat-square" alt="MCP 3.1" />
+  <img src="https://img.shields.io/badge/Compatible-OpenClaw-9cf?style=flat-square" alt="OpenClaw" />
+  <img src="https://img.shields.io/badge/Heritage-OpenFang-red?style=flat-square" alt="OpenFang" />
+</p>
+
 RoboFang is a Python-based orchestration layer designed for managing federated fleets of Model Context Protocol (MCP) servers and physical robotics hardware.
 
 ---
