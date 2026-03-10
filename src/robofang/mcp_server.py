@@ -350,11 +350,10 @@ if __name__ == "__main__":
 
     mcp_standalone = FastMCP("RoboFang Substrate")
 
-    # We don't have an orchestrator in standalone mode yet,
-    # but we can register tools that don't depend on it or
-    # provide a mock. For now, just show it's alive.
+    # Standalone mode: no orchestrator; tools that need it are unavailable.
     @mcp_standalone.tool()
     async def substrate_ping() -> str:
+        """Liveness check for RoboFang Substrate."""
         return "RoboFang Substrate is alive and reachable."
 
     logger.info(

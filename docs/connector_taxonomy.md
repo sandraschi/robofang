@@ -8,7 +8,8 @@ OpenClaw routes messages. robofang controls things.
 - REAL     — fully implemented, tested
 - PARTIAL  — implemented, some methods stub
 - PLANNED  — designed, not yet coded
-- STUB     — placeholder only
+- NOT IMPLEMENTED — no implementation; use an alternative connector
+- DEPRECATED — do not use; use replacement
 
 ---
 
@@ -19,9 +20,9 @@ OpenClaw routes messages. robofang controls things.
 | moltbook      | REAL    | httpx (internal) | Sovereign journal + social         |
 | email         | REAL    | stdlib only      | SMTP send + IMAP read              |
 | discord       | REAL    | discord.py       | Bot, send+receive channel msgs     |
-| slack         | PLANNED | slack-sdk        | Workspace bot                      |
+| slack         | REAL    | slack-sdk        | Workspace bot; token + channel_id  |
 | telegram      | PLANNED | python-telegram-bot | Personal bot                    |
-| social        | STUB    | —                | Generic placeholder                |
+| social        | NOT IMPLEMENTED | —            | Use discord or slack connector    |
 
 ---
 
@@ -37,7 +38,7 @@ OpenClaw routes messages. robofang controls things.
 | netatmo         | PLANNED | pyatmo        | Weather station, indoor CO2/humidity    |
 | dreame          | PLANNED | python-miio   | Dreame/Xiaomi vacuum control            |
 | unitree_g1      | PLANNED | unitree-sdk   | Unitree G1 humanoid robot               |
-| iot (generic)   | STUB    | —             | Deprecated — use specific connectors    |
+| iot (generic)   | DEPRECATED | —          | Use TapoConnector, HueConnector, or ShellyConnector |
 
 ---
 
@@ -79,7 +80,7 @@ Config: `configs/mcp_sidecars.json`. Test: `python tests/connectors/test_mcp_bri
 | Connector        | Status  | Library/Method | Notes                                  |
 |------------------|---------|----------------|----------------------------------------|
 | homeassistant    | REAL    | httpx          | Also listed under Physical Devices     |
-| advanced_memory  | PLANNED | httpx          | Local memops MCP REST bridge           |
+| advanced_memory  | REAL    | MCPBridgeConnector | Memops MCP REST bridge; see [MEMOPS_STATUS.md](MEMOPS_STATUS.md) |
 | notion           | PLANNED | notion-client  | Notion pages and databases             |
 | obsidian         | PLANNED | httpx          | Obsidian Local REST plugin             |
 
@@ -105,8 +106,8 @@ pip install -e ".[dev]"
 pip install python-kasa phue discord.py plexapi ring-doorbell
 # (email, shelly, ha, calibre need no extra deps)
 
-# Future
-pip install pyatmo python-miio slack-sdk python-telegram-bot
+# Optional (slack is in main deps)
+pip install pyatmo python-miio python-telegram-bot
 ```
 
 ---

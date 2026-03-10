@@ -654,11 +654,13 @@ const Status: React.FC = () => {
         }
     }, []);
 
-    const refreshLogs = useCallback(async () => {
-        setLogsLoading(true);
         try {
-            const logs = await getSupervisorLogs(100);
-            setLogLines(logs);
+            const res = await getSupervisorLogs(100);
+            if (res && res.success && Array.isArray(res.lines)) {
+                setLogLines(res.lines);
+            } else if (Array.isArray(res)) {
+                setLogLines(res);
+            }
         } catch (e) {
             console.error('Log fetch failed', e);
         } finally {

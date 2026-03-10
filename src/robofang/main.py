@@ -21,6 +21,8 @@ from robofang.plugins.robotics_hand import RoboticsHand
 from robofang.mcp_server import get_help_content, register_mcp
 from robofang.webhooks import router as webhooks_router
 from robofang.diagnostics import router as diagnostics_router
+from robofang.messaging import reply_to as messaging_reply_to
+from robofang.core.hand_manifest import HandDefinition, HandAgentConfig
 
 # Bridge start time (epoch seconds)
 _BRIDGE_START_TIME = time.time()
@@ -95,8 +97,36 @@ logger = logging.getLogger("robofang.main")
 orchestrator = OrchestrationClient()
 
 # Register Autonomous Hands
-orchestrator.hands.register_hand(CollectorHand())
-orchestrator.hands.register_hand(RoboticsHand())
+orchestrator.hands.register_hand(
+    CollectorHand(
+        HandDefinition(
+            id="collector",
+            name="Collector Hand",
+            description="System Hand: Health & Knowledge",
+            category="system",
+            agent=HandAgentConfig(
+                name="Collector",
+                description="System monitoring agent",
+                system_prompt="Monitor the fleet.",
+            ),
+        )
+    )
+)
+orchestrator.hands.register_hand(
+    RoboticsHand(
+        HandDefinition(
+            id="robotics",
+            name="Robotics Hand",
+            description="System Hand: Physical Interaction",
+            category="system",
+            agent=HandAgentConfig(
+                name="Roboter",
+                description="Physical interaction agent",
+                system_prompt="Manage physical robotics.",
+            ),
+        )
+    )
+)
 
 # ---------------------------------------------------------------------------
 # MCP backend port map
@@ -152,9 +182,36 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup_event():
-    """Manage orchestrator lifecycle."""
+    """Manage orchestrator lifecycle and auto-launch enabled fleet nodes.
+    Launch MCP server processes first, then wait, then start orchestrator so
+    connector.connect() can reach backends that are already binding.
+    """
     logger.info("RoboFang Bridge starting up...")
+    await auto_launch_enabled_connectors()
+    await asyncio.sleep(8)
     await orchestrator.start()
+
+
+async def auto_launch_enabled_connectors():
+    """Iterates through topology and triggers launch for enabled connectors."""
+    logger.info("Fleet Automation: Identifying enabled connectors for auto-launch...")
+    topology = orchestrator.topology
+    connectors = topology.get("connectors", {})
+
+    for name, cfg in connectors.items():
+        if isinstance(cfg, dict) and cfg.get("enabled"):
+            if name in REPO_MAP:
+                logger.info(f"Fleet Automation: Triggering auto-launch for '{name}'")
+                try:
+                    await launch_connector(name)
+                except Exception as e:
+                    logger.error(
+                        f"Fleet Automation: Auto-launch failed for '{name}': {e}"
+                    )
+            else:
+                logger.warning(
+                    f"Fleet Automation: Connector '{name}' is enabled but no REPO_MAP entry found."
+                )
 
 
 @app.on_event("shutdown")
@@ -266,6 +323,45 @@ register_mcp(mcp, orchestrator)
 # Include Webhooks and Diagnostics
 app.include_router(webhooks_router)
 app.include_router(diagnostics_router)
+
+
+# ---------------------------------------------------------------------------
+# Command webhook: inbound from email/Telegram/etc. -> run /ask, optional reply
+# ---------------------------------------------------------------------------
+
+
+class CommandWebhookRequest(BaseModel):
+    message: str
+    reply_to: Optional[str] = None  # "telegram" | "discord" | null = no reply
+
+
+@app.post("/hooks/command")
+async def hook_command(req: CommandWebhookRequest):
+    """
+    Run a natural-language command and optionally send the reply to Telegram/Discord.
+    Wire email-to-webhook or a Telegram bot to POST here: body.message = user text,
+    body.reply_to = "telegram" or "discord" to send the reply back.
+    """
+    try:
+        result = await orchestrator.ask(
+            req.message,
+            use_council=False,
+            use_rag=True,
+            subject="guest",
+            persona="sovereign",
+        )
+        reply_text = (
+            result.get("response", "")
+            if result.get("success")
+            else result.get("error", "Command failed.")
+        )
+        if req.reply_to and reply_text:
+            await messaging_reply_to(req.reply_to, reply_text)
+        return {"success": result.get("success", False), "message": reply_text}
+    except Exception as e:
+        logger.exception("Command webhook failed")
+        return {"success": False, "message": str(e)}
+
 
 # ---------------------------------------------------------------------------
 # Request / Response models

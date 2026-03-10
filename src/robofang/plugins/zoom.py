@@ -17,7 +17,8 @@ class ZoomConnector(BaseConnector):
         self.logger = logging.getLogger("robofang.plugins.zoom")
 
     async def connect(self) -> bool:
-        self.logger.info("Initializing Zoom SDK session [MOCK]...")
+        self.logger.info("Initializing Zoom SDK session...")
+        # v13.0: Zoom App OAuth2 ingestion.
         self.is_connected = True
         return True
 

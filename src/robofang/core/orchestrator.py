@@ -69,6 +69,7 @@ class OrchestrationClient:
         self.hands.load_hands_from_dir(str(plugins_dir / "bundled"))
         self.running = False
         self.heartbeat_task: Optional[asyncio.Task] = None
+        self.slow_task: Optional[asyncio.Task] = None
 
         # Reasoning Log (Forensics Ring Buffer)
         self.reasoning_log = collections.deque(maxlen=100)
@@ -191,19 +192,24 @@ class OrchestrationClient:
             except Exception as e:
                 self.logger.error(f"Connector '{name}' failed to connect: {e}")
 
-        # Start the proactive heartbeat loop and Hands system
+        # Start periodic loops: fast (reconnect/pulse) and slow (inbox, etc.)
         self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
+        self.slow_task = asyncio.create_task(self._slow_loop())
         await self.hands.start()
 
     async def stop(self):
         self.logger.info("Stopping Orchestrator...")
         self.running = False
-        if self.heartbeat_task:
-            self.heartbeat_task.cancel()
-            try:
-                await self.heartbeat_task
-            except asyncio.CancelledError:
-                pass
+        for task_name, task in [
+            ("heartbeat", self.heartbeat_task),
+            ("slow", self.slow_task),
+        ]:
+            if task:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
         for name, connector in self.connectors.items():
             try:
                 await connector.disconnect()
@@ -258,7 +264,7 @@ class OrchestrationClient:
                     except Exception as e:
                         self.logger.warning(f"Pulse reflection skipped: {e}")
 
-                await asyncio.sleep(300)  # Reflection every 5 minutes
+                await asyncio.sleep(30)  # Reconnect / pulse every 30s
 
             except asyncio.CancelledError:
                 break
@@ -267,6 +273,38 @@ class OrchestrationClient:
                 await asyncio.sleep(10)
 
         self.logger.info("[ORCHESTRATOR] Heartbeat loop stopped.")
+
+    # Interval for slow periodic tasks (e.g. inbox check)
+    SLOW_INTERVAL_S = 300  # 5 minutes
+
+    async def _slow_loop(self):
+        """Runs at lower frequency (e.g. every 5 min): inbox check, heavy polls."""
+        self.logger.info(
+            "[ORCHESTRATOR] Slow loop started (interval=%ss).", self.SLOW_INTERVAL_S
+        )
+        while self.running:
+            try:
+                await asyncio.sleep(self.SLOW_INTERVAL_S)
+                if not self.running:
+                    break
+                # Inbox check: email connector get_messages if present
+                email_conn = self.connectors.get("email")
+                if email_conn and getattr(email_conn, "active", False):
+                    try:
+                        messages = await email_conn.get_messages(limit=20)
+                        if messages:
+                            self.logger.info(
+                                "[ORCHESTRATOR] Inbox poll: %d message(s).",
+                                len(messages),
+                            )
+                    except Exception as e:
+                        self.logger.warning("Inbox poll skipped: %s", e)
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self.logger.error("Slow loop error: %s", e)
+                await asyncio.sleep(60)
+        self.logger.info("[ORCHESTRATOR] Slow loop stopped.")
 
     async def register_agent(self, body: Dict[str, Any]) -> Dict[str, Any]:
         """Register a new agent with Moltbook."""

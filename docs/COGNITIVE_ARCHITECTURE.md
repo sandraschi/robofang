@@ -38,7 +38,7 @@ The "Voice in the Head" is implemented as the **Forensic Trace** (Reasoning Log)
 
 | Concept | robofang v2.0 Implementation | Status |
 | :--- | :--- | :--- |
-| **Memory Pool** | `memops` semantic bridge + `adn_knowledge` | ✅ ACTIVE |
+| **Memory Pool** | `memops` semantic bridge + `adn_knowledge` | ✅ ACTIVE (see [Memops status](MEMOPS_STATUS.md)) |
 | **Voice in Head** | High-fidelity internal `ForensicTrace` buffer | ✅ ACTIVE |
 | **Mirror** | Satisficer-led Adversarial Audit phase | ✅ ACTIVE |
 | **Semantic RAG** | Agentic tool-use logic for knowledge retrieval | 🔄 INTEGRATING |

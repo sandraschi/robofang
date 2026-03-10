@@ -19,6 +19,7 @@ dependencies = [
 
     # ── Comms connectors ────────────────────────────────────────────────────
     "discord.py>=2.3",         # DiscordConnector
+    "slack-sdk>=3.27",         # SlackConnector (optional: pip install slack-sdk)
 
     # ── Physical device connectors ──────────────────────────────────────────
     "python-kasa>=0.7",        # TapoConnector  (smart plugs / cameras)

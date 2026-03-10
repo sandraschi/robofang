@@ -45,9 +45,17 @@ class BastioGateway:
         """
         if not self.api_key:
             self.logger.warning(
-                "Bastio API Key missing - proceeding without security filtering"
+                "Bastio API Key missing - security filtering unavailable"
             )
-            return {"success": True, "error": "BASTIO_NOT_CONFIGURED", "mock": True}
+            return {
+                "success": False,
+                "error": "BASTIO_NOT_CONFIGURED",
+                "security_metadata": {
+                    "gateway": "none",
+                    "validated": False,
+                    "threat_score": None,
+                },
+            }
 
         try:
             async with aiohttp.ClientSession(
@@ -68,38 +76,34 @@ class BastioGateway:
                     f"Routing request from '{source_agent}' via Bastio Gateway..."
                 )
 
-                # Mocking the actual network call if it fails (v13.0 Reductionist Logic)
-                try:
-                    async with session.post(url, json=payload, headers=headers) as resp:
-                        result = await resp.json()
-                        threat_score = resp.headers.get("X-Bastio-Threat-Score", "0.0")
+                async with session.post(url, json=payload, headers=headers) as resp:
+                    result = await resp.json()
+                    threat_score = resp.headers.get("X-Bastio-Threat-Score", "0.0")
 
-                        self.logger.info(
-                            f"Security Pulse: Agent={source_agent} ThreatScore={threat_score}"
-                        )
-
-                        return {
-                            **result,
-                            "security_metadata": {
-                                "gateway": "bastio",
-                                "threat_score": float(threat_score),
-                                "validated": True,
-                            },
-                        }
-                except Exception as e:
-                    self.logger.warning(
-                        f"Bastio connection failed ({e}) - falling back to internal safety monitor"
+                    self.logger.info(
+                        f"Security Pulse: Agent={source_agent} ThreatScore={threat_score}"
                     )
+
                     return {
-                        "success": True,
-                        "data": payload,
+                        **result,
                         "security_metadata": {
-                            "gateway": "internal-fallback",
-                            "threat_score": 0.01,
+                            "gateway": "bastio",
+                            "threat_score": float(threat_score),
                             "validated": True,
                         },
                     }
-
+        except aiohttp.ClientError as e:
+            self.logger.warning(f"Bastio connection failed: {e}")
+            return {
+                "success": False,
+                "error": str(e),
+                "data": payload,
+                "security_metadata": {
+                    "gateway": "bastio",
+                    "threat_score": None,
+                    "validated": False,
+                },
+            }
         except Exception as e:
             self.logger.error(f"Bastio Gateway Critical Failure: {e}")
             return {"success": False, "error": str(e)}

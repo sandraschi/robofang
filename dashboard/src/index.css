@@ -19,8 +19,9 @@
 
   /* Borders & Glassmorphism */
   --border-glass: rgba(255, 255, 255, 0.08);
-  --border-bright: rgba(255, 255, 255, 0.15);
-  --border-card: rgba(99, 102, 241, 0.15);
+  --border-bright: rgba(255, 255, 255, 0.25);
+  --border-card: rgba(99, 102, 241, 0.3);
+  --border-fail: rgba(239, 68, 68, 0.5);
 
   /* High-Contrast Text */
   --text-primary: #f8fafc;

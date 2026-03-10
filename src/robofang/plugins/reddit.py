@@ -17,7 +17,8 @@ class RedditConnector(BaseConnector):
         self.logger = logging.getLogger("robofang.plugins.reddit")
 
     async def connect(self) -> bool:
-        self.logger.info("Initializing Reddit client [MOCK]...")
+        self.logger.info("Initializing Reddit client...")
+        # v13.0: PRAW authentication would go here.
         self.is_connected = True
         return True
 

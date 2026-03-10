@@ -14,8 +14,9 @@ Connector status:
   PlexConnector          REAL  plexapi library
   CalibreConnector       REAL  subprocess calibredb CLI
   DiscordConnector       REAL  discord.py async bot
+  SlackConnector         REAL  slack_sdk AsyncWebClient (optional dep)
   ResoniteConnector      REAL  ResoniteLink WebSocket
-  SocialConnector        STUB  generic placeholder
+  SocialConnector        NOT IMPLEMENTED  use discord/slack
   IoTConnector           DEPRECATED  use TapoConnector / HueConnector / ShellyConnector
   MCPBridgeConnector     REAL  generic bridge to any FastMCP 2.14.x HTTP server
                                Used for: plex-mcp, calibre-mcp, immich-mcp,
@@ -1247,6 +1248,93 @@ class DiscordConnector(BaseConnector):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# SlackConnector (slack_sdk WebClient)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class SlackConnector(BaseConnector):
+    """Connector for Slack via slack_sdk WebClient.
+
+    config: token (or env SLACK_BOT_TOKEN), channel_id (default channel for send)
+    Requires: pip install slack_sdk
+    """
+
+    connector_type = "slack"
+
+    def __init__(self, name: str, config: Dict[str, Any]):
+        super().__init__(name, config)
+        self._client: Optional[Any] = None
+
+    async def connect(self) -> bool:
+        try:
+            from slack_sdk.web.async_client import AsyncWebClient  # noqa: PLC0415
+        except ImportError:
+            self.logger.error("slack_sdk not installed. pip install slack_sdk")
+            return False
+        import os
+
+        token = self.config.get("token") or os.getenv("SLACK_BOT_TOKEN")
+        if not token:
+            self.logger.error("SlackConnector: no token.")
+            return False
+        self._client = AsyncWebClient(token=token)
+        try:
+            auth = await self._client.auth_test()
+            if not auth.get("ok"):
+                self.logger.error("Slack auth_test failed.")
+                return False
+            self.active = True
+            self.logger.info("Slack connected: %s", auth.get("team"))
+            return True
+        except Exception as e:
+            self.logger.error("Slack connect failed: %s", e)
+            return False
+
+    async def disconnect(self) -> bool:
+        self._client = None
+        self.active = False
+        return True
+
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        if not self._client or not self.active:
+            return False
+        channel = target or self.config.get("channel_id")
+        if not channel:
+            return False
+        try:
+            await self._client.chat_postMessage(channel=channel, text=content, **kwargs)
+            return True
+        except Exception as e:
+            self.logger.error("Slack send_message error: %s", e)
+            return False
+
+    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        if not self._client or not self.active:
+            return []
+        channel_id = self.config.get("channel_id")
+        if not channel_id:
+            return []
+        try:
+            resp = await self._client.conversations_history(
+                channel=channel_id, limit=limit
+            )
+            if not resp.get("ok"):
+                return []
+            return [
+                {
+                    "id": m.get("ts", ""),
+                    "author": m.get("user", ""),
+                    "content": m.get("text", ""),
+                    "timestamp": m.get("ts", ""),
+                }
+                for m in (resp.get("messages") or [])
+            ]
+        except Exception as e:
+            self.logger.error("Slack get_messages error: %s", e)
+            return []
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # ResoniteConnector (ResoniteLink WebSocket)
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -1299,14 +1387,16 @@ class ResoniteConnector(BaseConnector):
 
 
 class SocialConnector(BaseConnector):
-    """Generic social placeholder. Use DiscordConnector for Discord."""
+    """Not implemented. Use DiscordConnector or SlackConnector for real messaging."""
 
     connector_type = "social"
 
     async def connect(self) -> bool:
-        self.logger.warning("SocialConnector is a stub.")
-        self.active = True
-        return True
+        self.logger.warning(
+            "SocialConnector is not implemented. Enable discord or slack connector."
+        )
+        self.active = False
+        return False
 
     async def disconnect(self) -> bool:
         self.active = False
@@ -1582,7 +1672,10 @@ class MCPBridgeConnector(BaseConnector):
     # ── helpers ───────────────────────────────────────────────────────────────
 
     async def _ping(self) -> bool:
-        """Quick liveness check — POST tools/list and expect a 200."""
+        """Liveness = help tool returns content. Port is the webapp; webapp proxies to MCP.
+        No help tool return -> MCP server not running. Calls tools/list to find a *help* tool,
+        then tools/call that tool; if we get non-empty content, consider the server up.
+        """
         try:
             payload = {"jsonrpc": "2.0", "id": 0, "method": "tools/list", "params": {}}
             resp = await self._client.post(
@@ -1591,7 +1684,41 @@ class MCPBridgeConnector(BaseConnector):
                 headers={"Content-Type": "application/json"},
                 timeout=5,
             )
-            return resp.status_code == 200
+            if resp.status_code != 200:
+                return False
+            data = resp.json()
+            if "error" in data:
+                return False
+            tools = data.get("result", {}).get("tools", [])
+            help_tool = None
+            for t in tools:
+                if "help" in t.get("name", "").lower():
+                    help_tool = t["name"]
+                    break
+            if not help_tool:
+                return resp.status_code == 200
+            call_payload = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {"name": help_tool, "arguments": {}},
+            }
+            call_resp = await self._client.post(
+                self._url,
+                json=call_payload,
+                headers={"Content-Type": "application/json"},
+                timeout=10,
+            )
+            if call_resp.status_code != 200:
+                return False
+            call_data = call_resp.json()
+            if "error" in call_data:
+                return False
+            content_blocks = call_data.get("result", {}).get("content", [])
+            for b in content_blocks:
+                if b.get("type") == "text" and (b.get("text") or "").strip():
+                    return True
+            return False
         except Exception:
             return False
 
