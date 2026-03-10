@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
     Activity, Database, Zap, RefreshCw, AlertTriangle,
     Clock, Radio, Server, WifiOff, RotateCcw,
-    Play, Square, Terminal, ChevronDown,
+    Play, Square, Terminal,
     CheckCircle2, Loader2, ToggleLeft, ToggleRight,
-    ShieldAlert, Search, Cpu,
+    ShieldAlert, Search, Cpu, Brain,
 } from 'lucide-react';
 import {
     getSystem, getSupervisorStatus, getSupervisorLogs,
     supervisorStart, supervisorStop, supervisorRestart,
-    setSupervisorAutoRestart, getSubstrateHeartbeat, runFleetForensics,
+    setSupervisorAutoRestart, getSubstrateHeartbeat, runFleetForensics, getFleetHealth,
 } from '../api';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -45,11 +45,27 @@ interface SupervisorStatus {
 
 interface SubstrateHeartbeat {
     status: string;
+    integrity: string;
     council_active: boolean;
     fleet_node_count: number;
     system_pressure: { cpu_percent: number; memory_percent: number };
     heartbeat_latency_ms: number;
     timestamp: string;
+}
+
+interface Discovery {
+    id: string;
+    type: string;
+    description: string;
+    timestamp: number;
+}
+
+interface HealthReport {
+    success: boolean;
+    cohesion_score: number;
+    risk_level: string;
+    anomalies: string[];
+    discoveries: Discovery[];
 }
 
 type BridgeState = 'loading' | 'online' | 'offline';
@@ -73,7 +89,7 @@ function formatTime(epoch: number | null): string {
     return new Date(epoch * 1000).toLocaleTimeString();
 }
 
-// ── Metric Tile ───────────────────────────────────────────────────────────────
+// ── Components ────────────────────────────────────────────────────────────────
 
 const Tile: React.FC<{
     label: string; value: string; sub?: string;
@@ -102,8 +118,6 @@ const Tile: React.FC<{
         </div>
     );
 };
-
-// ── Bridge Status Banner ──────────────────────────────────────────────────────
 
 const BridgeBanner: React.FC<{
     bridgeState: BridgeState;
@@ -194,7 +208,65 @@ const BridgeBanner: React.FC<{
     );
 };
 
-// ── Substrate Heartbeat Panel (SOTA-2026) ───────────────────────────────────
+// ── Council Deliberation Visualization ────────────────────────────────────────
+
+const CouncilPanel: React.FC<{ active: boolean }> = ({ active }) => {
+    const agents = [
+        { name: 'Schipal', role: 'Architect', status: active ? 'Thinking' : 'Offline', color: 'emerald' },
+        { name: 'Benny', role: 'Security', status: active ? 'Guarding' : 'Asleep', color: 'blue' },
+        { name: 'Steve', role: 'Redundancy', status: active ? 'Idle' : 'Offline', color: 'slate' },
+        { name: 'Marion', role: 'Logic', status: active ? 'Validating' : 'Offline', color: 'purple' },
+    ];
+
+    return (
+        <div className="bg-[#1a1a3a] border border-indigo-500/20 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(99,102,241,0.05)]">
+            <div className="px-6 py-4 border-b border-indigo-500/10 flex items-center justify-between bg-indigo-500/[0.02]">
+                <div className="flex items-center gap-3">
+                    <Brain size={18} className="text-indigo-400" />
+                    <div>
+                        <h2 className="text-sm font-bold text-slate-100 italic">Council Deliberation</h2>
+                        <p className="text-[10px] text-slate-500 font-mono uppercase tracking-tighter">
+                            Status: <span className={active ? 'text-indigo-400' : 'text-slate-600'}>{active ? 'SYNCHRONIZED' : 'DORMANT'}</span>
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 bg-indigo-500/10 px-2 py-1 rounded border border-indigo-500/20">
+                    SOTA-2026
+                </div>
+            </div>
+            <div className="p-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {agents.map((agent) => (
+                        <div key={agent.name} className="relative group">
+                            <div className={`p-4 rounded-xl border border-white/[0.03] bg-black/20 flex flex-col items-center transition-all hover:border-${agent.color}-500/30 hover:bg-${agent.color}-500/[0.02]`}>
+                                <div className={`w-12 h-12 rounded-full mb-3 flex items-center justify-center border-2 ${active ? `border-${agent.color}-400/50` : 'border-slate-700'} bg-black/40 overflow-hidden`}>
+                                    <svg viewBox="0 0 24 24" className={`w-8 h-8 ${active ? `text-${agent.color}-400` : 'text-slate-600'}`}>
+                                        <path fill="currentColor" d="M12,4A4,4 0 0,1 16,8A4,4 0 0,1 12,12A4,4 0 0,1 8,8A4,4 0 0,1 12,4M12,14C16.42,14 20,15.79 20,18V20H4V18C4,15.79 7.58,14 12,14Z" />
+                                    </svg>
+                                    {active && (
+                                        <motion.div
+                                            animate={{ opacity: [0.1, 0.4, 0.1] }}
+                                            transition={{ duration: 2, repeat: Infinity }}
+                                            className={`absolute inset-0 bg-${agent.color}-400/10`}
+                                        />
+                                    )}
+                                </div>
+                                <span className="text-xs font-bold text-slate-200">{agent.name}</span>
+                                <span className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter mb-1">{agent.role}</span>
+                                <div className="flex items-center gap-1">
+                                    <span className={`w-1 h-1 rounded-full ${active ? `bg-${agent.color}-400` : 'bg-slate-700'}`} />
+                                    <span className={`text-[9px] font-mono ${active ? `text-${agent.color}-400/70` : 'text-slate-700'}`}>{agent.status}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// ── Substrate Heartbeat Panel ────────────────────────────────────────────────
 
 const SubstratePanel: React.FC<{
     heartbeat: SubstrateHeartbeat | null;
@@ -202,7 +274,8 @@ const SubstratePanel: React.FC<{
     forensicPending: boolean;
     forensicResult: string | null;
     onRunForensics: () => void;
-}> = ({ heartbeat, loading, forensicPending, forensicResult, onRunForensics }) => {
+    healthReport: HealthReport | null;
+}> = ({ heartbeat, loading, forensicPending, forensicResult, onRunForensics, healthReport }) => {
     return (
         <div className="bg-[#1a1a3a] border border-emerald-500/20 rounded-2xl overflow-hidden shadow-[0_0_20px_rgba(16,185,129,0.05)]">
             <div className="px-6 py-4 border-b border-emerald-500/10 flex items-center justify-between bg-emerald-500/[0.02]">
@@ -210,7 +283,9 @@ const SubstratePanel: React.FC<{
                     <ShieldAlert size={18} className="text-emerald-400" />
                     <div>
                         <h2 className="text-sm font-bold text-slate-100 italic">Sovereign Substrate Heartbeat</h2>
-                        <p className="text-[10px] text-slate-500 font-mono">Status: {heartbeat?.status ?? 'WAITING...'}</p>
+                        <p className="text-[10px] text-slate-500 font-mono uppercase tracking-tighter">
+                            Status: <span className={heartbeat?.integrity === 'nominal' ? 'text-emerald-400' : 'text-amber-400'}>{heartbeat?.integrity ?? 'WAITING...'}</span>
+                        </p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
@@ -224,25 +299,12 @@ const SubstratePanel: React.FC<{
 
             <div className="p-6">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    {/* Metrics Section */}
                     <div className="lg:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-4">
                         {[
-                            {
-                                label: 'Council', value: heartbeat?.council_active ? 'STABLE' : 'OFFLINE',
-                                icon: <Activity size={14} />, color: heartbeat?.council_active ? 'text-emerald-400' : 'text-red-400'
-                            },
-                            {
-                                label: 'Fleet Nodes', value: heartbeat?.fleet_node_count ?? '—',
-                                icon: <Server size={14} />, color: 'text-blue-400'
-                            },
-                            {
-                                label: 'Pressure', value: `${heartbeat?.system_pressure.cpu_percent ?? 0}%`,
-                                icon: <Cpu size={14} />, color: 'text-indigo-400'
-                            },
-                            {
-                                label: 'Latency', value: `${heartbeat?.heartbeat_latency_ms ?? 0}ms`,
-                                icon: <Clock size={14} />, color: 'text-amber-400'
-                            },
+                            { label: 'Council', value: heartbeat?.council_active ? 'STABLE' : 'OFFLINE', icon: <Activity size={14} />, color: heartbeat?.council_active ? 'text-emerald-400' : 'text-red-400' },
+                            { label: 'Fleet Nodes', value: heartbeat?.fleet_node_count ?? '—', icon: <Server size={14} />, color: 'text-blue-400' },
+                            { label: 'Pressure', value: `${heartbeat?.system_pressure.cpu_percent ?? 0}%`, icon: <Cpu size={14} />, color: 'text-indigo-400' },
+                            { label: 'Latency', value: `${heartbeat?.heartbeat_latency_ms ?? 0}ms`, icon: <Clock size={14} />, color: 'text-amber-400' },
                         ].map((m, i) => (
                             <div key={i} className="bg-black/30 border border-white/[0.05] rounded-xl p-4 group hover:border-white/10 transition-colors">
                                 <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold flex items-center gap-2 mb-2">
@@ -253,7 +315,6 @@ const SubstratePanel: React.FC<{
                         ))}
                     </div>
 
-                    {/* Forensic Action Section */}
                     <div className="lg:col-span-4 flex flex-col justify-center gap-4 bg-emerald-500/[0.03] border border-emerald-500/10 rounded-xl p-5">
                         <div className="space-y-1.5">
                             <h4 className="text-xs font-bold text-emerald-300 flex items-center gap-2">
@@ -277,7 +338,66 @@ const SubstratePanel: React.FC<{
                     </div>
                 </div>
 
-                {/* Forensic Results Display */}
+                <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8 border-t border-emerald-500/10 pt-8">
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between mb-2">
+                            <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                <Zap size={14} className="text-amber-400" /> Autonomous Discoveries
+                            </h4>
+                            <span className="text-[10px] font-mono text-slate-500">{healthReport?.discoveries?.length ?? 0} found</span>
+                        </div>
+                        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar text-xs">
+                            {healthReport?.discoveries?.map((discovery) => (
+                                <div key={discovery.id} className="bg-black/20 border border-white/[0.03] rounded-xl p-3 flex items-start gap-4 hover:border-emerald-500/20 transition-all group">
+                                    <div className={`mt-1 p-2 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 group-hover:bg-indigo-500/20 transition-colors`}>
+                                        <Brain size={12} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-tighter">{discovery.type}</span>
+                                            <span className="text-[8px] font-mono text-slate-600 tracking-tighter">{new Date(discovery.timestamp * 1000).toLocaleTimeString()}</span>
+                                        </div>
+                                        <p className="text-xs text-slate-400 leading-snug line-clamp-2">{discovery.description}</p>
+                                    </div>
+                                </div>
+                            ))}
+                            {(!healthReport?.discoveries || healthReport.discoveries.length === 0) && (
+                                <div className="text-center py-12 bg-black/10 border border-dashed border-white/5 rounded-2xl">
+                                    <p className="text-[10px] text-slate-600 font-medium">Scanning for autonomous tool expansions...</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        <h4 className="text-xs font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                            <ShieldAlert size={14} className="text-red-400" /> Substrate Anomalies
+                        </h4>
+                        <div className="bg-black/30 border border-red-500/10 rounded-xl overflow-hidden">
+                            <div className="p-4 border-b border-white/[0.03] flex items-center justify-between bg-red-500/[0.02]">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global Risk Level</span>
+                                <span className={`text-[10px] font-bold uppercase py-0.5 px-2 rounded-full ${healthReport?.risk_level === 'nominal' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-400'}`}>
+                                    {healthReport?.risk_level ?? 'UNCERTAIN'}
+                                </span>
+                            </div>
+                            <div className="p-4 space-y-3">
+                                {healthReport?.anomalies?.map((anomaly, i) => (
+                                    <div key={i} className="flex items-start gap-3 text-xs text-red-300/80 bg-red-500/[0.03] p-2 rounded-lg border border-red-500/10">
+                                        <AlertTriangle size={12} className="shrink-0 mt-0.5" />
+                                        {anomaly}
+                                    </div>
+                                ))}
+                                {(!healthReport?.anomalies || healthReport.anomalies.length === 0) && (
+                                    <div className="flex items-center gap-2 text-xs text-emerald-400/80 bg-emerald-500/[0.03] p-3 rounded-lg border border-emerald-500/10">
+                                        <CheckCircle2 size={14} />
+                                        All nodes verified. Pulse integrity at 100%.
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <AnimatePresence>
                     {forensicResult && (
                         <motion.div
@@ -299,8 +419,6 @@ const SubstratePanel: React.FC<{
         </div>
     );
 };
-
-// ── Supervisor Control Panel ──────────────────────────────────────────────────
 
 const SupervisorPanel: React.FC<{
     supState: SupervisorState;
@@ -336,19 +454,12 @@ const SupervisorPanel: React.FC<{
             </div>
 
             <div className="p-5 space-y-5">
-                {/* Bridge state summary */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                     {[
-                        {
-                            label: 'State', value: supStatus?.state ?? '—',
-                            color: running ? 'text-emerald-400' : supStatus?.state === 'crashed' ? 'text-red-400' : 'text-slate-400'
-                        },
+                        { label: 'State', value: supStatus?.state ?? '—', color: running ? 'text-emerald-400' : supStatus?.state === 'crashed' ? 'text-red-400' : 'text-slate-400' },
                         { label: 'PID', value: supStatus?.pid ? String(supStatus.pid) : '—', color: 'text-slate-300' },
                         { label: 'Uptime', value: formatUptime(supStatus?.uptime_seconds ?? null), color: 'text-slate-300' },
-                        {
-                            label: 'Crashes', value: String(supStatus?.crash_count ?? 0),
-                            color: (supStatus?.crash_count ?? 0) > 0 ? 'text-amber-400' : 'text-slate-400'
-                        },
+                        { label: 'Crashes', value: String(supStatus?.crash_count ?? 0), color: (supStatus?.crash_count ?? 0) > 0 ? 'text-amber-400' : 'text-slate-400' },
                     ].map(({ label, value, color }) => (
                         <div key={label} className="bg-[#0d0d16] border border-white/[0.07] rounded-xl p-3">
                             <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">{label}</div>
@@ -357,17 +468,13 @@ const SupervisorPanel: React.FC<{
                     ))}
                 </div>
 
-                {/* Control buttons */}
                 <div className="flex flex-wrap gap-2">
                     <button
                         onClick={onStart}
                         disabled={!!actionPending || running || supState !== 'online'}
                         className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40"
                     >
-                        {actionPending === 'start'
-                            ? <Loader2 size={13} className="animate-spin" />
-                            : <Play size={13} />
-                        }
+                        {actionPending === 'start' ? <Loader2 size={13} className="animate-spin" /> : <Play size={13} />}
                         Start
                     </button>
                     <button
@@ -375,54 +482,30 @@ const SupervisorPanel: React.FC<{
                         disabled={!!actionPending || !running || supState !== 'online'}
                         className="flex items-center gap-2 px-4 py-2.5 bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-300 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40"
                     >
-                        {actionPending === 'stop'
-                            ? <Loader2 size={13} className="animate-spin" />
-                            : <Square size={13} />
-                        }
+                        {actionPending === 'stop' ? <Loader2 size={13} className="animate-spin" /> : <Square size={13} />}
                         Stop
                     </button>
                     <button
                         onClick={onRestart}
                         disabled={!!actionPending || supState !== 'online'}
-                        className="flex items-center gap-2 px-4 py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40"
+                        className="flex items-center gap-2 px-4 py-2.5 bg-white/[0.06] hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40"
                     >
-                        {actionPending === 'restart'
-                            ? <Loader2 size={13} className="animate-spin" />
-                            : <RefreshCw size={13} />
-                        }
+                        {actionPending === 'restart' ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
                         Restart
                     </button>
-
-                    {/* Auto-restart toggle */}
                     <button
                         onClick={onToggleAutoRestart}
-                        disabled={supState !== 'online'}
-                        className={`ml-auto flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 ${supStatus?.auto_restart
-                            ? 'bg-indigo-500/15 border border-indigo-500/30 text-indigo-300'
-                            : 'bg-white/[0.05] border border-white/10 text-slate-400'
-                            }`}
+                        disabled={!!actionPending || supState !== 'online'}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 text-indigo-300 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 ml-auto"
                     >
-                        {supStatus?.auto_restart
-                            ? <ToggleRight size={14} />
-                            : <ToggleLeft size={14} />
-                        }
-                        Auto-restart {supStatus?.auto_restart ? 'ON' : 'OFF'}
+                        {supStatus?.auto_restart ? <ToggleRight size={16} className="text-emerald-400" /> : <ToggleLeft size={16} className="text-slate-500" />}
+                        Auto-Restart
                     </button>
                 </div>
-
-                {/* Bridge command */}
-                {supStatus?.bridge_cmd && (
-                    <div className="text-[10px] font-mono text-slate-600 flex items-center gap-2">
-                        <Terminal size={10} />
-                        {supStatus.bridge_cmd}
-                    </div>
-                )}
             </div>
         </div>
     );
 };
-
-// ── Log Viewer ────────────────────────────────────────────────────────────────
 
 const LogViewer: React.FC<{
     supState: SupervisorState;
@@ -434,286 +517,245 @@ const LogViewer: React.FC<{
     const bottomRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        if (expanded && bottomRef.current) {
+        if (bottomRef.current) {
             bottomRef.current.scrollIntoView({ behavior: 'smooth' });
         }
-    }, [lines, expanded]);
+    }, [lines]);
 
-    const visibleLines = expanded ? lines : lines.slice(-20);
+    const visibleLines = expanded ? lines : lines.slice(-15);
 
     return (
-        <div className="bg-[#16162a] border border-white/10 rounded-2xl overflow-hidden">
-            <button
-                onClick={() => setExpanded(!expanded)}
-                aria-label={expanded ? "Collapse Logs" : "Expand Logs"}
-                title={expanded ? "Collapse Logs" : "Expand Logs"}
-                className="w-full px-6 py-4 border-b border-white/[0.06] flex items-center justify-between hover:bg-white/[0.02] transition-colors"
-            >
-                <div className="flex items-center gap-3">
-                    <Terminal size={16} className="text-slate-400" />
-                    <h2 className="text-sm font-bold text-slate-200">Bridge Logs</h2>
-                    <span className="text-[10px] font-mono text-slate-500">{lines.length} lines in buffer</span>
+        <div className="space-y-3">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <Terminal size={16} className="text-indigo-400" />
+                    <h2 className="text-sm font-bold text-white">Execution Journal</h2>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button
-                        onClick={(e) => { e.stopPropagation(); onRefresh(); }}
-                        disabled={loading || supState !== 'online'}
-                        className="p-1.5 hover:bg-white/10 rounded-lg transition-colors disabled:opacity-40"
-                        title="Refresh"
-                        aria-label="Refresh"
-                    >
-                        <RefreshCw size={12} className={`text-slate-400 ${loading ? 'animate-spin' : ''}`} />
+                    <button onClick={() => setExpanded(!expanded)} className="text-[10px] font-bold text-slate-500 uppercase tracking-widest hover:text-white transition-colors">
+                        {expanded ? 'Show Less' : `Show All (${lines.length})`}
                     </button>
-                    <ChevronDown
-                        size={16}
-                        className={`text-slate-500 transition-transform ${expanded ? 'rotate-180' : ''}`}
-                    />
+                    <button
+                        onClick={onRefresh}
+                        disabled={loading || supState !== 'online'}
+                        title="Refresh Execution Journal"
+                        className="p-1.5 bg-white/[0.05] hover:bg-white/10 border border-white/10 rounded-lg text-slate-400 transition-colors disabled:opacity-30"
+                    >
+                        <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+                    </button>
                 </div>
-            </button>
+            </div>
 
-            {expanded && (
-                <div className="bg-black/40 max-h-96 overflow-y-auto p-4 font-mono text-xs text-slate-300 space-y-0.5">
-                    {lines.length === 0 ? (
-                        <div className="text-slate-600 italic py-4 text-center">No log output yet.</div>
-                    ) : (
-                        visibleLines.map((line, i) => {
-                            const isError = /error|exception|traceback/i.test(line);
-                            const isWarning = /warn/i.test(line);
-                            const isSup = line.startsWith('[supervisor]');
-                            return (
-                                <div
-                                    key={i}
-                                    className={`leading-relaxed px-2 py-0.5 rounded ${isError ? 'text-red-300 bg-red-500/[0.06]' :
-                                        isWarning ? 'text-amber-300 bg-amber-500/[0.04]' :
-                                            isSup ? 'text-indigo-300' :
-                                                'text-slate-400'
-                                        }`}
-                                >
-                                    {line || '\u00A0'}
+            <div className={`bg-black/40 border border-white/10 rounded-2xl overflow-hidden font-mono text-[11px] transition-all duration-300 ${expanded ? 'h-[600px]' : 'h-[300px]'}`}>
+                <div className="h-full overflow-y-auto p-5 custom-scrollbar bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
+                    {visibleLines.length > 0 ? (
+                        <>
+                            {visibleLines.map((line, i) => (
+                                <div key={i} className="py-0.5 border-b border-white/[0.02] last:border-0 hover:bg-white/[0.02] transition-colors flex gap-4">
+                                    <span className="text-slate-600 shrink-0 w-4 text-right">{i + 1}</span>
+                                    <span className={`${line.includes('ERROR') ? 'text-red-400' : line.includes('WARN') ? 'text-amber-400' : line.includes('SUCCESS') ? 'text-emerald-400' : 'text-slate-300'}`}>
+                                        {line}
+                                    </span>
                                 </div>
-                            );
-                        })
+                            ))}
+                            <div ref={bottomRef} />
+                        </>
+                    ) : (
+                        <div className="h-full flex flex-col items-center justify-center text-slate-600 gap-2 opacity-50">
+                            <Terminal size={24} />
+                            <span>No log entries available. Journal is empty.</span>
+                        </div>
                     )}
-                    <div ref={bottomRef} />
                 </div>
-            )}
-
-            {!expanded && lines.length > 0 && (
-                <div className="px-4 py-2 bg-black/20 font-mono text-[11px] text-slate-500 truncate">
-                    {lines[lines.length - 1]}
-                </div>
-            )}
+            </div>
         </div>
     );
 };
 
-// ── Connector Table ───────────────────────────────────────────────────────────
-
 const ConnectorRow: React.FC<{ name: string; info: { online: boolean; type: string } }> = ({ name, info }) => (
-    <tr className="hover:bg-white/[0.03] transition-colors">
-        <td className="px-6 py-3.5">
+    <tr className="hover:bg-white/[0.02] transition-colors group">
+        <td className="px-6 py-4">
             <div className="flex items-center gap-3">
-                <Radio size={13} className="text-slate-500 shrink-0" />
-                <span className="font-medium text-slate-100 text-sm">{name.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${info.online ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-slate-500/10 border-slate-500/20 text-slate-500'}`}>
+                    <Database size={14} />
+                </div>
+                <div className="min-w-0">
+                    <div className="text-sm font-bold text-slate-200 truncate">{name}</div>
+                    <div className="text-[10px] text-slate-500 font-mono tracking-tighter uppercase">{info.type}</div>
+                </div>
             </div>
         </td>
-        <td className="px-6 py-3.5 text-[10px] font-mono text-slate-500 uppercase">{info.type}</td>
-        <td className="px-6 py-3.5">
-            {info.online ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Online
-                </span>
-            ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-slate-500/15 text-slate-500 border border-slate-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-600" /> Offline
-                </span>
-            )}
+        <td className="px-6 py-4 text-xs text-slate-400 font-mono uppercase tracking-widest">{info.type}</td>
+        <td className="px-6 py-4">
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${info.online ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'}`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${info.online ? 'bg-emerald-400 animate-pulse' : 'bg-red-400'}`} />
+                {info.online ? 'Online' : 'Offline'}
+            </div>
         </td>
     </tr>
 );
 
-// ── Main ──────────────────────────────────────────────────────────────────────
-
-const POLL_BRIDGE_MS = 5000;
-const POLL_SUP_MS = 3000;
+// ── Main Page ─────────────────────────────────────────────────────────────────
 
 const Status: React.FC = () => {
-    // Bridge state
-    const [bridgeState, setBridgeState] = useState<BridgeState>('loading');
     const [bridgeData, setBridgeData] = useState<SystemData | null>(null);
+    const [bridgeState, setBridgeState] = useState<BridgeState>('loading');
     const [bridgeLastSeen, setBridgeLastSeen] = useState<Date | null>(null);
-    const [bridgeLastPolled, setBridgeLastPolled] = useState<Date | null>(null);
-
-    // Supervisor state
-    const [supState, setSupState] = useState<SupervisorState>('loading');
     const [supStatus, setSupStatus] = useState<SupervisorStatus | null>(null);
-
-    // Log viewer
-    const [logLines, setLogLines] = useState<string[]>([]);
-    const [logsLoading, setLogsLoading] = useState(false);
-
-    // In-flight action
-    const [actionPending, setActionPending] = useState<string | null>(null);
-
-    // Diagnostic state
-    const [heartbeat, setHeartbeat] = useState<SubstrateHeartbeat | null>(null);
+    const [supState, setSupState] = useState<SupervisorState>('loading');
     const [hbLoading, setHbLoading] = useState(false);
+    const [heartbeat, setHeartbeat] = useState<SubstrateHeartbeat | null>(null);
     const [forensicPending, setForensicPending] = useState(false);
     const [forensicResult, setForensicResult] = useState<string | null>(null);
+    const [healthReport, setHealthReport] = useState<HealthReport | null>(null);
+    const [logLines, setLogLines] = useState<string[]>([]);
+    const [logsLoading, setLogsLoading] = useState(false);
+    const [actionPending, setActionPending] = useState<string | null>(null);
 
-    // ── Pollers ─────────────────────────────────────────────────────────────
-
-    const pollSubstrate = useCallback(async () => {
-        setHbLoading(true);
-        try {
-            const result = await getSubstrateHeartbeat();
-            setHeartbeat(result);
-        } catch { /* noop */ }
-        setHbLoading(false);
-    }, []);
+    const isStale = bridgeState === 'offline' && bridgeLastSeen !== null;
 
     const pollBridge = useCallback(async () => {
         try {
-            const result: SystemData = await getSystem();
-            setBridgeData(result);
-            setBridgeState('online');
-            setBridgeLastSeen(new Date());
-        } catch {
-            setBridgeState(prev => prev === 'loading' ? 'offline' : 'offline');
+            const data = await getSystem();
+            if (data.status === 'ok') {
+                setBridgeData(data as unknown as SystemData);
+                setBridgeState('online');
+                setBridgeLastSeen(new Date());
+            }
+        } catch (error) {
+            setBridgeState('offline');
+            console.error('Bridge poll failed', error);
         }
-        setBridgeLastPolled(new Date());
     }, []);
 
     const pollSupervisor = useCallback(async () => {
         try {
-            const result = await getSupervisorStatus();
-            setSupStatus(result);
+            const status = await getSupervisorStatus();
+            setSupStatus(status);
             setSupState('online');
-        } catch {
-            setSupState('offline');
+        } catch (error) {
             setSupStatus(null);
+            setSupState('offline');
+            console.error('Supervisor poll failed', error);
+        }
+    }, []);
+
+    const pollHb = useCallback(async () => {
+        setHbLoading(true);
+        try {
+            const hb = await getSubstrateHeartbeat();
+            setHeartbeat(hb);
+            const health = await getFleetHealth();
+            setHealthReport(health);
+        } catch (e) {
+            console.error('Pulse poll failed', e);
+        } finally {
+            setHbLoading(false);
         }
     }, []);
 
     const refreshLogs = useCallback(async () => {
-        if (supState !== 'online') return;
         setLogsLoading(true);
         try {
-            const r = await getSupervisorLogs(200);
-            setLogLines(r.lines ?? []);
-        } catch { /* noop */ }
-        setLogsLoading(false);
-    }, [supState]);
+            const logs = await getSupervisorLogs(100);
+            setLogLines(logs);
+        } catch (e) {
+            console.error('Log fetch failed', e);
+        } finally {
+            setLogsLoading(false);
+        }
+    }, []);
 
     useEffect(() => {
         pollBridge();
         pollSupervisor();
-        pollSubstrate();
-        const b = setInterval(pollBridge, POLL_BRIDGE_MS);
-        const s = setInterval(pollSupervisor, POLL_SUP_MS);
-        const d = setInterval(pollSubstrate, POLL_BRIDGE_MS * 2);
-        return () => { clearInterval(b); clearInterval(s); clearInterval(d); };
-    }, [pollBridge, pollSupervisor, pollSubstrate]);
+        pollHb();
+        refreshLogs();
 
-    // Refresh logs whenever supervisor state changes
-    useEffect(() => {
-        if (supState === 'online') refreshLogs();
-    }, [supState, supStatus?.state]); // eslint-disable-line react-hooks/exhaustive-deps
+        const timer = setInterval(() => {
+            pollBridge();
+            pollSupervisor();
+            pollHb();
+        }, 3000);
 
-    // ── Actions ──────────────────────────────────────────────────────────────
+        return () => clearInterval(timer);
+    }, [pollBridge, pollSupervisor, pollHb, refreshLogs]);
 
     const doStart = async () => {
         setActionPending('start');
         try {
             await supervisorStart();
-            await new Promise(r => setTimeout(r, 2000));
-            await pollBridge();
             await pollSupervisor();
-        } finally { setActionPending(null); }
+            setTimeout(pollBridge, 1000);
+        } finally {
+            setActionPending(null);
+        }
     };
 
     const doStop = async () => {
+        if (!confirm('Halt bridge process? This will terminate all active connectors.')) return;
         setActionPending('stop');
         try {
             await supervisorStop();
-            await new Promise(r => setTimeout(r, 1000));
-            await pollBridge();
             await pollSupervisor();
-        } finally { setActionPending(null); }
+            setBridgeState('offline');
+        } finally {
+            setActionPending(null);
+        }
     };
 
     const doRestart = async () => {
         setActionPending('restart');
         try {
             await supervisorRestart();
-            await new Promise(r => setTimeout(r, 3000));
-            await pollBridge();
             await pollSupervisor();
-        } finally { setActionPending(null); }
-    };
-
-    const doRetry = async () => {
-        setActionPending('poll');
-        await pollBridge();
-        await pollSupervisor();
-        setActionPending(null);
+            setTimeout(pollBridge, 2000);
+        } finally {
+            setActionPending(null);
+        }
     };
 
     const doToggleAutoRestart = async () => {
         if (!supStatus) return;
+        setActionPending('toggle');
         try {
             await setSupervisorAutoRestart(!supStatus.auto_restart);
             await pollSupervisor();
-        } catch { /* noop */ }
+        } finally {
+            setActionPending(null);
+        }
     };
 
     const doRunForensics = async () => {
         setForensicPending(true);
         setForensicResult(null);
         try {
-            const r = await runFleetForensics();
-            setForensicResult(r.message || "Forensic sweep initiated successfully.");
-        } catch (e: unknown) {
-            const msg = e instanceof Error ? e.message : String(e);
-            setForensicResult(`FORENSIC_FAILURE: ${msg}`);
+            const res = await runFleetForensics();
+            setForensicResult(res.analysis);
+            await pollHb();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Unknown protocol failure.';
+            setForensicResult(`ERROR: Forensic sweep aborted. ${message}`);
         } finally {
             setForensicPending(false);
         }
     };
 
-    const isStale = bridgeState === 'offline' && bridgeData !== null;
-
     return (
-        <div className="max-w-7xl mx-auto space-y-6">
-
-            {/* Header */}
-            <header className="flex items-center justify-between flex-wrap gap-3">
+        <div className="space-y-8 animate-in fade-in duration-500 pb-12">
+            <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
                 <div>
                     <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-3">
-                        <Activity className="text-emerald-400" />
-                        System Status
+                        Substrate Operations
+                        <span className="text-xs font-mono px-2 py-0.5 bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 rounded-full uppercase tracking-tighter">
+                            PROD/SOTA
+                        </span>
                     </h1>
-                    <p className="text-slate-400 text-sm mt-1">
-                        Live bridge health, process control, and connector states.
-                        {bridgeLastPolled && (
-                            <span className="text-slate-600 ml-2 font-mono text-xs">
-                                Polled {bridgeLastPolled.toLocaleTimeString()}
-                            </span>
-                        )}
+                    <p className="text-slate-400 mt-1 max-w-2xl">
+                        Real-time bridge observability, sovereign substrate heartbeat, and agentic forensics.
                     </p>
                 </div>
-
-                <div className="flex items-center gap-3">
-                    <button
-                        onClick={doRetry}
-                        disabled={!!actionPending}
-                        className="flex items-center gap-2 px-4 py-2 bg-white/[0.06] hover:bg-white/10 border border-white/10 text-slate-200 rounded-xl text-xs font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-50"
-                    >
-                        <RefreshCw size={13} className={actionPending === 'poll' ? 'animate-spin' : ''} />
-                        Refresh
-                    </button>
-
-                    {/* Bridge status pill */}
+                <div className="flex items-center gap-3 self-end sm:self-center">
                     {bridgeState === 'online' ? (
                         <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-400/10 border border-emerald-400/25 rounded-full">
                             <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
@@ -734,17 +776,15 @@ const Status: React.FC = () => {
             </header>
 
             {/* Bridge down banner */}
-            {bridgeState !== 'online' && (
-                <BridgeBanner
-                    bridgeState={bridgeState}
-                    supState={supState}
-                    supStatus={supStatus}
-                    lastSeen={bridgeLastSeen}
-                    actionPending={actionPending}
-                    onStart={doStart}
-                    onRetry={doRetry}
-                />
-            )}
+            <BridgeBanner
+                bridgeState={bridgeState}
+                supState={supState}
+                supStatus={supStatus}
+                lastSeen={bridgeLastSeen}
+                actionPending={actionPending}
+                onStart={doStart}
+                onRetry={pollBridge}
+            />
 
             {/* Stale data warning */}
             {isStale && (
@@ -761,7 +801,11 @@ const Status: React.FC = () => {
                 forensicPending={forensicPending}
                 forensicResult={forensicResult}
                 onRunForensics={doRunForensics}
+                healthReport={healthReport}
             />
+
+            {/* Council Deliberation Visualization */}
+            <CouncilPanel active={heartbeat?.council_active ?? false} />
 
             {/* Metric tiles */}
             {bridgeData && (

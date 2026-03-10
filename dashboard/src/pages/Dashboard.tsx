@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, Brain, Sparkles, Star, History, Wand2, ChevronDown, Trash2, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { askQuestion, getLlmModels, llmGenerate } from '../api';
+import { askQuestion, getLlmModels, llmGenerate, getSupervisorPulse, getFleetHealth } from '../api';
 
 interface Message {
     id: string;
@@ -54,6 +54,9 @@ const Dashboard: React.FC = () => {
     const [recents, setRecents] = useState<string[]>([]);
     const [favorites, setFavorites] = useState<string[]>([]);
     const [llmModels, setLlmModels] = useState<OllamaModel[]>([]);
+    const [pulse, setPulse] = useState<{ timestamp: number, count: number, uptime: number, integrity: string } | null>(null);
+    const [isHealthy, setIsHealthy] = useState(true);
+    const [cohesion, setCohesion] = useState(100);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Persistence
@@ -65,6 +68,34 @@ const Dashboard: React.FC = () => {
 
         // Fetch models for refiner
         getLlmModels().then(data => setLlmModels(data.models || [])).catch(console.error);
+
+        // Heartbeat polling
+        const pollPulse = async () => {
+            try {
+                const data = await getSupervisorPulse();
+                if (data.success) {
+                    setPulse(data.pulse);
+                    setIsHealthy(true);
+                }
+            } catch (err) {
+                console.error("Pulse failure:", err);
+                setIsHealthy(false);
+            }
+        };
+
+        const interval = setInterval(async () => {
+            await pollPulse();
+            try {
+                const healthData = await getFleetHealth();
+                if (healthData.success) {
+                    setCohesion(healthData.report.cohesion_score);
+                }
+            } catch (err) {
+                console.error("Health poll failure:", err);
+            }
+        }, 5000);
+        pollPulse();
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
@@ -188,13 +219,46 @@ const Dashboard: React.FC = () => {
             <div className="flex-1 flex flex-col page-card p-0 overflow-hidden relative border-white/5 bg-white/[0.02]">
                 {/* Status bar */}
                 <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" />
-                        <span className="text-[10px] font-bold text-slate-200 uppercase tracking-widest">Autonomous Sync</span>
+                    <div className="flex items-center gap-6">
+                        <div className="flex items-center gap-3">
+                            <div className={`w-2.5 h-2.5 rounded-full transition-colors duration-500 ${isHealthy && pulse?.integrity === 'nominal' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : pulse?.integrity?.includes('degraded') ? 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]'}`} />
+                            <span className="text-[10px] font-bold text-slate-200 uppercase tracking-widest">
+                                {isHealthy ? (pulse?.integrity === 'nominal' ? 'Autonomous Sync' : pulse?.integrity) : 'Link Severed'}
+                            </span>
+                        </div>
+
+                        {isHealthy && (
+                            <div className="flex items-center gap-4 animate-pulse-subtle">
+                                <div className="flex flex-col gap-1">
+                                    <div className="flex items-center justify-between min-w-[120px]">
+                                        <span className="text-[8px] font-bold text-slate-500 uppercase tracking-tighter">Fleet Cohesion</span>
+                                        <span className="text-[8px] font-mono text-indigo-400">{cohesion}%</span>
+                                    </div>
+                                    <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                        <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${cohesion}%` }}
+                                            className={`h-full ${cohesion > 80 ? 'bg-emerald-500' : cohesion > 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-1.5 overflow-hidden w-24 h-4 bg-indigo-500/5 rounded-full border border-indigo-500/10 px-1">
+                                    {[...Array(12)].map((_, i) => (
+                                        <motion.div
+                                            key={i}
+                                            initial={{ height: 2 }}
+                                            animate={{ height: [2, Math.random() * 10 + 2, 2] }}
+                                            transition={{ duration: 1.5, repeat: Infinity, delay: i * 0.1 }}
+                                            className="w-1 bg-indigo-400/40 rounded-full"
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center gap-4 text-[10px] font-mono text-slate-500 uppercase">
-                        <span>PID: 10702</span>
-                        <span>MEM: 2.4GB</span>
+                        <span>Pulse: {pulse?.count || 0}</span>
+                        <span>Uptime: {pulse ? Math.floor(pulse.uptime / 60) : 0}m</span>
                     </div>
                 </div>
 
@@ -210,8 +274,15 @@ const Dashboard: React.FC = () => {
                                 animate={{ opacity: 1, scale: 1 }}
                                 className="h-full flex flex-col items-center justify-center text-center px-12"
                             >
-                                <div className="w-24 h-24 rounded-3xl bg-indigo-600/15 border border-indigo-500/30 flex items-center justify-center mb-6 shadow-2xl shadow-indigo-500/15">
-                                    <Sparkles className="text-indigo-400" size={40} />
+                                <div className="relative mb-8 group">
+                                    <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+                                    <motion.img
+                                        src="/assets/hero.png"
+                                        alt="RoboFang Nanobanana"
+                                        className="w-48 h-48 relative z-10 drop-shadow-[0_0_30px_rgba(99,102,241,0.3)] object-contain"
+                                        animate={{ y: [0, -10, 0] }}
+                                        transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                                    />
                                 </div>
                                 <h2 className="text-2xl font-heading font-bold text-white mb-3 uppercase tracking-tight">Awaiting Command</h2>
                                 <p className="text-slate-400 max-w-sm leading-relaxed text-sm font-medium">

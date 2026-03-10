@@ -1,0 +1,30 @@
+{
+    "name": "robofang",
+    "version": "0.3.0",
+    "type": "server",
+    "runtime": "python",
+    "entry_point": "src/robofang/main.py",
+    "dependencies": [
+        "fastmcp>=3.1.0",
+        "fastapi>=0.111",
+        "uvicorn[standard]>=0.29",
+        "python-osc>=1.8.3"
+    ],
+    "build": {
+        "include": [
+            "src/**/*",
+            "configs/**/*",
+            "templates/**/*",
+            "README.md"
+        ],
+        "exclude": [
+            "tests/",
+            "dashboard/node_modules/",
+            "**/__pycache__/"
+        ]
+    },
+    "scripts": {
+        "start": "python -m robofang.main",
+        "test": "pytest"
+    }
+}

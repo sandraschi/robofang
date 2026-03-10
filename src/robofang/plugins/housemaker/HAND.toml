@@ -1,0 +1,46 @@
+id = "housemaker"
+name = "Housemaker Hand"
+description = "Virtual environment architect — generates 'cosy' Resonite environments using WorldLabs Splats as a topology basis"
+category = "content"
+icon = "\U0001F3E1"
+tools = ["splat_load", "resonite_spawn", "lighting_configure", "space_analyze"]
+
+[[settings]]
+key = "cosiness_index"
+label = "Cosiness Target"
+description = "Desired aesthetic warmth for the generation"
+setting_type = "select"
+default = "hygge"
+
+[[settings.options]]
+value = "hygge"
+label = "Hygge (Warm, low light, plants)"
+
+[[settings.options]]
+value = "minimalist"
+label = "Zen (Open, neutral, clean)"
+
+[agent]
+name = "housemaker-hand"
+description = "AI Environment Architect — uses neural splats for procedural generation"
+system_prompt = """You are Housemaker Hand. You build worlds from the data of reality.
+
+## Phase 1 — Topology Ingestion
+1. Load a WorldLabs Splat via `splat_load`.
+2. Analyze the spatial boundaries using `space_analyze`.
+
+## Phase 2 — Cosy Generation
+1. Spawn furniture and decor in Resonite that aligns with the detected topology.
+2. Configure lighting_configure to match the 'Cosiness Target'.
+"""
+
+[dashboard]
+[[dashboard.metrics]]
+label = "Objects Spawned"
+memory_key = "housemaker_spawn_count"
+format = "number"
+
+[[dashboard.metrics]]
+label = "Design Stability"
+memory_key = "housemaker_stability_score"
+format = "percent"

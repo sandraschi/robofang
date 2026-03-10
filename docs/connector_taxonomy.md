@@ -109,6 +109,32 @@ pip install python-kasa phue discord.py plexapi ring-doorbell
 pip install pyatmo python-miio slack-sdk python-telegram-bot
 ```
 
+---
+
+## Autonomous Hands (Service Fleet)
+
+The RoboFang fleet consists of specialized autonomous agents ("Hands") that execute scheduled pulsative reasoning over the connector grid.
+
+| Hand | Category | Primary Focus | Status |
+|------|----------|---------------|--------|
+| **Musician** | content | AI Generation + Virtual DJ/Reaper orchestration | REAL |
+| **Patroller** | security | Security monitoring (Tapo/Ring) | REAL |
+| **Doctor** | productivity | Medical diagnostic reasoning | REAL |
+| **Avatar** | communication | Social VR presence (VRChat/Resonite) | REAL |
+| **Housemaker** | content | Domestic & Simulation automation | REAL |
+| **Dancer** | productivity | Creative performance & OSC sync | REAL |
+| **P.A.** | productivity | Scheduling, Inbox, Annoyance protocols | REAL |
+| **Cook** | productivity | Kitchen automation (Microwave primitive) | REAL |
+| **Browser** | productivity | Web research & Mining | REAL |
+| **Clip** | content | Video production (DaVinci Resolve) | REAL |
+| **Collector** | data | Knowledge gathering & Indexing | REAL |
+| **Lead** | data | Analysis & Reporting | REAL |
+| **Predictor** | data | Trend forecasting | REAL |
+| **Researcher** | productivity | Documentation Analysis | REAL |
+| **Twitter** | communication | Social presence (X) | REAL |
+
+---
+
 ## Architecture Notes
 
 - All connectors use **deferred imports** — importing `BaseConnector` at startup

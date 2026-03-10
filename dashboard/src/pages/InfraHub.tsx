@@ -4,37 +4,24 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import axios from "axios";
 import {
   Server,
   Container,
   Terminal,
   Activity,
-  Wifi,
   RefreshCw,
   Play,
   Square,
   Pause,
   AlertCircle,
-  Cpu,
-  HardDrive,
-  MemoryStick,
-  Network,
-  Globe,
-  Box,
   Layers,
-  ToggleLeft,
-  ToggleRight,
-  ChevronRight,
-  Gauge,
-  Thermometer,
-  Zap,
-  Shield,
   MonitorDot,
+  Shield,
 } from "lucide-react";
 
-const BRIDGE = "http://localhost:10865";
+const BRIDGE = "http://localhost:10871";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -48,6 +35,16 @@ async function infraGet(connector: string, path: string) {
 async function infraPost(connector: string, path: string, body: unknown = {}) {
   const r = await axios.post(`${BRIDGE}/home/${connector}/${path}`, body, { timeout: 10000 });
   return r.data;
+}
+
+async function launchConnector(connector: string) {
+  try {
+    await axios.post(`${BRIDGE}/api/connector/launch/${connector}`);
+    return true;
+  } catch (e) {
+    console.error("Launch failed:", e);
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -84,28 +81,45 @@ function ConnectorCard({
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative flex flex-col rounded-xl border bg-[#16162a] shadow-lg overflow-hidden ${accentClass}`}
-      style={{ minHeight: 420 }}
+      className={`relative flex flex-col rounded-2xl border bg-white/[0.03] backdrop-blur-md shadow-lg overflow-hidden group hover:border-white/20 transition-all duration-500 ${accentClass}`}
+      style={{ minHeight: '420px' } as any}
     >
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 bg-white/[0.03]">
-        <div className="text-white/70">{icon}</div>
+      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] bg-white/[0.02]">
+        <div className="text-white/70 transition-transform group-hover:scale-110 duration-500">{icon}</div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-slate-100">{title}</div>
-          {subtitle && <div className="text-xs text-slate-400 truncate">{subtitle}</div>}
+          <div className="text-sm font-bold text-slate-100">{title}</div>
+          {subtitle && <div className="text-[10px] text-slate-400 truncate uppercase tracking-widest mt-0.5">{subtitle}</div>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${online ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}>
-            {online ? "online" : `offline :${port}`}
-          </span>
-          <button onClick={onRefresh} className="text-slate-500 hover:text-slate-200 transition-colors">
-            <RefreshCw size={13} />
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ${online ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/20" : "bg-red-500/20 text-red-400 border border-red-500/20"}`}
+            >
+              {online ? "online" : `offline :${port}`}
+            </span>
+            {!online && (
+              <button
+                onClick={() => launchConnector(title.toLowerCase().replace(" ", "-"))}
+                className="px-2 py-0.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-[9px] font-bold text-indigo-400 border border-indigo-500/20 transition-all uppercase tracking-tighter"
+              >
+                Launch
+              </button>
+            )}
+          </div>
+          <button
+            onClick={onRefresh}
+            title="Refresh infrastructure data"
+            className="p-1.5 rounded-lg hover:bg-white/5 text-slate-500 hover:text-slate-100 transition-all active:scale-90"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 text-sm">
+      <div className="flex-1 overflow-y-auto p-5 custom-scrollbar text-sm">
         {loading ? <Skeleton /> : error ? (
-          <div className="flex items-center gap-2 text-red-400 text-xs">
-            <AlertCircle size={14} /><span>{error}</span>
+          <div className="flex items-start gap-2 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+            <AlertCircle size={14} className="shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{error}</span>
           </div>
         ) : children}
       </div>
@@ -131,7 +145,7 @@ function PctBar({ value, color = "indigo" }: { value: number; color?: string }) 
   const dangerColor = pct > 85 ? "bg-red-500" : pct > 70 ? "bg-amber-500" : bar;
   return (
     <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-      <div className={`h-full rounded-full transition-all ${dangerColor}`} style={{ width: `${pct}%` }} />
+      <div className={`h-full rounded-full transition-all ${dangerColor}`} style={{ width: `${pct}%` } as any} />
     </div>
   );
 }
@@ -711,7 +725,7 @@ function StatusStrip() {
       const result: Record<string, boolean> = {};
       for (const { key } of WAVE3_CONNECTORS) result[key] = c[key]?.online ?? false;
       setStatuses(result);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   return (
@@ -733,7 +747,7 @@ function StatusStrip() {
 
 export default function InfraHub() {
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-12">
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
@@ -745,7 +759,7 @@ export default function InfraHub() {
         <StatusStrip />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
         <VirtualizationCard />
         <DockerCard />
         <WindowsOpsCard />

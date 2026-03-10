@@ -62,6 +62,11 @@ class OrchestrationClient:
         self.personality = PersonalityEngine(storage=self.storage)
         self.knowledge = KnowledgeEngine(storage=self.storage)
         self.hands = HandsManager(self)
+
+        # Load bundled and specialized hands
+        plugins_dir = _PKG_ROOT / "src" / "robofang" / "plugins"
+        self.hands.load_hands_from_dir(str(plugins_dir))
+        self.hands.load_hands_from_dir(str(plugins_dir / "bundled"))
         self.running = False
         self.heartbeat_task: Optional[asyncio.Task] = None
 

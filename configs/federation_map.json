@@ -19,9 +19,6 @@
             ]
         }
     },
-    "enabled_connectors": [
-        "moltbook"
-    ],
     "council_members": [
         "llama3.2:3b",
         "deepseek-r1:8b",
@@ -44,7 +41,9 @@
             "enabled": false
         },
         "moltbook": {
-            "enabled": true
+            "enabled": true,
+            "mcp_backend": "http://localhost:10707",
+            "description": "Moltbot (ClawdBot) Gateway — messaging, status, agent control"
         },
         "resonite": {
             "enabled": false,
@@ -166,7 +165,8 @@
         "readly": {
             "enabled": true,
             "mcp_backend": "http://localhost:10863",
-            "description": "Readly MCP — document reading, PDF analysis"
+            "description": "Readly MCP — document reading, PDF analysis",
+            "priority": "weak"
         },
         "email": {
             "enabled": true,
@@ -197,6 +197,10 @@
             "enabled": true,
             "mcp_backend": "http://localhost:10789",
             "description": "PyWinAuto MCP — Windows GUI automation"
+        },
+        "suno": {
+            "enabled": false,
+            "description": "AI Music Generation — [PLACEHOLDER] awaiting integration"
         }
     },
     "domains": {
@@ -265,7 +269,15 @@
                 "capabilities": [
                     "DJ performance",
                     "audio mixing"
-                ]
+                ],
+                "priority": "weak"
+            },
+            "suno": {
+                "path": "suno-mcp",
+                "capabilities": [
+                    "AI music generation"
+                ],
+                "priority": "weak"
             }
         },
         "knowledge": {
@@ -463,7 +475,8 @@
                 "path": "vroidstudio-mcp",
                 "capabilities": [
                     "3D avatar creation"
-                ]
+                ],
+                "priority": "weak"
             }
         }
     }

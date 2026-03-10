@@ -1,0 +1,35 @@
+{
+    "examples": [
+        {
+            "title": "Fleet Health Check",
+            "description": "Poll all nodes to ensure the fleet is ready for a mission.",
+            "user_input": "Is the fleet ready for action?",
+            "tool_call": "get_fleet_status",
+            "parameters": {},
+            "expected_output": "Detailed JSON report of all 13 core nodes and their current health status."
+        },
+        {
+            "title": "Trigger Maintenance Mission",
+            "description": "Orchestrate a cleanup of logs and backups across the infrastructure nodes.",
+            "user_input": "Optimize the system nodes.",
+            "tool_call": "orchestrate_mission",
+            "parameters": {
+                "target_nodes": [
+                    "virtualization",
+                    "docker",
+                    "monitoring"
+                ],
+                "task": "cleanup_logs"
+            },
+            "expected_output": "Sequence of results showing space reclaimed across the sys-admin nodes."
+        }
+    ],
+    "error_handling_examples": [
+        {
+            "title": "Port Collision",
+            "error": "Port 10870 already in use",
+            "recovery": "Port Weeding",
+            "user_action": "Run 'robofang-bridge --clear-ports' to remove zombie processes."
+        }
+    ]
+}

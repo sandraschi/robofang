@@ -1,5 +1,4 @@
-import React from 'react';
-import { LayoutGrid, Plus, Search, Terminal } from 'lucide-react';
+import { Terminal } from 'lucide-react';
 
 export default function Apps() {
     return (

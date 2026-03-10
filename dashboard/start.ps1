@@ -1,29 +1,53 @@
-# Webapp Start - Standardized SOTA (Auto-Repaired V2.5)
+# Webapp Start - Standardized SOTA (Supervisor-Led V13.3)
 $WebPort = 10870
-$BackendPort = 10871
-$ProjectRoot = Split-Path -Parent $PSScriptRoot
+$BridgePort = 10871
+$SupervisorPort = 10872
+$RepoRoot = Split-Path -Parent $PSScriptRoot
+$Python = "C:\Users\sandr\AppData\Local\Programs\Python\Python313\python.exe"
 
 # 1. Kill any process squatting on the ports
-Write-Host "Checking for port squatters on $WebPort and $BackendPort..." -ForegroundColor Yellow
-$pids = Get-NetTCPConnection -LocalPort $WebPort, $BackendPort -ErrorAction SilentlyContinue | Where-Object { $_.OwningProcess -gt 4 } | Select-Object -ExpandProperty OwningProcess -Unique
+Write-Host "[1/4] Clearing ports ($WebPort, $BridgePort, $SupervisorPort) ..." -ForegroundColor Yellow
+$pids = Get-NetTCPConnection -LocalPort $WebPort, $BridgePort, $SupervisorPort -ErrorAction SilentlyContinue | Where-Object { $_.OwningProcess -gt 4 } | Select-Object -ExpandProperty OwningProcess -Unique
 foreach ($p in $pids) {
-    Write-Host "Found squatter (PID: $p). Terminating..." -ForegroundColor Red
-    try { Stop-Process -Id $p -Force -ErrorAction Stop } catch { Write-Host "Warning: Could not terminate PID $p." -ForegroundColor Gray }
+    Write-Host "    Terminating PID $p ..." -ForegroundColor DarkGray
+    try { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue } catch { }
 }
 
 # 2. Setup
 Set-Location $PSScriptRoot
-if (-not (Test-Path "node_modules")) { npm install }
+if (-not (Test-Path "node_modules")) { 
+    Write-Host "    Installing frontend dependencies ..." -ForegroundColor DarkGray
+    npm install 
+}
 
-# 3. Start the Python backend (Background)
-Write-Host "Starting Python backend on port $BackendPort ..." -ForegroundColor Cyan
+# 3. Start the Supervisor (Background)
+Write-Host "[2/4] Starting Supervisor on :$SupervisorPort ..." -ForegroundColor Cyan
+$env:PYTHONPATH = "$RepoRoot\src;$env:PYTHONPATH"
+$SupLog = "D:\Dev\repos\temp\supervisor_dash_$(Get-Date -Format 'HHmmss').log"
 
-# Use TRIPLE backtick to ensure $env:PYTHONPATH reaches the REAL shell
-$backendCmd = "`$env:PYTHONPATH = '$ProjectRoot\src'; Set-Location '$ProjectRoot'; uv run uvicorn robofang.main:app --host 127.0.0.1 --port $BackendPort --log-level info"
+$SupProc = Start-Process `
+    -FilePath $Python `
+    -ArgumentList "-m", "robofang.supervisor" `
+    -WorkingDirectory $RepoRoot `
+    -RedirectStandardOutput $SupLog `
+    -RedirectStandardError "$SupLog.err" `
+    -WindowStyle Hidden `
+    -PassThru
 
-Start-Process powershell -ArgumentList "-NoExit", "-Command", $backendCmd -WindowStyle Normal
+Write-Host "    Supervisor PID: $($SupProc.Id)" -ForegroundColor DarkGray
+Start-Sleep -Seconds 3
 
-# 4. Run server (Vite dev)
-Write-Host "Starting Vite frontend on port $WebPort ..." -ForegroundColor Green
+# 4. Start the Bridge via Supervisor
+Write-Host "[3/4] Triggering Bridge start ..." -ForegroundColor Cyan
+try {
+    Invoke-WebRequest -Uri "http://localhost:$SupervisorPort/supervisor/start" -Method POST -UseBasicParsing -TimeoutSec 10 -ErrorAction SilentlyContinue | Out-Null
+    Write-Host "    Bridge: SIGNALED" -ForegroundColor Green
+}
+catch {
+    Write-Host "    Bridge: Supervisor did not respond. Check $SupLog.err" -ForegroundColor Red
+}
+
+# 5. Run Vite frontend
+Write-Host "[4/4] Starting Vite frontend on :$WebPort ..." -ForegroundColor Green
 npm run dev -- --port $WebPort --host
 

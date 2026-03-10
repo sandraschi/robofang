@@ -1,7 +1,11 @@
 # RoboFang: MCP Orchestration & Robotics Hub
 
 <p align="center">
-  <img src="assets/robofang-logo.png" width="160" alt="RoboFang Logo" />
+  <img src="assets/whimsical-clobber.png" width="600" alt="RoboFang Whimsical Clobber" />
+</p>
+
+<p align="center">
+  <img src="assets/robofang-logo.png" width="120" alt="RoboFang Logo" />
 </p>
 
 <p align="center">

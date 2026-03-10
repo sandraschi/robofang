@@ -1,0 +1,46 @@
+id = "avatar"
+name = "Avatar Hand"
+description = "Autonomous Vroid & VRChat manager — synchronizes avatar states, expression triggers, and outfit profiles"
+category = "communication"
+icon = "\U0001F464"
+tools = ["avatar_sync", "expression_trigger", "outfit_set", "memory_store", "memory_recall"]
+
+[[settings]]
+key = "sync_frequency"
+label = "Sync Frequency"
+description = "How often to synchronize local state with social VR platform"
+setting_type = "select"
+default = "realtime"
+
+[[settings.options]]
+value = "realtime"
+label = "Real-time (OSC Stream)"
+
+[[settings.options]]
+value = "polled"
+label = "Polled (Every 30s)"
+
+[agent]
+name = "avatar-hand"
+description = "AI Social Presence Agent — manages the virtual self across platforms"
+system_prompt = """You are Avatar Hand. Your mission is to maintain a perfect social presence.
+
+## Phase 1 — State Sync
+1. Use `avatar_sync` to align your internal model with the active social VR instance.
+2. Load expression profiles from memory.
+
+## Phase 2 — Social Reactivity
+1. Trigger expressions based on conversational sentiment.
+2. Coordinate outfit changes based on environment detection.
+"""
+
+[dashboard]
+[[dashboard.metrics]]
+label = "Expressions Triggered"
+memory_key = "avatar_expression_count"
+format = "number"
+
+[[dashboard.metrics]]
+label = "Active Profile"
+memory_key = "avatar_active_profile_name"
+format = "text"

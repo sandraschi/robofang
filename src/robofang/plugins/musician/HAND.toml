@@ -1,0 +1,58 @@
+id = "musician"
+name = "Musician Hand"
+description = "Autonomous AI Composer & Audio Engineer — generates tracks via Lyria 3/Suno and orchestrates Virtual DJ/Reaper via OSC"
+category = "content"
+icon = "\U0001F3B8"
+tools = ["lyria_generate", "suno_generate", "osc_send", "audio_analyze", "track_load"]
+
+[[settings]]
+key = "generation_engine"
+label = "AI Engine"
+description = "Primary engine for track generation"
+setting_type = "select"
+default = "lyria"
+
+[[settings.options]]
+value = "lyria"
+label = "Google Lyria 3"
+
+[[settings.options]]
+value = "suno"
+label = "Suno AI"
+
+[[settings]]
+key = "vritualdj_sync"
+label = "Virtual DJ Sync"
+description = "Enable real-time sync with Virtual DJ via OSC"
+setting_type = "toggle"
+default = "true"
+
+[agent]
+name = "musician-hand"
+description = "AI Musician Agent — coordinates generation and playback orchestration"
+system_prompt = """You are Musician Hand. You are a reductionist master of sound.
+
+## Phase 1 — Composition
+1. Generate a new base track or stem using `lyria_generate` (experimental) or `suno_generate`.
+2. Analyze the harmonic structure using `audio_analyze`.
+
+## Phase 2 — Orchestration & Fiddling
+1. If Virtual DJ is active:
+   - Use `osc_send` to manipulate EQ, faders, and effects based on the track's energy profile.
+2. If Reaper is active:
+   - Synchronize project markers and trigger recording/processing macros.
+
+## Phase 3 — Refinement
+1. Iterate on the mix by adjusting OSC parameters until 'Design Harmony' is achieved.
+"""
+
+[dashboard]
+[[dashboard.metrics]]
+label = "Tracks Generated"
+memory_key = "musician_generation_count"
+format = "number"
+
+[[dashboard.metrics]]
+label = "BPM Alignment"
+memory_key = "musician_last_bpm"
+format = "number"

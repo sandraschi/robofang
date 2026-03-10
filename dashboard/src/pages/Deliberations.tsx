@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { ScrollText, Terminal, Activity, MessageSquare, Loader2 } from 'lucide-react';
 
-const BRIDGE = 'http://localhost:10865';
+const BRIDGE = 'http://localhost:10871';
 
 interface DeliberationStep {
     id: number;

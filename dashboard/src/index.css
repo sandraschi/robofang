@@ -93,8 +93,8 @@ h6 {
   -webkit-backdrop-filter: blur(var(--glass-blur));
   backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border-card);
-  border-radius: 20px;
-  padding: 1.5rem;
+  border-radius: 24px;
+  padding: 2rem;
   transition: var(--transition-vibrant);
   position: relative;
   overflow: hidden;

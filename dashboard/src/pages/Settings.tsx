@@ -1,19 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
 import {
     Settings, User, ShieldCheck, Globe, RefreshCw,
-    Save, Plus, Trash2, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Lock, Unlock
-} from 'lucide-react';
+    Save, Plus, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, Lock, Unlock
+} from "lucide-react";
 import axios from 'axios';
 
-const API = 'http://localhost:10865';
+const BRIDGE = 'http://localhost:10871';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-interface Persona {
-    name: string;
-    system_prompt: string;
-}
 
 interface SecurityPolicy {
     subject: string;
@@ -58,7 +52,7 @@ const PersonasSection: React.FC = () => {
     const load = useCallback(async () => {
         setLoading(true);
         try {
-            const r = await axios.get(`${API}/personality/personas`);
+            const r = await axios.get(`${BRIDGE}/personality/personas`);
             setPersonas(r.data?.personas ?? {});
         } catch { /* bridge offline */ }
         setLoading(false);
@@ -69,7 +63,7 @@ const PersonasSection: React.FC = () => {
     const save = async (name: string, prompt: string) => {
         setSaving(true);
         try {
-            await axios.post(`${API}/personality/persona`, { name, system_prompt: prompt });
+            await axios.post(`${BRIDGE}/personality/persona`, { name, system_prompt: prompt });
             setSaved(name);
             setTimeout(() => setSaved(null), 2000);
             await load();
@@ -112,6 +106,8 @@ const PersonasSection: React.FC = () => {
                                 rows={5}
                                 className="w-full bg-[#0d0d16] border border-white/10 focus:border-indigo-500/50 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 outline-none resize-none font-mono transition-colors"
                                 id={`prompt-${name}`}
+                                aria-label={`${name} persona prompt editor`}
+                                title={`${name} persona prompt editor`}
                             />
                             <button
                                 onClick={() => {
@@ -170,7 +166,7 @@ const SecuritySection: React.FC = () => {
         setLoading(true);
         setError(null);
         try {
-            const r = await axios.get(`${API}/security/policy/${subject}`);
+            const r = await axios.get(`${BRIDGE}/security/policy/${subject}`);
             setPolicy(r.data?.policy ?? null);
         } catch (e: any) {
             setError(e?.response?.status === 404 ? 'No policy for this subject.' : 'Bridge unreachable.');
@@ -241,7 +237,7 @@ const PolicyForm: React.FC = () => {
     const submit = async () => {
         setSaving(true);
         try {
-            await axios.post(`${API}/security/policy`, {
+            await axios.post(`${BRIDGE}/security/policy`, {
                 subject: form.subject,
                 role: form.role,
                 permissions: form.permissions.split(',').map(s => s.trim()).filter(Boolean),
@@ -277,7 +273,7 @@ const FederationSection: React.FC = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        axios.get(`${API}/health`).then(r => setHealth(r.data)).catch(() => {}).finally(() => setLoading(false));
+        axios.get(`${BRIDGE}/health`).then(r => setHealth(r.data)).catch(() => { }).finally(() => setLoading(false));
     }, []);
 
     return (
@@ -287,9 +283,9 @@ const FederationSection: React.FC = () => {
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                         {[
-                            { label: 'Service',  value: health.service },
-                            { label: 'Version',  value: health.version },
-                            { label: 'Status',   value: health.status },
+                            { label: 'Service', value: health.service },
+                            { label: 'Version', value: health.version },
+                            { label: 'Status', value: health.status },
                         ].map(({ label, value }) => (
                             <div key={label} className="bg-[#0d0d16] border border-white/[0.08] rounded-xl p-3">
                                 <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">{label}</div>

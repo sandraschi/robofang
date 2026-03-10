@@ -5,6 +5,7 @@ import {
     AlertTriangle, Layers, Palette, BookOpen, MessageSquare, Monitor, Wifi, Gamepad2
 } from 'lucide-react';
 import { getFleet } from '../api';
+import FleetSpace from '../components/FleetSpace';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -275,6 +276,9 @@ const Fleet: React.FC = () => {
                     </div>
                 </div>
             </header>
+
+            {/* 3D Space */}
+            {data && <FleetSpace nodes={allItems} />}
 
             {/* Metrics Overview */}
             {data && (

@@ -6,60 +6,15 @@ RoboFang Hands System: Autonomous continuous processes & background scheduling.
 import asyncio
 import logging
 import time
+import os
 from typing import Dict, List, Any, Optional
-from dataclasses import dataclass, field
+from robofang.core.hand_manifest import (
+    load_hand_definition,
+)
+import importlib.util
+from robofang.core.base_hand import Hand
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class HandManifest:
-    id: str
-    name: str
-    description: str
-    version: str = "1.0.0"
-    author: str = "RoboFang Core"
-    tags: List[str] = field(default_factory=list)
-
-
-class Hand:
-    """
-    Base class for an autonomous agentic process (a "Hand").
-    """
-
-    def __init__(self, manifest: HandManifest):
-        self.manifest = manifest
-        self.active = False
-        self.last_run: Optional[float] = None
-        self.next_run: Optional[float] = None
-        self.pulse_interval = 300  # Default 5 minutes
-        self.state: Dict[str, Any] = {}
-        self.logger = logging.getLogger(f"robofang.hands.{self.manifest.id}")
-
-    async def pulse(self, orchestrator: Any):
-        """Perform one autonomous pulse."""
-        if not self.active:
-            return
-
-        self.logger.debug(f"Hand '{self.manifest.id}' pulsing...")
-        try:
-            await self._on_pulse(orchestrator)
-            self.last_run = time.time()
-            self.next_run = self.last_run + self.pulse_interval
-        except Exception as e:
-            self.logger.error(f"Hand '{self.manifest.id}' pulse failed: {e}")
-
-    async def _on_pulse(self, orchestrator: Any):
-        """Override in subclasses to implement logic."""
-        raise NotImplementedError("Subclasses must implement _on_pulse")
-
-    def activate(self):
-        self.active = True
-        self.logger.info(f"Hand '{self.manifest.id}' activated.")
-
-    def pause(self):
-        self.active = False
-        self.logger.info(f"Hand '{self.manifest.id}' paused.")
 
 
 class HandsManager:
@@ -74,8 +29,55 @@ class HandsManager:
         self.running = False
 
     def register_hand(self, hand: Hand):
-        self.hands[hand.manifest.id] = hand
-        logger.info(f"Registered Hand: {hand.manifest.name} ({hand.manifest.id})")
+        self.hands[hand.definition.id] = hand
+        logger.info(f"Registered Hand: {hand.definition.name} ({hand.definition.id})")
+
+    def load_hands_from_dir(self, directory: str):
+        """Scan directory for HAND.toml files and register them."""
+        if not os.path.exists(directory):
+            logger.warning(f"Hands directory not found: {directory}")
+            return
+
+        for entry in os.scandir(directory):
+            if entry.is_dir():
+                toml_path = os.path.join(entry.path, "HAND.toml")
+                if os.path.exists(toml_path):
+                    try:
+                        definition = load_hand_definition(toml_path)
+
+                        # Dynamic Factory Pattern: Check for hand.py in the same dir
+                        implementation_path = os.path.join(entry.path, "hand.py")
+                        hand = None
+
+                        if os.path.exists(implementation_path):
+                            try:
+                                # Standard name for specialized class is {Id}Hand capitalized
+                                class_name = f"{definition.id.capitalize()}Hand"
+                                if definition.id == "pa":
+                                    class_name = "PersonalAssistantHand"
+
+                                spec = importlib.util.spec_from_file_location(
+                                    f"rf_hand_{definition.id}", implementation_path
+                                )
+                                module = importlib.util.module_from_spec(spec)
+                                spec.loader.exec_module(module)
+
+                                hand_class = getattr(module, class_name, Hand)
+                                hand = hand_class(definition)
+                                logger.info(
+                                    f"Loaded specialized implementation for {definition.id} from {implementation_path}"
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"Could not load specialized implementation for {definition.id}: {e}. Falling back to base Hand."
+                                )
+
+                        if not hand:
+                            hand = Hand(definition)
+
+                        self.register_hand(hand)
+                    except Exception as e:
+                        logger.error(f"Failed to load Hand from {toml_path}: {e}")
 
     async def start(self):
         """Start the autonomous loop."""
@@ -114,13 +116,28 @@ class HandsManager:
         """Return a summary of all hands for the dashboard."""
         return [
             {
-                "id": h.manifest.id,
-                "name": h.manifest.name,
-                "description": h.manifest.description,
+                "id": h.definition.id,
+                "name": h.definition.name,
+                "description": h.definition.description,
+                "category": h.definition.category,
+                "icon": h.definition.icon,
                 "active": h.active,
                 "last_run": h.last_run,
                 "next_run": h.next_run,
-                "tags": h.manifest.tags,
+                "metrics": self._get_hand_metrics(h),
             }
             for h in self.hands.values()
         ]
+
+    def _get_hand_metrics(self, hand: Hand) -> Dict[str, Any]:
+        """Fetch metrics defined in hand.dashboard.metrics from orchestrator memory."""
+        metrics = {}
+        for m in hand.definition.dashboard.metrics:
+            # Placeholder: fetch from orchestrator's memory/knowledge system
+            val = (
+                self.orchestrator.memory.recall(m.memory_key)
+                if hasattr(self.orchestrator, "memory")
+                else 0
+            )
+            metrics[m.label] = val or 0
+        return metrics

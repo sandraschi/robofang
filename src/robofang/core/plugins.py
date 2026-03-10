@@ -27,7 +27,7 @@ class PluginManager:
         # We don't import them here to avoid monolithic startup overhead
         self.connectors = {
             # ── Comms ────────────────────────────────────────────────────────
-            "moltbook": "robofang.core.connectors.MoltbookConnector",
+            "moltbook": "robofang.core.connectors.MCPBridgeConnector",
             "email": "robofang.core.connectors.EmailConnector",
             "discord": "robofang.core.connectors.DiscordConnector",
             "social": "robofang.core.connectors.SocialConnector",  # stub
@@ -35,13 +35,32 @@ class PluginManager:
             "tapo": "robofang.core.connectors.TapoConnector",
             "hue": "robofang.core.connectors.HueConnector",
             "shelly": "robofang.core.connectors.ShellyConnector",
-            "homeassistant": "robofang.core.connectors.HomeAssistantConnector",
+            "home-assistant": "robofang.core.connectors.HomeAssistantConnector",
             "ring": "robofang.core.connectors.RingConnector",
             "iot": "robofang.core.connectors.IoTConnector",  # deprecated
             # ── Media consumers (via MCPBridgeConnector) ─────────────────────
             "plex": "robofang.core.connectors.MCPBridgeConnector",
             "calibre": "robofang.core.connectors.MCPBridgeConnector",
             "immich": "robofang.core.connectors.MCPBridgeConnector",
+            "netatmo": "robofang.core.connectors.MCPBridgeConnector",
+            "obs": "robofang.core.connectors.MCPBridgeConnector",
+            "davinci-resolve": "robofang.core.connectors.MCPBridgeConnector",
+            "reaper": "robofang.core.connectors.MCPBridgeConnector",
+            "resolume": "robofang.core.connectors.MCPBridgeConnector",
+            "vrchat": "robofang.core.connectors.MCPBridgeConnector",
+            "virtualization": "robofang.core.connectors.MCPBridgeConnector",
+            "docker": "robofang.core.connectors.MCPBridgeConnector",
+            "windows-operations": "robofang.core.connectors.MCPBridgeConnector",
+            "monitoring": "robofang.core.connectors.MCPBridgeConnector",
+            "tailscale": "robofang.core.connectors.MCPBridgeConnector",
+            "advanced-memory": "robofang.core.connectors.MCPBridgeConnector",
+            "notion": "robofang.core.connectors.MCPBridgeConnector",
+            "fastsearch": "robofang.core.connectors.MCPBridgeConnector",
+            "readly": "robofang.core.connectors.MCPBridgeConnector",
+            "bookmarks": "robofang.core.connectors.MCPBridgeConnector",
+            "git-github": "robofang.core.connectors.MCPBridgeConnector",
+            "pywinauto": "robofang.core.connectors.MCPBridgeConnector",
+            "alexa": "robofang.core.connectors.MCPBridgeConnector",
             # ── Media creators (via MCPBridgeConnector) ───────────────────────
             "blender": "robofang.core.connectors.MCPBridgeConnector",
             "gimp": "robofang.core.connectors.MCPBridgeConnector",
