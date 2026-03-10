@@ -5,6 +5,7 @@ import httpx
 import os
 import subprocess
 import time
+from datetime import datetime
 from pathlib import Path
 import psutil
 import asyncio
@@ -21,7 +22,7 @@ from robofang.plugins.robotics_hand import RoboticsHand
 from robofang.mcp_server import get_help_content, register_mcp
 from robofang.webhooks import router as webhooks_router
 from robofang.diagnostics import router as diagnostics_router
-from robofang.messaging import reply_to as messaging_reply_to
+from robofang.messaging import reply_to as messaging_reply_to, set_comms_storage
 from robofang.core.hand_manifest import HandDefinition, HandAgentConfig
 
 # Bridge start time (epoch seconds)
@@ -95,6 +96,7 @@ logger = logging.getLogger("robofang.main")
 
 # Global orchestrator instance
 orchestrator = OrchestrationClient()
+set_comms_storage(orchestrator.storage)
 
 # Register Autonomous Hands
 orchestrator.hands.register_hand(
@@ -361,6 +363,55 @@ async def hook_command(req: CommandWebhookRequest):
     except Exception as e:
         logger.exception("Command webhook failed")
         return {"success": False, "message": str(e)}
+
+
+# ---------------------------------------------------------------------------
+# Onboarding / Comms settings (stored in orchestrator.storage secrets)
+# ---------------------------------------------------------------------------
+
+
+class CommsSettingsResponse(BaseModel):
+    telegram_configured: bool
+    discord_configured: bool
+
+
+class CommsSettingsRequest(BaseModel):
+    telegram_token: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
+    discord_webhook: Optional[str] = None
+
+
+@app.get("/api/settings/comms", response_model=CommsSettingsResponse)
+async def get_comms_settings():
+    """Return whether comms are configured (masked). Used by onboarding/settings UI."""
+    storage = orchestrator.storage
+    return CommsSettingsResponse(
+        telegram_configured=bool(
+            storage.get_secret("comms_telegram_token")
+            and storage.get_secret("comms_telegram_chat_id")
+        )
+        or (
+            os.getenv("ROBOFANG_TELEGRAM_TOKEN")
+            and os.getenv("ROBOFANG_TELEGRAM_CHAT_ID")
+        ),
+        discord_configured=bool(
+            storage.get_secret("comms_discord_webhook")
+            or os.getenv("ROBOFANG_DISCORD_WEBHOOK")
+        ),
+    )
+
+
+@app.post("/api/settings/comms")
+async def save_comms_settings(req: CommsSettingsRequest):
+    """Save comms credentials from onboarding/settings UI. Stored in bridge storage. Empty string = leave unchanged."""
+    storage = orchestrator.storage
+    if req.telegram_token is not None and req.telegram_token.strip():
+        storage.save_secret("comms_telegram_token", req.telegram_token.strip())
+    if req.telegram_chat_id is not None and req.telegram_chat_id.strip():
+        storage.save_secret("comms_telegram_chat_id", req.telegram_chat_id.strip())
+    if req.discord_webhook is not None and req.discord_webhook.strip():
+        storage.save_secret("comms_discord_webhook", req.discord_webhook.strip())
+    return {"success": True}
 
 
 # ---------------------------------------------------------------------------
@@ -791,10 +842,45 @@ async def post_journal(req: JournalPostRequest):
         content += f"\n\nTags: {req.tags}"
     try:
         result = await orchestrator.moltbook.post("/post", {"content": content})
-        return {"success": result.get("success", False), "data": result}
+        promoted = False
+        if getattr(orchestrator, "journal_bridge", None):
+            tags_list = (
+                [t.strip() for t in req.tags.split(",") if t.strip()]
+                if req.tags
+                else []
+            )
+            entry = {
+                "content": content,
+                "tags": tags_list,
+                "timestamp": datetime.now().isoformat(),
+            }
+            try:
+                promoted = await orchestrator.journal_bridge.promote_to_adn(entry)
+            except Exception as bridge_e:
+                logger.warning("Journal promote_to_adn failed: %s", bridge_e)
+        return {
+            "success": result.get("success", False),
+            "data": result,
+            "adn_promoted": promoted,
+        }
     except Exception as e:
         logger.error(f"Failed to post journal: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/journal/recent")
+async def get_journal_recent(limit: int = 10):
+    """Return recent journal entries from ADN (#moltbridge). Requires advanced-memory connector."""
+    try:
+        if not getattr(orchestrator, "journal_bridge", None):
+            return {"success": True, "entries": [], "source": "none"}
+        entries = await orchestrator.journal_bridge.get_recent_entries(
+            limit=min(limit, 100)
+        )
+        return {"success": True, "entries": entries, "source": "adn"}
+    except Exception as e:
+        logger.warning("get_journal_recent failed: %s", e)
+        return {"success": False, "entries": [], "error": str(e)}
 
 
 @app.post("/moltbook/register")

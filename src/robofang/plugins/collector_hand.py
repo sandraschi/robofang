@@ -32,9 +32,17 @@ class CollectorHand(Hand):
         active_connectors = list(orchestrator.connectors.keys())
         self.logger.info(f"Health Audit: {len(active_connectors)} connectors active.")
 
-        # 2. Knowledge Synthesis (Placeholder for RAG enhancement)
-        # In a real SOTA implementation, this would call the KnowledgeEngine to consolidate memories
-        self.logger.info("Knowledge Synthesis: Indexing recent sessions via ADN.")
+        # 2. Knowledge Synthesis via KnowledgeEngine RAG
+        try:
+            context = await orchestrator.knowledge.get_context(
+                "recent sessions and fleet status",
+                limit=5,
+                orchestrator=orchestrator,
+            )
+            if context:
+                self.logger.info("Knowledge Synthesis: %s", context[:200])
+        except Exception as e:
+            self.logger.warning("Knowledge synthesis failed: %s", e)
 
         # 3. Decision Logic: If something is critical, post to Moltbook
         if orchestrator.moltbook.client:

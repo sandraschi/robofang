@@ -169,3 +169,31 @@ class RoboFangStorage:
             if row:
                 return row[0]
         return None
+
+    # --- Fleet Config / Key-Value (memory, hand metrics, PA state) ---
+
+    def set_fleet_config(self, key: str, value: Any) -> None:
+        """Persist a key-value pair (JSON-serialized) for fleet/memory state."""
+        with self._get_connection() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO fleet_config (key, value)
+                VALUES (?, ?)
+            """,
+                (key, json.dumps(value)),
+            )
+            conn.commit()
+
+    def get_fleet_config(self, key: str) -> Optional[Any]:
+        """Retrieve a value by key; returns None if missing."""
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                "SELECT value FROM fleet_config WHERE key = ?", (key,)
+            )
+            row = cursor.fetchone()
+            if row:
+                try:
+                    return json.loads(row[0])
+                except (TypeError, ValueError):
+                    return row[0]
+        return None

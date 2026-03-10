@@ -15,6 +15,7 @@ import Chat from './pages/Chat.tsx';
 import Timeline from './pages/Timeline.tsx';
 import KitchenSink from './pages/KitchenSink.tsx';
 import Settings from './pages/Settings.tsx';
+import Onboarding from './pages/Onboarding.tsx';
 import LLM from './pages/LLM.tsx';
 import HomeHub from './pages/HomeHub.tsx';
 import CreativeHub from './pages/CreativeHub.tsx';
@@ -59,6 +60,7 @@ function App() {
           <Route path="/timeline" element={<Timeline />} />
           <Route path="/kitchen-sink" element={<KitchenSink />} />
           <Route path="/settings" element={<Settings />} />
+          <Route path="/onboarding" element={<Onboarding />} />
         </Routes>
       </AppLayout>
     </Router>

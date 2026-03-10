@@ -25,6 +25,7 @@ import {
     HelpCircle,
     Monitor,
     Bot,
+    Rocket,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -91,6 +92,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
                 {/* Sidebar Footer */}
                 <div className="p-4 border-t border-white/5 space-y-2">
+                    <NavItem to="/onboarding" icon={<Rocket size={20} />} label="Onboarding" isCollapsed={isCollapsed} active={location.pathname === '/onboarding'} />
                     <NavItem to="/settings" icon={<Settings size={20} />} label="Settings" isCollapsed={isCollapsed} active={location.pathname === '/settings'} />
                     <button
                         onClick={() => setIsCollapsed(!isCollapsed)}
