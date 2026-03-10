@@ -1,6 +1,9 @@
 # start_all.ps1
 # robofang - start supervisor + dashboard in one command.
 # Run from the repo root:  .\start_all.ps1
+#
+# Bridge: Always started here as "python -m robofang.main" (real Sovereign Bridge).
+# Do not call supervisor/start from this script; that would start a second bridge and conflict on :10871.
 
 param(
     [switch]$StartBridge,
@@ -81,43 +84,30 @@ catch {
     Write-Host "    Supervisor: did not respond in time - check $SupLog.err" -ForegroundColor Red
 }
 
-# -- 1.1 Start MCP Substrate (Sidecar) -----------------------------------------
-Write-Host "[1.1/3] Starting MCP Substrate on :10867 ..." -ForegroundColor Yellow
-$McpLog = "$TempDir\mcp_substrate_$(Get-Date -Format 'HHmmss').log"
+# -- 1.1 Start real Bridge on :10871 (robofang.main = Sovereign Bridge; no mock/placeholder)
+Write-Host "[1.1/3] Starting RoboFang Bridge on :10871 (python -m robofang.main) ..." -ForegroundColor Yellow
+$McpLog = "$TempDir\bridge_$(Get-Date -Format 'HHmmss').log"
 $McpProc = Start-Process `
     -FilePath $Python `
-    -ArgumentList "-m", "robofang.mcp_server", "sse" `
+    -ArgumentList "-m", "robofang.main" `
     -WorkingDirectory $RepoRoot `
     -RedirectStandardOutput $McpLog `
     -RedirectStandardError  "$McpLog.err" `
     -WindowStyle Hidden `
     -PassThru
 
-Write-Host "    MCP Substrate PID: $($McpProc.Id) (log: $McpLog)" -ForegroundColor DarkGray
+Write-Host "    Bridge PID: $($McpProc.Id) (log: $McpLog)" -ForegroundColor DarkGray
 Start-Sleep -Seconds 2
 
-# -- 2. Optionally start bridge via supervisor ---------------------------------
+# -- 2. Bridge already running from step 1.1 (real robofang.main). Do NOT call
+#    supervisor/start here: that would start a second bridge process and conflict on :10871.
+#    Use dashboard Status page to start/stop bridge via supervisor if you prefer supervisor-led.
 if ($StartBridge) {
-    Write-Host "[2/3] Starting bridge via supervisor ..." -ForegroundColor Yellow
-    try {
-        $r = Invoke-WebRequest -Uri "http://localhost:10872/supervisor/start" `
-            -Method POST -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
-        Write-Host "    Bridge start response: $($r.Content)" -ForegroundColor DarkGray
-        
-        Write-Host "    Executing Base Connector Wave (Plex, HA, Tasmota, Netatmo) ..." -ForegroundColor Cyan
-        Start-Sleep -Seconds 2
-        # Use the Bridge's start_connectors logic if the bridge exposes an endpoint, 
-        # or simply rely on the bridge's internal 'start connectors on boot' if we enabled that.
-        # Since we want explicit feedback, we call the connector-start via bridge if available,
-        # or just wait. For now, the bridge starts them if configured.
-    }
-    catch {
-        Write-Host "    Failed to start bridge: $_" -ForegroundColor Red
-    }
-    Start-Sleep -Seconds 4
+    Write-Host "[2/3] Bridge already running (step 1.1). Connectors auto-launch from bridge config." -ForegroundColor Cyan
+    Start-Sleep -Seconds 2
 }
 else {
-    Write-Host "[2/3] Bridge not started (use dashboard Status page or -StartBridge flag)" -ForegroundColor DarkGray
+    Write-Host "[2/3] Bridge running on :10871 (started in step 1.1). Use dashboard Status for supervisor control." -ForegroundColor DarkGray
 }
 
 # -- 3. Start dashboard --------------------------------------------------------

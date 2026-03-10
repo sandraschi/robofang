@@ -22,13 +22,24 @@ class SecretsManager:
         self.logger = logging.getLogger("robofang.core.security.secrets")
 
     async def get_secret(self, key_name: str) -> Optional[str]:
-        """Retrieves a secret by name."""
-        # [MOCK] For now, we simulate retrieval. Phase 9.2 will add sqlite backing.
-        self.logger.info(f"Retrieving secret: {key_name}")
+        """Retrieves a secret by name from the sovereign vault."""
+        if not self.storage:
+            self.logger.warning("SecretsManager: No storage available.")
+            return None
+
+        secret = self.storage.get_secret(key_name)
+        if secret:
+            self.logger.info(f"Secret '{key_name}' retrieved from vault.")
+            return secret
+
+        self.logger.warning(f"Secret '{key_name}' not found.")
         return None
 
     async def set_secret(self, key_name: str, value: str):
-        """Stores a secret securely."""
-        self.logger.info(f"Storing secret: {key_name}")
-        # In Phase 9, this would save to a 'secrets' table in encrypted format.
-        pass
+        """Stores a secret securely in the sovereign vault."""
+        if not self.storage:
+            self.logger.error("SecretsManager: No storage available.")
+            return
+
+        self.storage.save_secret(key_name, value)
+        self.logger.info(f"Secret '{key_name}' persisted to vault.")

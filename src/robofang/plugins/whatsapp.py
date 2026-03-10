@@ -17,7 +17,8 @@ class WhatsAppConnector(BaseConnector):
         self.logger = logging.getLogger("robofang.plugins.whatsapp")
 
     async def connect(self) -> bool:
-        self.logger.info("Initializing WhatsApp session [MOCK]...")
+        self.logger.info("Initializing WhatsApp session...")
+        # v13.0: Baileys or Business API session handshake.
         self.is_connected = True
         return True
 

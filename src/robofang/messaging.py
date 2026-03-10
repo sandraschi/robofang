@@ -82,3 +82,12 @@ _bridge = MessagingBridge()
 async def notify(message: str):
     """Convenience wrapper for broadcasting notifications."""
     return await _bridge.broadcast(message)
+
+
+async def reply_to(channel: str, text: str) -> bool:
+    """Send text to a single channel (telegram or discord). Used for command replies."""
+    if channel == "telegram":
+        return await _bridge.send_telegram(text)
+    if channel == "discord":
+        return await _bridge.send_discord(text)
+    return False

@@ -120,12 +120,47 @@ class LocalBastionManager:
 
     def enforce_quotas(self) -> bool:
         """
-        Proactively enforce quotas by throttling or terminating problematic processes.
-        Implemented as a placeholder for Phase 4.
+        Enforce quotas by terminating the single most memory-heavy tracked process
+        when status is CRITICAL. Returns True if no action needed or action succeeded.
         """
         health = self.check_health()
-        if health["status"] == "CRITICAL":
-            self.logger.critical("RESOURCE CRITICAL: Bastion intervention required!")
-            # In a production scenario, we might kill the hungriest non-essential process here
+        if health.get("status") != "CRITICAL":
+            return True
+        self.logger.critical("RESOURCE CRITICAL: Bastion enforcing quotas.")
+        pids = list(self.tracked_pids)
+        if not pids:
             return False
-        return True
+        worst_pid = None
+        worst_rss = 0
+        for pid in pids:
+            try:
+                proc = psutil.Process(pid)
+                if proc.is_running():
+                    rss = proc.memory_info().rss
+                    if rss > worst_rss:
+                        worst_rss = rss
+                        worst_pid = pid
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                self.unregister_process(pid)
+        if worst_pid is not None:
+            try:
+                proc = psutil.Process(worst_pid)
+                self.logger.warning(
+                    "Bastion: terminating highest-RSS tracked process pid=%s (rss=%s)",
+                    worst_pid,
+                    worst_rss,
+                )
+                proc.terminate()
+                proc.wait(timeout=5)
+                self.unregister_process(worst_pid)
+                return True
+            except (
+                psutil.NoSuchProcess,
+                psutil.AccessDenied,
+                psutil.TimeoutExpired,
+            ) as e:
+                self.logger.error(
+                    "Bastion enforce_quotas failed for pid %s: %s", worst_pid, e
+                )
+                return False
+        return False

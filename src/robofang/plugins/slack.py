@@ -1,63 +1,50 @@
 """
-Slack Connector Stub for RoboFang.
-Implements the RoboFang BaseConnector for legacy messaging integration.
+Slack connector plugin.
+
+Delegates to core SlackConnector when present. If core does not define
+SlackConnector, this module provides a no-op connector so discovery does not
+fail. Enable "slack" in federation_map and set token/channel_id for real Slack.
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, List
 from robofang.core.connectors import BaseConnector
 
 logger = logging.getLogger(__name__)
 
+try:
+    from robofang.core.connectors import SlackConnector as CoreSlackConnector
 
-class SlackConnector(BaseConnector):
-    """
-    Protocol stub for Slack messaging.
-    In a production scenario, this would use slack_sdk to interface with the Slack Web API.
-    """
+    _HAS_CORE_SLACK = True
+except ImportError:
+    _HAS_CORE_SLACK = False
 
-    def __init__(self, config: Dict[str, Any]):
-        super().__init__(config)
-        self.token = config.get("token")
-        self.channel_id = config.get("channel_id")
-        self.active = False
-        self.logger = logging.getLogger("robofang.connectors.slack")
 
-    async def connect(self) -> bool:
-        """Simulate connection to Slack."""
-        if not self.token:
-            self.logger.warning("Slack token missing. Starting in inactive mode.")
-            return False
+if _HAS_CORE_SLACK:
+    SlackConnector = CoreSlackConnector
+else:
 
-        self.logger.info("Authenticating with Slack API...")
-        # Simulation: In a real system, we'd verify the token and join channels
-        self.active = True
-        self.logger.info("Slack Connector Active (Stub Mode)")
-        return True
+    class SlackConnector(BaseConnector):
+        """Slack connector; requires slack_sdk and core SlackConnector. Not connected."""
 
-    async def disconnect(self):
-        """Disconnect from Slack."""
-        self.active = False
-        self.logger.info("Slack Connector Deactivated")
+        connector_type = "slack"
 
-    async def send_message(self, target: str, content: str) -> bool:
-        """Simulate sending a message to a Slack channel."""
-        if not self.active:
+        def __init__(self, name: str, config: Dict[str, Any]):
+            super().__init__(name, config)
+            self.active = False
+
+        async def connect(self) -> bool:
             self.logger.warning(
-                "Attempted to send message via inactive Slack connector."
+                "SlackConnector: core SlackConnector not available or slack_sdk not installed."
             )
             return False
 
-        # If target is not provided, use default channel from config
-        dest = target or self.channel_id
-        self.logger.info(f"Slack [STUB] -> {dest}: {content[:50]}...")
-        return True
+        async def disconnect(self) -> bool:
+            self.active = False
+            return True
 
-    def get_status(self) -> Dict[str, Any]:
-        """Return connectivity metadata."""
-        return {
-            "name": "slack",
-            "active": self.active,
-            "type": "messaging",
-            "stub": True,
-        }
+        async def send_message(self, target: str, content: str, **kwargs) -> bool:
+            return False
+
+        async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+            return []

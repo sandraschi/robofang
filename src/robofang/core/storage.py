@@ -65,6 +65,15 @@ class RoboFangStorage:
                 )
             """)
 
+            # 4. Encrypted Secrets (v13.0 Materialist Storage)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS secrets (
+                    key_name TEXT PRIMARY KEY,
+                    value TEXT NOT NULL,
+                    metadata TEXT               -- JSON blob for algo/salt
+                )
+            """)
+
             conn.commit()
 
     # --- Security Policy Operations ---
@@ -132,4 +141,31 @@ class RoboFangStorage:
             row = cursor.fetchone()
             if row:
                 return {"system_prompt": row[0], "metadata": json.loads(row[1])}
+        return None
+
+    # --- Secret Operations ---
+
+    def save_secret(
+        self, key_name: str, value: str, metadata: Optional[Dict[str, Any]] = None
+    ):
+        """Persist a secret to the database."""
+        with self._get_connection() as conn:
+            conn.execute(
+                """
+                INSERT OR REPLACE INTO secrets (key_name, value, metadata)
+                VALUES (?, ?, ?)
+            """,
+                (key_name, value, json.dumps(metadata or {})),
+            )
+            conn.commit()
+
+    def get_secret(self, key_name: str) -> Optional[str]:
+        """Retrieve a secret by name."""
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                "SELECT value FROM secrets WHERE key_name = ?", (key_name,)
+            )
+            row = cursor.fetchone()
+            if row:
+                return row[0]
         return None

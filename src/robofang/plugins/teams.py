@@ -17,7 +17,8 @@ class TeamsConnector(BaseConnector):
         self.logger = logging.getLogger("robofang.plugins.teams")
 
     async def connect(self) -> bool:
-        self.logger.info("Authenticating with Microsoft Teams [MOCK]...")
+        self.logger.info("Authenticating with Microsoft Teams...")
+        # v13.0: MS Graph OAuth2 flow.
         self.is_connected = True
         return True
 

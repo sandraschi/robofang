@@ -30,7 +30,8 @@ class PluginManager:
             "moltbook": "robofang.core.connectors.MCPBridgeConnector",
             "email": "robofang.core.connectors.EmailConnector",
             "discord": "robofang.core.connectors.DiscordConnector",
-            "social": "robofang.core.connectors.SocialConnector",  # stub
+            "slack": "robofang.core.connectors.SlackConnector",
+            "social": "robofang.core.connectors.SocialConnector",
             # ── Physical devices ─────────────────────────────────────────────
             "tapo": "robofang.core.connectors.TapoConnector",
             "hue": "robofang.core.connectors.HueConnector",

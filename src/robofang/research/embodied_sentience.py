@@ -69,8 +69,8 @@ class SentientLoop:
         else:
             logger.warning("ResoniteLink inactive. Prototype will focus on OSC/Unity.")
 
-        # 2. Start Perception (Mocking OSC pulse for research verify)
-        asyncio.create_task(self._mock_sensor_pulses())
+        # 2. Start Perception (Real System Telemetry)
+        asyncio.create_task(self._pulse_system_telemetry())
 
         # 3. The Loop
         try:
@@ -141,11 +141,20 @@ class SentientLoop:
         elif "move" in cognition_results.lower():
             logger.info("EMBODIED ACTION: vbot_scout navigating to safe zone.")
 
-    async def _mock_sensor_pulses(self):
-        """Simulates periodic sensor data for research purposes."""
+    async def _pulse_system_telemetry(self):
+        """Gathers real system metrics as 'sensory input' for the sentient loop."""
+        import psutil
+
         while self.running:
-            await asyncio.sleep(30)
-            await self._on_osc_pulse("/sensor/proximity", 0.45)
+            try:
+                cpu = psutil.cpu_percent()
+                mem = psutil.virtual_memory().percent
+                vibe = f"SYSTEM_SENSE: CPU Load {cpu}%, Memory Usage {mem}%"
+                logger.info(f"PERCEIVE (System): {vibe}")
+                await self.perception_queue.put({"source": "system", "vibe": vibe})
+            except ImportError:
+                logger.warning("psutil not installed. System sense disabled.")
+            await asyncio.sleep(60)
 
 
 if __name__ == "__main__":
