@@ -5,7 +5,7 @@ Collector Hand: Monitoring fleet health and new knowledge sources.
 
 import logging
 from typing import Any
-from robofang.core.hands import Hand, HandManifest
+from robofang.core.base_hand import Hand
 
 logger = logging.getLogger(__name__)
 
@@ -15,15 +15,9 @@ class CollectorHand(Hand):
     A persistent agent that scans the fleet and builds knowledge.
     """
 
-    def __init__(self):
-        manifest = HandManifest(
-            id="collector",
-            name="Collector Hand",
-            description="Background monitoring of fleet health and knowledge building.",
-            tags=["monitoring", "knowledge", "autonomous"],
-        )
-        super().__init__(manifest)
-        self.pulse_interval = 600  # 10 minutes
+    def __init__(self, definition: Any):
+        super().__init__(definition)
+        logger.info("Collector Hand initialized")
 
     async def _on_pulse(self, orchestrator: Any):
         """

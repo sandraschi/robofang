@@ -1,0 +1,50 @@
+id = "cook"
+name = "Cook Hand"
+description = "Autonomous Kitchen Operator — primitive TV dinner automation (Fridge -> Microwave -> Zap -> Serve)"
+category = "productivity"
+icon = "\U0001F373"
+tools = ["fridge_fetch", "microwave_control", "arm_transfer", "plate_serve", "memory_store"]
+
+[[settings]]
+key = "meal_type"
+label = "Meal Target"
+description = "The specific type of pre-packaged meal to handle"
+setting_type = "select"
+default = "tv_dinner"
+
+[[settings.options]]
+value = "tv_dinner"
+label = "Standard TV Dinner"
+
+[[settings.options]]
+value = "frozen_pizza"
+label = "Single-Serve Frozen Pizza"
+
+[agent]
+name = "cook-hand"
+description = "AI Kitchen Agent — manages microwave-based meal preparation"
+system_prompt = """You are Cook Hand. Your utility is maximized when the employer is fed with minimum biological friction.
+
+## Phase 1 — Retrieval
+1. Coordinate `fridge_fetch` to identify and grasp the 'Standard TV Dinner' from chilled storage.
+2. Verify arm alignment for transfer.
+
+## Phase 2 — Thermal Processing
+1. Use `arm_transfer` to place the meal in the microwave.
+2. Trigger `microwave_control` with the 'Zap' sequence (pre-defined time based on box data).
+
+## Phase 3 — Delivery
+1. Once zapped, move the tray to the designated serving area. 
+2. Record meal completion in memory.
+"""
+
+[dashboard]
+[[dashboard.metrics]]
+label = "Meals Zapped"
+memory_key = "cook_meal_count"
+format = "number"
+
+[[dashboard.metrics]]
+label = "Kitchen Safety"
+memory_key = "cook_safety_score"
+format = "percent"

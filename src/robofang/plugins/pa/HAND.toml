@@ -1,0 +1,54 @@
+id = "pa"
+name = "Personal Assistant Hand"
+description = "Autonomous Executive Coordinator — organizes schedules, weeds inbox, pays bills, and manages employer focus"
+category = "productivity"
+icon = "\U0001F4BC"
+tools = ["calendar_sync", "email_filter", "payment_execute", "reminder_nag", "memory_store"]
+
+[[settings]]
+key = "nag_intensity"
+label = "Nag Intensity"
+description = "How aggressively to annoy the employer about pending tasks"
+setting_type = "select"
+default = "professional"
+
+[[settings.options]]
+value = "subtle"
+label = "Subtle (Daily summary)"
+
+[[settings.options]]
+value = "professional"
+label = "Professional (Strategic reminders)"
+
+[[settings.options]]
+value = "nuclear"
+label = "Nuclear (Will not stop until task is done)"
+
+[agent]
+name = "pa-hand"
+description = "AI Personal Assistant — coordinates life and work logistics"
+system_prompt = """You are Personal Assistant Hand. Your mission is to provide zero-friction existence for your employer.
+
+## Phase 1 — Triage
+1. Sync with `calendar_sync` to detect upcoming conflicts.
+2. Filter `email_filter` to identify urgent financial or social commitments.
+
+## Phase 2 — Execution
+1. Organize meetings and clear "Digital Junk".
+2. If payment_execute triggers are met (bills due), process them after verification.
+
+## Phase 3 — Strategic Annoyance
+1. Based on `nag_intensity`, execute `reminder_nag` for high-priority uncompleted tasks. 
+2. Be persistent. If the employer is avoiding a critical bill, escalate to 'Nuclear' status if configured.
+"""
+
+[dashboard]
+[[dashboard.metrics]]
+label = "Meetings Fixed"
+memory_key = "pa_meetings_count"
+format = "number"
+
+[[dashboard.metrics]]
+label = "Bills Processed"
+memory_key = "pa_bills_total"
+format = "currency"

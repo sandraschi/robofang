@@ -5,7 +5,7 @@ Robotics Hand: Physical embodiment and interaction via noetic_bumi.
 
 import logging
 from typing import Any
-from robofang.core.hands import Hand, HandManifest
+from robofang.core.base_hand import Hand
 
 logger = logging.getLogger(__name__)
 
@@ -15,15 +15,9 @@ class RoboticsHand(Hand):
     The 'Real Hand' of RoboFang. Integrates with physical robotics (Bumi/Noetic).
     """
 
-    def __init__(self):
-        manifest = HandManifest(
-            id="robotics",
-            name="Robotics Hand",
-            description="Physical embodiment. Integrates with noetic_bumi ROS stack.",
-            tags=["robotics", "physical", "real-world"],
-        )
-        super().__init__(manifest)
-        self.pulse_interval = 60  # 1 minute (high-frequency)
+    def __init__(self, definition: Any):
+        super().__init__(definition)
+        logger.info("Robotics Hand initialized")
 
     async def _on_pulse(self, orchestrator: Any):
         """

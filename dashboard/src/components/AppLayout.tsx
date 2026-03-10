@@ -24,6 +24,7 @@ import {
     MessageSquare,
     HelpCircle,
     Monitor,
+    Bot,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -69,6 +70,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     <NavItem to="/showroom" icon={<Monitor size={20} />} label="Showroom" isCollapsed={isCollapsed} active={location.pathname === '/showroom'} />
                     <NavItem to="/fleet" icon={<Cpu size={20} />} label="Fleet" isCollapsed={isCollapsed} active={location.pathname === '/fleet'} />
                     <NavItem to="/hands" icon={<Layers size={20} />} label="Hands" isCollapsed={isCollapsed} active={location.pathname === '/hands'} />
+                    <NavItem to="/robotics" icon={<Bot size={20} />} label="Robotics" isCollapsed={isCollapsed} active={location.pathname === '/robotics'} />
                     <NavItem to="/home" icon={<Home size={20} />} label="Home Hub" isCollapsed={isCollapsed} active={location.pathname === '/home'} />
                     <NavItem to="/creative" icon={<Palette size={20} />} label="Creative Hub" isCollapsed={isCollapsed} active={location.pathname === '/creative'} />
                     <NavItem to="/infra" icon={<MonitorDot size={20} />} label="Infra Hub" isCollapsed={isCollapsed} active={location.pathname === '/infra'} />
@@ -81,6 +83,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     <NavItem to="/status" icon={<ShieldCheck size={20} />} label="Status" isCollapsed={isCollapsed} active={location.pathname === '/status'} />
                     <NavItem to="/tools" icon={<Wrench size={20} />} label="Tools" isCollapsed={isCollapsed} active={location.pathname === '/tools'} />
                     <NavItem to="/apps" icon={<Grid size={20} />} label="App Hub" isCollapsed={isCollapsed} active={location.pathname === '/apps'} />
+                    <NavItem to="/installer" icon={<Wrench size={20} />} label="Installer" isCollapsed={isCollapsed} active={location.pathname === '/installer'} />
                     <NavItem to="/pulse" icon={<Activity size={20} />} label="Pulse Feed" isCollapsed={isCollapsed} active={location.pathname === '/pulse'} />
                     <NavItem to="/timeline" icon={<Clock size={20} />} label="Timeline" isCollapsed={isCollapsed} active={location.pathname === '/timeline'} />
                     <NavItem to="/kitchen-sink" icon={<Sparkles size={20} />} label="Kitchen Sink" isCollapsed={isCollapsed} active={location.pathname === '/kitchen-sink'} />
@@ -134,7 +137,7 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                                         <div key={name} className="flex items-center gap-2.5">
                                             <NavLink
                                                 to={routeTo}
-                                                className={`capitalize transition-colors text-base ${isLast ? 'font-bold text-white tracking-wide' : 'text-slate-400 hover:text-white'}`}
+                                                className={`capitalize transition-all duration-300 text-base ${isLast ? 'font-bold text-white tracking-wide' : 'text-slate-400 hover:text-indigo-400'}`}
                                             >
                                                 {name.replace('-', ' ')}
                                             </NavLink>
@@ -193,7 +196,9 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                             className="p-10 pb-24 h-full"
                         >
-                            {children}
+                            <div className="max-w-[1600px] mx-auto">
+                                {children}
+                            </div>
                         </motion.div>
                     </AnimatePresence>
                 </div>

@@ -35,6 +35,9 @@ dependencies = [
     # MCP 3.1 (Unified Gateway)
     "fastmcp>=3.1.0",
 
+    # ── Protocol Extensions ──────────────────────────────────────────────────
+    "python-osc>=1.8.3",       # OSC council bridge & A/V gear
+
     # RAG (in-repo; no external docs_mcp)
     "lancedb>=0.4.0",
     "fastembed>=0.3.0",
@@ -55,5 +58,5 @@ all = [
 where = ["src"]
 
 [project.scripts]
-robofang-bridge     = "robofang.main:app"
+robofang-bridge     = "robofang.main:main"
 robofang-supervisor = "robofang.supervisor:app"

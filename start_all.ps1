@@ -36,10 +36,10 @@ function Stop-PortApp($port) {
         $proc = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
         if ($proc) {
             $foundPids = $proc.OwningProcess | Select-Object -Unique
-            foreach ($pid in $foundPids) {
-                if ($pid -gt 4) {
-                    Write-Host "    Killing process on port $port (PID: $pid) ..." -ForegroundColor DarkGray
-                    Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
+            foreach ($foundPid in $foundPids) {
+                if ($foundPid -gt 4) {
+                    Write-Host "    Killing process on port $port (PID: $foundPid) ..." -ForegroundColor DarkGray
+                    Stop-Process -Id $foundPid -Force -ErrorAction SilentlyContinue
                 }
             }
         }
@@ -103,6 +103,13 @@ if ($StartBridge) {
         $r = Invoke-WebRequest -Uri "http://localhost:10872/supervisor/start" `
             -Method POST -UseBasicParsing -TimeoutSec 10 -ErrorAction Stop
         Write-Host "    Bridge start response: $($r.Content)" -ForegroundColor DarkGray
+        
+        Write-Host "    Executing Base Connector Wave (Plex, HA, Tasmota, Netatmo) ..." -ForegroundColor Cyan
+        Start-Sleep -Seconds 2
+        # Use the Bridge's start_connectors logic if the bridge exposes an endpoint, 
+        # or simply rely on the bridge's internal 'start connectors on boot' if we enabled that.
+        # Since we want explicit feedback, we call the connector-start via bridge if available,
+        # or just wait. For now, the bridge starts them if configured.
     }
     catch {
         Write-Host "    Failed to start bridge: $_" -ForegroundColor Red

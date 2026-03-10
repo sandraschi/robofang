@@ -89,7 +89,7 @@ const Council: React.FC = () => {
 
             setLastRefresh(new Date());
         } catch {
-            setError('Bridge unreachable at :10865');
+            setError('Bridge unreachable at :10871');
         } finally {
             setLoading(false);
         }
@@ -179,8 +179,8 @@ const Council: React.FC = () => {
 
                                 <div className="flex items-center justify-between relative z-10">
                                     <div className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${(status === 'Foreman' || status === 'Satisficer') ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                            status === 'Reasoning' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 animate-pulse' :
-                                                'bg-slate-500/10 text-slate-500 border border-white/5'
+                                        status === 'Reasoning' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 animate-pulse' :
+                                            'bg-slate-500/10 text-slate-500 border border-white/5'
                                         }`}>
                                         {status}
                                     </div>

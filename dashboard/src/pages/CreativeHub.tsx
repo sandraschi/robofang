@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import axios from "axios";
 import {
   Box,
@@ -20,20 +20,13 @@ import {
   Layers,
   Film,
   Mic,
-  Activity,
   Monitor,
   ChevronRight,
-  Clock,
   AlertCircle,
-  Cpu,
-  Eye,
-  ToggleLeft,
-  ToggleRight,
   Palette,
-  Star,
 } from "lucide-react";
 
-const BRIDGE = "http://localhost:10865";
+const BRIDGE = "http://localhost:10871";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -47,6 +40,16 @@ async function creativeGet(connector: string, path: string) {
 async function creativePost(connector: string, path: string, body: unknown = {}) {
   const r = await axios.post(`${BRIDGE}/home/${connector}/${path}`, body, { timeout: 8000 });
   return r.data;
+}
+
+async function launchConnector(connector: string) {
+  try {
+    await axios.post(`${BRIDGE}/api/connector/launch/${connector}`);
+    return true;
+  } catch (e) {
+    console.error("Launch failed:", e);
+    return false;
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -70,7 +73,7 @@ function Skeleton({ rows = 4 }: { rows?: number }) {
   return (
     <div className="space-y-2 animate-pulse">
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="h-4 bg-white/5 rounded" style={{ width: `${70 + (i % 3) * 10}%` }} />
+        <div key={i} className="h-4 bg-white/5 rounded" style={{ width: `${70 + (i % 3) * 10}%` } as any} />
       ))}
     </div>
   );
@@ -79,11 +82,11 @@ function Skeleton({ rows = 4 }: { rows?: number }) {
 // Static accent class map — Tailwind cannot generate dynamic class strings at build/scan time
 const ACCENT: Record<string, { border: string; bg: string; shadow: string }> = {
   orange: { border: "border-orange-500/30", bg: "bg-orange-500/10", shadow: "shadow-orange-500/10" },
-  red:    { border: "border-red-500/30",    bg: "bg-red-500/10",    shadow: "shadow-red-500/10"    },
-  amber:  { border: "border-amber-500/30",  bg: "bg-amber-500/10",  shadow: "shadow-amber-500/10"  },
-  green:  { border: "border-green-500/30",  bg: "bg-green-500/10",  shadow: "shadow-green-500/10"  },
+  red: { border: "border-red-500/30", bg: "bg-red-500/10", shadow: "shadow-red-500/10" },
+  amber: { border: "border-amber-500/30", bg: "bg-amber-500/10", shadow: "shadow-amber-500/10" },
+  green: { border: "border-green-500/30", bg: "bg-green-500/10", shadow: "shadow-green-500/10" },
   violet: { border: "border-violet-500/30", bg: "bg-violet-500/10", shadow: "shadow-violet-500/10" },
-  blue:   { border: "border-blue-500/30",   bg: "bg-blue-500/10",   shadow: "shadow-blue-500/10"   },
+  blue: { border: "border-blue-500/30", bg: "bg-blue-500/10", shadow: "shadow-blue-500/10" },
   indigo: { border: "border-indigo-500/30", bg: "bg-indigo-500/10", shadow: "shadow-indigo-500/10" },
 };
 
@@ -96,34 +99,50 @@ function ConnectorCard({
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`relative flex flex-col rounded-xl border bg-[#16162a] ${ac.border} shadow-lg ${ac.shadow} overflow-hidden`}
-      style={{ minHeight: 420 }}
+      className={`relative flex flex-col rounded-2xl border bg-white/[0.03] backdrop-blur-md shadow-lg overflow-hidden group hover:border-white/20 transition-all duration-500 ${ac.border} ${ac.shadow}`}
+      style={{ minHeight: '420px' } as any}
     >
       {/* Header */}
-      <div className={`flex items-center gap-3 px-4 py-3 border-b border-white/5 ${ac.bg}`}>
-        <div className="text-white/70">{icon}</div>
+      <div className={`flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] bg-white/[0.02] ${ac.bg}`}>
+        <div className="text-white/70 transition-transform group-hover:scale-110 duration-500">{icon}</div>
         <div className="flex-1 min-w-0">
-          <div className="text-sm font-semibold text-slate-100">{title}</div>
-          {subtitle && <div className="text-xs text-slate-400 truncate">{subtitle}</div>}
+          <div className="text-sm font-bold text-slate-100">{title}</div>
+          {subtitle && <div className="text-[10px] text-slate-400 truncate uppercase tracking-widest mt-0.5">{subtitle}</div>}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${online ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}>
-            {online ? "online" : `offline :${port}`}
-          </span>
-          <button onClick={onRefresh} className="text-slate-500 hover:text-slate-200 transition-colors">
-            <RefreshCw size={13} />
+          <div className="flex items-center gap-2">
+            <span
+              className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-widest ${online ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/20" : "bg-red-500/20 text-red-400 border border-red-500/20"}`}
+            >
+              {online ? "online" : `offline :${port}`}
+            </span>
+            {!online && (
+              <button
+                onClick={() => launchConnector(title.toLowerCase().replace(" ", "-"))}
+                className="px-2 py-0.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-[9px] font-bold text-indigo-400 border border-indigo-500/20 transition-all uppercase tracking-tighter"
+              >
+                Launch
+              </button>
+            )}
+          </div>
+          <button
+            onClick={onRefresh}
+            title="Refresh creative tool data"
+            className="p-1.5 rounded-lg hover:bg-white/5 text-slate-500 hover:text-slate-100 transition-all active:scale-90"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto p-4 text-sm">
+      <div className="flex-1 overflow-y-auto p-5 custom-scrollbar text-sm">
         {loading ? (
           <Skeleton />
         ) : error ? (
-          <div className="flex items-center gap-2 text-red-400 text-xs">
-            <AlertCircle size={14} />
-            <span>{error}</span>
+          <div className="flex items-start gap-2 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+            <AlertCircle size={14} className="shrink-0 mt-0.5" />
+            <span className="leading-relaxed">{error}</span>
           </div>
         ) : (
           children
@@ -602,91 +621,7 @@ function ResolumeCard() {
   );
 }
 
-// ---------------------------------------------------------------------------
-// VRChatCard
-// ---------------------------------------------------------------------------
-
-interface VRChatStatus {
-  world_name?: string;
-  player_count?: number;
-  avatar_name?: string;
-  instance_id?: string;
-  running: boolean;
-}
-
-function VRChatCard() {
-  const [online, setOnline] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<VRChatStatus | null>(null);
-  const [friends, setFriends] = useState<string[]>([]);
-
-  const fetch = useCallback(async () => {
-    setLoading(true); setError(null);
-    try {
-      const [st, fr] = await Promise.allSettled([
-        creativeGet("vrchat", "status"),
-        creativeGet("vrchat", "friends/online"),
-      ]);
-      if (st.status === "fulfilled") { setStatus(st.value); setOnline(true); }
-      if (fr.status === "fulfilled") {
-        const raw = fr.value;
-        setFriends(Array.isArray(raw?.friends) ? raw.friends.slice(0, 10) : []);
-      }
-    } catch (e: any) {
-      setError(e?.response?.data?.error || e.message);
-      setOnline(false);
-    } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { fetch(); }, [fetch]);
-
-  return (
-    <ConnectorCard
-      title="VRChat" subtitle={status?.world_name || "Social VR"} icon={<Globe size={18} />}
-      accentColor="blue" online={online} loading={loading} error={error} onRefresh={fetch} port={10712}
-    >
-      {status && (
-        <div className="mb-3 space-y-2">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="bg-white/5 rounded-lg p-2">
-              <div className="text-slate-400 text-xs">World</div>
-              <div className="text-slate-100 text-xs font-semibold truncate">{status.world_name || "—"}</div>
-            </div>
-            <div className="bg-white/5 rounded-lg p-2">
-              <div className="text-slate-400 text-xs">Players</div>
-              <div className="text-slate-100 font-semibold">{status.player_count ?? "—"}</div>
-            </div>
-          </div>
-          {status.avatar_name && (
-            <div className="bg-white/5 rounded-lg p-2">
-              <div className="text-slate-400 text-xs">Avatar</div>
-              <div className="text-slate-100 text-xs truncate">{status.avatar_name}</div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {friends.length > 0 && (
-        <div>
-          <div className="text-slate-500 text-xs mb-1">Online Friends ({friends.length})</div>
-          <div className="space-y-1">
-            {friends.map((f, i) => (
-              <div key={i} className="flex items-center gap-2 px-2 py-1 rounded bg-white/[0.03]">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0" />
-                <span className="text-slate-300 text-xs truncate">{f}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {friends.length === 0 && online && (
-        <div className="text-slate-500 text-xs">No friends currently online</div>
-      )}
-    </ConnectorCard>
-  );
-}
+// Slot migrated to Virtual Hub
 
 // ---------------------------------------------------------------------------
 // Page status strip
@@ -698,7 +633,6 @@ const WAVE2_CONNECTORS = [
   { key: "davinci-resolve", label: "DaVinci", port: 10843 },
   { key: "reaper", label: "Reaper", port: 10797 },
   { key: "resolume", label: "Resolume", port: 10770 },
-  { key: "vrchat", label: "VRChat", port: 10712 },
 ];
 
 function StatusStrip() {
@@ -712,7 +646,7 @@ function StatusStrip() {
         result[key] = connectors[key]?.online ?? false;
       }
       setStatuses(result);
-    }).catch(() => {});
+    }).catch(() => { });
   }, []);
 
   return (
@@ -734,7 +668,7 @@ function StatusStrip() {
 
 export default function CreativeHub() {
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-12">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
@@ -748,13 +682,21 @@ export default function CreativeHub() {
       </div>
 
       {/* 2×3 grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-10">
         <BlenderCard />
         <OBSCard />
         <DaVinciCard />
         <ReaperCard />
         <ResolumeCard />
-        <VRChatCard />
+
+        {/* Slot moved to Virtual Hub */}
+        <div className="bg-white/[0.01] border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center p-8 text-slate-700 text-xs gap-3">
+          <Globe size={24} className="opacity-20" />
+          <div className="text-center">
+            <p>VRChat moved to</p>
+            <p className="font-bold text-slate-600">Virtual Hub (Wave 5)</p>
+          </div>
+        </div>
       </div>
     </div>
   );

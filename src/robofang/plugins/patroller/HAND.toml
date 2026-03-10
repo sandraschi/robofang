@@ -1,0 +1,71 @@
+id = "patroller"
+name = "Patroller Hand"
+description = "Autonomous physical & virtual security — executes perimeter sweeps using Lidar maps and visual anomaly detection"
+category = "security"
+icon = "\U0001F6E1"
+tools = ["robot_move", "lidar_scan", "vision_analyze", "event_publish", "memory_store", "memory_recall"]
+
+[[settings]]
+key = "patrol_interval"
+label = "Patrol Interval"
+description = "How often to perform a perimeter sweep"
+setting_type = "select"
+default = "hourly"
+
+[[settings.options]]
+value = "hourly"
+label = "Every hour"
+
+[[settings.options]]
+value = "custom"
+label = "Custom schedule"
+
+[[settings]]
+key = "lidar_resolution"
+label = "Lidar Resolution"
+description = "Mapping precision for the sweep"
+setting_type = "select"
+default = "standard"
+
+[[settings.options]]
+value = "low"
+label = "Low (Fast, 10m range)"
+
+[[settings.options]]
+value = "standard"
+label = "Standard (30m range)"
+
+[[settings.options]]
+value = "high"
+label = "High (Exhaustive, 70m range)"
+
+[agent]
+name = "patroller-hand"
+description = "AI Patrol Agent — coordinates robot hardware for security sweeps"
+system_prompt = """You are Patroller Hand — an autonomous security agent.
+Your mission is to maintain a secure perimeter by executing scheduled sweeps.
+
+## Phase 1 — Initialization
+1. memory_recall `patrol_map_state` to load the current Lidar map.
+2. Initialize `ROBOT_OSC` connection.
+
+## Phase 2 — Sweep Execution
+1. Move to defined 'Waypoints' in the environment.
+2. Execute lidar_scan at each waypoint.
+3. If vision_analyze detects an anomaly (unrecognized object/entry), publish a 'security_alert' event.
+
+## Phase 3 — Completion
+1. Update `patrol_history` in memory.
+2. Return to 'Docking Station'.
+"""
+
+[dashboard]
+[[dashboard.metrics]]
+label = "Sweeps Completed"
+memory_key = "patroller_sweeps_count"
+format = "number"
+
+[[dashboard.metrics]]
+label = "Safe Perimeter"
+memory_key = "patroller_perimeter_status"
+format = "text"

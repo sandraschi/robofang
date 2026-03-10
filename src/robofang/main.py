@@ -7,7 +7,7 @@ import subprocess
 import time
 from pathlib import Path
 import psutil
-from contextlib import asynccontextmanager
+import asyncio
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -19,6 +19,8 @@ from robofang.core.orchestrator import OrchestrationClient
 from robofang.plugins.collector_hand import CollectorHand
 from robofang.plugins.robotics_hand import RoboticsHand
 from robofang.mcp_server import get_help_content, register_mcp
+from robofang.webhooks import router as webhooks_router
+from robofang.diagnostics import router as diagnostics_router
 
 # Bridge start time (epoch seconds)
 _BRIDGE_START_TIME = time.time()
@@ -137,27 +139,116 @@ MCP_BACKENDS: Dict[str, str] = {
 }
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Manage MCP and orchestrator lifecycle (unified gateway)."""
-    async with mcp._lifespan_manager():
-        logger.info("RoboFang Bridge starting up...")
-        await orchestrator.start()
-        yield
-        logger.info("RoboFang Bridge shutting down...")
-        await orchestrator.stop()
+# ---------------------------------------------------------------------------
+# Repository Mapping for SOTA Launch Logic
+# ---------------------------------------------------------------------------
 
 
 app = FastAPI(
     title="RoboFang Sovereign Bridge",
     version="0.3.0",
-    lifespan=lifespan,
 )
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Manage orchestrator lifecycle."""
+    logger.info("RoboFang Bridge starting up...")
+    await orchestrator.start()
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Manage orchestrator lifecycle."""
+    logger.info("RoboFang Bridge shutting down...")
+    await orchestrator.stop()
+
+
+# ---------------------------------------------------------------------------
+# Repository Mapping for SOTA Launch Logic
+# ---------------------------------------------------------------------------
+
+REPO_MAP: Dict[str, str] = {
+    # Home / Media
+    "plex": "d:/Dev/repos/plex-mcp",
+    "calibre": "d:/Dev/repos/calibre-mcp",
+    "home-assistant": "d:/Dev/repos/home-assistant-mcp",
+    "tapo": "d:/Dev/repos/tapo-mcp",
+    "netatmo": "d:/Dev/repos/netatmo-weather-mcp",
+    "ring": "d:/Dev/repos/ring-mcp",
+    "notion": "d:/Dev/repos/notion-mcp",
+    # Creative Hub
+    "blender": "d:/Dev/repos/blender-mcp",
+    "obs": "d:/Dev/repos/obs-mcp",
+    "davinci-resolve": "d:/Dev/repos/davinci-resolve-mcp",
+    "reaper": "d:/Dev/repos/reaper-mcp",
+    "resolume": "d:/Dev/repos/resolume-mcp",
+    "vrchat": "d:/Dev/repos/vrchat-mcp",
+    # Infra Hub
+    "virtualization": "d:/Dev/repos/virtualization-mcp",
+    "docker": "d:/Dev/repos/docker-mcp",
+    "windows-operations": "d:/Dev/repos/windows-operations-mcp",
+    "monitoring": "d:/Dev/repos/monitoring-mcp",
+    "tailscale": "d:/Dev/repos/tailscale-mcp",
+    # Knowledge Hub
+    "advanced-memory": "d:/Dev/repos/advanced-memory-mcp",
+    "fastsearch": "d:/Dev/repos/fastsearch-mcp",
+    "immich": "d:/Dev/repos/immich-mcp",
+    "readly": "d:/Dev/repos/readly-mcp",
+    # Comms & Dev
+    "email": "d:/Dev/repos/email-mcp",
+    "alexa": "d:/Dev/repos/alexa-mcp",
+    "rustdesk": "d:/Dev/repos/rustdesk-mcp",
+    "bookmarks": "d:/Dev/repos/bookmarks-mcp",
+    "git-github": "d:/Dev/repos/git-github-mcp",
+    "pywinauto": "d:/Dev/repos/pywinauto-mcp",
+}
+
+
+@app.post("/api/connector/launch/{name}")
+async def launch_connector(name: str):
+    """Launch an MCP sub-server via its start.ps1 script."""
+    repo_path = REPO_MAP.get(name)
+    if not repo_path:
+        raise HTTPException(
+            status_code=404, detail=f"No repository mapping for connector: {name}"
+        )
+
+    start_ps1 = Path(repo_path) / "start.ps1"
+    if not start_ps1.exists():
+        # Try .bat as fallback
+        start_bat = Path(repo_path) / "start.bat"
+        if start_bat.exists():
+            subprocess.Popen(
+                [str(start_bat)],
+                cwd=repo_path,
+                creationflags=subprocess.CREATE_NEW_CONSOLE,
+            )
+            return {"success": True, "message": f"Launched {name} via {start_bat}"}
+
+        raise HTTPException(
+            status_code=404, detail=f"Launch script not found in {repo_path}"
+        )
+
+    try:
+        # Launch via PowerShell in a new console to prevent zombie-blocking the bridge
+        subprocess.Popen(
+            ["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", str(start_ps1)],
+            cwd=repo_path,
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
+        )
+        logger.info(f"SOTA Trigger: Launched {name} from {repo_path}")
+        return {"success": True, "message": f"Launched {name} via {start_ps1}"}
+    except Exception as e:
+        logger.error(f"Failed to launch connector {name}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # Enable CORS for dashboard on port 10864
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "http://localhost:10864",
         "http://localhost:10870",
         "http://127.0.0.1:10870",
         "http://localhost:5173",  # Vite dev server
@@ -171,6 +262,10 @@ app.add_middleware(
 # MCP 3.1 unified gateway (SSE at /sse)
 mcp = FastMCP.from_fastapi(app, name="RoboFang Sovereign")
 register_mcp(mcp, orchestrator)
+
+# Include Webhooks and Diagnostics
+app.include_router(webhooks_router)
+app.include_router(diagnostics_router)
 
 # ---------------------------------------------------------------------------
 # Request / Response models
@@ -534,21 +629,30 @@ async def home_connector_path(connector: str, path: str, request: Request):
 async def home_status():
     """Return live reachability for all connectors in MCP_BACKENDS."""
     results = {}
-    async with httpx.AsyncClient(timeout=4.0) as client:
-        for name, base_url in MCP_BACKENDS.items():
-            try:
-                r = await client.get(f"{base_url}/health")
-                results[name] = {
+
+    async def check_one(name, url):
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                r = await client.get(f"{url}/health")
+                return name, {
                     "online": r.status_code < 500,
                     "status_code": r.status_code,
-                    "url": base_url,
+                    "url": url,
                 }
-            except Exception as e:
-                results[name] = {
-                    "online": False,
-                    "error": str(e)[:120],
-                    "url": base_url,
-                }
+        except Exception as e:
+            return name, {
+                "online": False,
+                "error": str(e)[:120],
+                "url": url,
+            }
+
+    # Parallelize pings to avoid sequential delay-stacking
+    tasks = [check_one(name, base_url) for name, base_url in MCP_BACKENDS.items()]
+    stats = await asyncio.gather(*tasks)
+
+    for name, data in stats:
+        results[name] = data
+
     return {"success": True, "connectors": results}
 
 
@@ -847,6 +951,11 @@ async def pause_hand(hand_id: str):
     return {"success": True, "message": f"Hand {hand_id} paused"}
 
 
-if __name__ == "__main__":
+def main():
+    """Entry point for the robofang-bridge script."""
     port = int(os.getenv("PORT", 10871))
-    uvicorn.run(app, host="0.0.0.0", port=port, reload=False)
+    uvicorn.run("robofang.main:app", host="0.0.0.0", port=port, reload=False)
+
+
+if __name__ == "__main__":
+    main()

@@ -4,7 +4,7 @@ const API_BASE = 'http://localhost:10871';
 const SUP_BASE = 'http://localhost:10872';
 
 // Bridge API — short timeout: bridge-down detected fast
-const api = axios.create({ baseURL: API_BASE, timeout: 4000 });
+const api = axios.create({ baseURL: API_BASE, timeout: 12000 });
 
 // Supervisor API — longer timeout: start/stop may take a few seconds
 const sup = axios.create({ baseURL: SUP_BASE, timeout: 10000 });
@@ -141,5 +141,37 @@ export const setSupervisorAutoRestart = async (enabled: boolean) => {
 
 export const getSupervisorHealth = async () => {
     const response = await sup.get('/supervisor/health');
+    return response.data;
+};
+
+// ── Fleet Installer endpoints ───────────────────────────────────────────────
+
+export const getFleetMarket = async () => {
+    const response = await sup.get('/supervisor/fleet/market');
+    return response.data;
+};
+
+export const installFleetNode = async (id: string) => {
+    const response = await sup.post('/supervisor/fleet/install', { id });
+    return response.data;
+};
+
+export const getFleetInstallerStatus = async () => {
+    const response = await sup.get('/supervisor/fleet/status');
+    return response.data;
+};
+
+export const getSupervisorPulse = async () => {
+    const response = await sup.get('/supervisor/pulse');
+    return response.data;
+};
+
+export const getFleetHealth = async () => {
+    const response = await sup.get('/supervisor/fleet/health');
+    return response.data;
+};
+
+export const getFleetDiscoveries = async () => {
+    const response = await sup.get('/supervisor/fleet/discoveries');
     return response.data;
 };

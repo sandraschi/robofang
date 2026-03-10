@@ -1,7 +1,7 @@
 /**
  * HomeHub — Wave 1 connector dashboard
  *
- * Six connectors proxied through the RoboFang bridge at :10865/home/{connector}/...
+ * Six connectors proxied through the RoboFang bridge at :10871/home/{connector}/...
  *   plex            → Plex MCP  :10740
  *   calibre         → Calibre MCP :10720
  *   home-assistant  → HA MCP :10782
@@ -13,18 +13,17 @@
  * Layout: 2-column grid, cards are fixed-height with scrollable content areas.
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import {
     Tv2, BookOpen, Home, Camera, CloudSun, Bell,
-    RefreshCw, AlertTriangle, Wifi, WifiOff,
-    Play, Pause, SkipForward, Volume2,
-    Zap, ZapOff, Thermometer, Droplets, Wind,
-    Eye, Shield, ChevronRight, Search, X
+    Search,
+    RefreshCw, AlertTriangle, WifiOff,
+    Zap, Thermometer, Droplets, Wind,
+    Eye, Shield,
 } from 'lucide-react';
 
-const BRIDGE = 'http://localhost:10865';
+const BRIDGE = 'http://localhost:10871';
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
@@ -32,6 +31,16 @@ async function homeGet(connector: string, path = '') {
     const url = path ? `${BRIDGE}/home/${connector}/${path}` : `${BRIDGE}/home/${connector}`;
     const r = await axios.get(url, { timeout: 8000 });
     return r.data;
+}
+
+async function launchConnector(connector: string) {
+    try {
+        await axios.post(`${BRIDGE}/api/connector/launch/${connector}`);
+        return true;
+    } catch (e) {
+        console.error('Launch failed:', e);
+        return false;
+    }
 }
 
 async function homePost(connector: string, path: string, body: object) {
@@ -56,11 +65,11 @@ interface ConnectorCardProps {
 const ConnectorCard: React.FC<ConnectorCardProps> = ({
     title, icon, color, glow, online, loading, error, onRefresh, children
 }) => (
-    <div className="bg-[#16162a] border border-white/10 rounded-2xl overflow-hidden flex flex-col h-full">
+    <div className="bg-white/[0.03] backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden flex flex-col h-full group hover:border-white/20 transition-all duration-500">
         {/* Card header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
             <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl ${color} flex items-center justify-center shadow-lg ${glow}`}>
+                <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center shadow-lg ${glow} transition-transform group-hover:scale-110 duration-500`}>
                     {icon}
                 </div>
                 <div>
@@ -70,14 +79,22 @@ const ConnectorCard: React.FC<ConnectorCardProps> = ({
                             <span className="text-[10px] text-slate-500 uppercase tracking-widest">Checking...</span>
                         ) : online ? (
                             <>
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.7)]" />
+                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.7)]" />
                                 <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest">Online</span>
                             </>
                         ) : (
-                            <>
-                                <WifiOff size={10} className="text-slate-500" />
-                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Offline</span>
-                            </>
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1.5">
+                                    <WifiOff size={10} className="text-slate-500" />
+                                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Offline</span>
+                                </div>
+                                <button
+                                    onClick={() => launchConnector(title.toLowerCase().replace(' ', '-'))}
+                                    className="px-2 py-0.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-[9px] font-bold text-indigo-400 border border-indigo-500/20 transition-all uppercase tracking-tighter"
+                                >
+                                    Launch
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>
@@ -85,18 +102,19 @@ const ConnectorCard: React.FC<ConnectorCardProps> = ({
             <button
                 onClick={onRefresh}
                 disabled={loading}
-                className="p-2 rounded-xl hover:bg-white/[0.06] transition-all text-slate-400 hover:text-slate-200 active:scale-90 disabled:opacity-40"
+                title="Refresh connector data"
+                className="p-2 rounded-xl hover:bg-white/[0.08] transition-all text-slate-400 hover:text-slate-100 active:scale-90 disabled:opacity-40"
             >
                 <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             </button>
         </div>
 
         {/* Card body */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div className="flex-1 overflow-y-auto p-5 custom-scrollbar">
             {error ? (
-                <div className="flex items-start gap-2 text-amber-400 text-xs bg-amber-500/10 border border-amber-500/20 rounded-xl p-3">
-                    <AlertTriangle size={13} className="shrink-0 mt-0.5" />
-                    <span>{error}</span>
+                <div className="flex items-start gap-2 text-amber-400 text-xs bg-amber-500/10 border border-amber-500/20 rounded-xl p-4">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                    <span className="leading-relaxed">{error}</span>
                 </div>
             ) : children}
         </div>
@@ -114,25 +132,6 @@ const Stat: React.FC<{ label: string; value: React.ReactNode; icon?: React.React
     </div>
 );
 
-// Pill button
-const Pill: React.FC<{ onClick: () => void; disabled?: boolean; children: React.ReactNode; variant?: 'default' | 'danger' | 'success' }> = ({
-    onClick, disabled, children, variant = 'default'
-}) => {
-    const styles = {
-        default: 'bg-white/[0.06] hover:bg-white/10 border-white/10 text-slate-300',
-        danger:  'bg-red-500/10 hover:bg-red-500/20 border-red-500/25 text-red-400',
-        success: 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/25 text-emerald-400',
-    }[variant];
-    return (
-        <button
-            onClick={onClick}
-            disabled={disabled}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 ${styles}`}
-        >
-            {children}
-        </button>
-    );
-};
 
 // Loading skeleton rows
 const Skeleton: React.FC<{ rows?: number }> = ({ rows = 3 }) => (
@@ -155,14 +154,14 @@ interface PlexSession {
 }
 
 const PlexCard: React.FC = () => {
-    const [sessions, setSessions]     = useState<PlexSession[]>([]);
-    const [libraries, setLibraries]   = useState<any[]>([]);
-    const [loading, setLoading]       = useState(true);
-    const [online, setOnline]         = useState<boolean | null>(null);
-    const [error, setError]           = useState<string | null>(null);
-    const [query, setQuery]           = useState('');
-    const [results, setResults]       = useState<any[]>([]);
-    const [searching, setSearching]   = useState(false);
+    const [sessions, setSessions] = useState<PlexSession[]>([]);
+    const [libraries, setLibraries] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [online, setOnline] = useState<boolean | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState<any[]>([]);
+    const [searching, setSearching] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -223,7 +222,7 @@ const PlexCard: React.FC = () => {
                                     <span className="text-[10px] font-bold text-yellow-400">{s.Player?.state}</span>
                                 </div>
                                 <div className="mt-2 h-1 bg-white/10 rounded-full">
-                                    <div className="h-full bg-yellow-500 rounded-full" style={{ width: `${pct(s)}%` }} />
+                                    <div className="h-full bg-yellow-500 rounded-full" style={{ width: `${pct(s)}%` } as any} />
                                 </div>
                                 <div className="text-[10px] text-slate-500 mt-1">{pct(s)}%</div>
                             </div>
@@ -279,13 +278,13 @@ const PlexCard: React.FC = () => {
 // ── CALIBRE CARD ──────────────────────────────────────────────────────────────
 
 const CalibreCard: React.FC = () => {
-    const [stats, setStats]         = useState<any>(null);
-    const [recent, setRecent]       = useState<any[]>([]);
-    const [loading, setLoading]     = useState(true);
-    const [online, setOnline]       = useState<boolean | null>(null);
-    const [error, setError]         = useState<string | null>(null);
-    const [query, setQuery]         = useState('');
-    const [results, setResults]     = useState<any[]>([]);
+    const [stats, setStats] = useState<any>(null);
+    const [recent, setRecent] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [online, setOnline] = useState<boolean | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState<any[]>([]);
     const [searching, setSearching] = useState(false);
 
     const load = useCallback(async () => {
@@ -394,12 +393,12 @@ interface HAEntity {
 }
 
 const HomeAssistantCard: React.FC = () => {
-    const [entities, setEntities]   = useState<HAEntity[]>([]);
-    const [loading, setLoading]     = useState(true);
-    const [online, setOnline]       = useState<boolean | null>(null);
-    const [error, setError]         = useState<string | null>(null);
-    const [filter, setFilter]       = useState('');
-    const [toggling, setToggling]   = useState<string | null>(null);
+    const [entities, setEntities] = useState<HAEntity[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [online, setOnline] = useState<boolean | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [filter, setFilter] = useState('');
+    const [toggling, setToggling] = useState<string | null>(null);
 
     const DOMAINS_SHOW = ['light', 'switch', 'climate', 'cover', 'media_player', 'sensor', 'binary_sensor'];
 
@@ -486,6 +485,7 @@ const HomeAssistantCard: React.FC = () => {
                                         <button
                                             onClick={() => toggle(e.entity_id)}
                                             disabled={toggling === e.entity_id}
+                                            title={`Toggle ${e.attributes?.friendly_name ?? e.entity_id}`}
                                             className="w-7 h-4 rounded-full border border-white/10 bg-white/[0.06] hover:bg-white/10 transition-all active:scale-90 disabled:opacity-40 flex items-center justify-center"
                                         >
                                             <Zap size={9} className={e.state === 'on' ? 'text-emerald-400' : 'text-slate-500'} />
@@ -505,11 +505,11 @@ const HomeAssistantCard: React.FC = () => {
 // ── TAPO CARD ─────────────────────────────────────────────────────────────────
 
 const TapoCard: React.FC = () => {
-    const [devices, setDevices]     = useState<any[]>([]);
-    const [loading, setLoading]     = useState(true);
-    const [online, setOnline]       = useState<boolean | null>(null);
-    const [error, setError]         = useState<string | null>(null);
-    const [toggling, setToggling]   = useState<string | null>(null);
+    const [devices, setDevices] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [online, setOnline] = useState<boolean | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [toggling, setToggling] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -555,7 +555,7 @@ const TapoCard: React.FC = () => {
                             ? <div className="text-xs text-slate-500 italic text-center py-4">No Tapo devices found</div>
                             : devices.map((d: any, i: number) => {
                                 const isOn = d.device_on ?? d.is_on ?? false;
-                                const ip   = d.ip ?? d.host ?? '';
+                                const ip = d.ip ?? d.host ?? '';
                                 const name = d.alias ?? d.nickname ?? d.device_id ?? `Device ${i + 1}`;
                                 const type = d.type ?? d.device_type ?? 'device';
                                 const isCamera = type.toLowerCase().includes('cam');
@@ -576,11 +576,10 @@ const TapoCard: React.FC = () => {
                                                 <button
                                                     onClick={() => toggle(ip, isOn)}
                                                     disabled={toggling === ip || !ip}
-                                                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 ${
-                                                        isOn
-                                                            ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
-                                                            : 'bg-white/[0.05] border-white/10 text-slate-400 hover:bg-white/10'
-                                                    }`}
+                                                    className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95 disabled:opacity-40 ${isOn
+                                                        ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/25'
+                                                        : 'bg-white/[0.05] border-white/10 text-slate-400 hover:bg-white/10'
+                                                        }`}
                                                 >
                                                     {toggling === ip ? '...' : isOn ? 'ON' : 'OFF'}
                                                 </button>
@@ -600,10 +599,10 @@ const TapoCard: React.FC = () => {
 // ── NETATMO CARD ──────────────────────────────────────────────────────────────
 
 const NetatmoCard: React.FC = () => {
-    const [data, setData]       = useState<any>(null);
+    const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [online, setOnline]   = useState<boolean | null>(null);
-    const [error, setError]     = useState<string | null>(null);
+    const [online, setOnline] = useState<boolean | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -648,8 +647,8 @@ const NetatmoCard: React.FC = () => {
                     {modules.map((m: any, i: number) => {
                         const name = m.module_name ?? m.station_name ?? m.type ?? `Module ${i + 1}`;
                         const temp = getMeasure(m, 'Temperature');
-                        const hum  = getMeasure(m, 'Humidity');
-                        const co2  = getMeasure(m, 'CO2');
+                        const hum = getMeasure(m, 'Humidity');
+                        const co2 = getMeasure(m, 'CO2');
                         const rain = getMeasure(m, 'Rain');
                         const wind = getMeasure(m, 'WindStrength');
                         const pressure = getMeasure(m, 'Pressure');
@@ -657,11 +656,11 @@ const NetatmoCard: React.FC = () => {
                             <div key={i} className="bg-[#0d0d16] border border-white/[0.07] rounded-xl p-3">
                                 <div className="text-xs font-bold text-slate-200 mb-2">{name}</div>
                                 <div className="grid grid-cols-2 gap-1.5">
-                                    {temp   !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Thermometer size={11} className="text-orange-400" />{temp.toFixed(1)} °C</div>}
-                                    {hum    !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Droplets size={11} className="text-blue-400" />{hum}%</div>}
-                                    {co2    !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Wind size={11} className="text-green-400" />CO₂ {co2} ppm</div>}
-                                    {rain   !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Droplets size={11} className="text-cyan-400" />Rain {rain} mm</div>}
-                                    {wind   !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Wind size={11} className="text-slate-300" />{wind} km/h</div>}
+                                    {temp !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Thermometer size={11} className="text-orange-400" />{temp.toFixed(1)} °C</div>}
+                                    {hum !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Droplets size={11} className="text-blue-400" />{hum}%</div>}
+                                    {co2 !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Wind size={11} className="text-green-400" />CO₂ {co2} ppm</div>}
+                                    {rain !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Droplets size={11} className="text-cyan-400" />Rain {rain} mm</div>}
+                                    {wind !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Wind size={11} className="text-slate-300" />{wind} km/h</div>}
                                     {pressure !== null && <div className="flex items-center gap-1.5 text-xs text-slate-300"><Zap size={11} className="text-purple-400" />{pressure} hPa</div>}
                                 </div>
                             </div>
@@ -677,10 +676,10 @@ const NetatmoCard: React.FC = () => {
 
 const RingCard: React.FC = () => {
     const [devices, setDevices] = useState<any[]>([]);
-    const [events, setEvents]   = useState<any[]>([]);
+    const [events, setEvents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [online, setOnline]   = useState<boolean | null>(null);
-    const [error, setError]     = useState<string | null>(null);
+    const [online, setOnline] = useState<boolean | null>(null);
+    const [error, setError] = useState<string | null>(null);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -776,11 +775,11 @@ const HomeHub: React.FC = () => {
     useEffect(() => {
         axios.get(`${BRIDGE}/home`, { timeout: 5000 })
             .then(r => setBridgeStatus(r.data?.connectors ?? null))
-            .catch(() => {});
+            .catch(() => { });
     }, []);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-12">
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div>
@@ -796,11 +795,10 @@ const HomeHub: React.FC = () => {
                 {bridgeStatus && (
                     <div className="hidden lg:flex items-center gap-2 flex-wrap justify-end max-w-xs">
                         {Object.entries(bridgeStatus).map(([name, s]: [string, any]) => (
-                            <div key={name} className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[9px] font-bold uppercase tracking-widest ${
-                                s.online
-                                    ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                                    : 'bg-white/[0.04] border-white/10 text-slate-500'
-                            }`}>
+                            <div key={name} className={`flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[9px] font-bold uppercase tracking-widest ${s.online
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                                : 'bg-white/[0.04] border-white/10 text-slate-500'
+                                }`}>
                                 <div className={`w-1.5 h-1.5 rounded-full ${s.online ? 'bg-emerald-400' : 'bg-slate-600'}`} />
                                 {name}
                             </div>
@@ -810,7 +808,7 @@ const HomeHub: React.FC = () => {
             </div>
 
             {/* 2×3 grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5" style={{ gridAutoRows: '420px' }}>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-10" style={{ gridAutoRows: '420px' } as any}>
                 <PlexCard />
                 <CalibreCard />
                 <HomeAssistantCard />

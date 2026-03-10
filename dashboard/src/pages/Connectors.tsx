@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { PlugZap, CheckCircle2, AlertCircle, RefreshCw, Terminal, Search, Loader2 } from 'lucide-react';
 
-const BRIDGE = 'http://localhost:10865';
+const BRIDGE = 'http://localhost:10871';
 
 interface ConnectorRow {
     id: string;
@@ -93,7 +93,7 @@ const Connectors: React.FC = () => {
             }));
             setLastRefresh(new Date());
         } catch (e) {
-            setError('Failed to reach bridge at :10865');
+            setError('Failed to reach bridge at :10871');
         } finally {
             setLoading(false);
         }
@@ -220,9 +220,8 @@ const Connectors: React.FC = () => {
                                             ) : (
                                                 <AlertCircle size={14} className="text-rose-500" />
                                             )}
-                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                                                row.status === 'online' ? 'text-emerald-500' : 'text-rose-500'
-                                            }`}>
+                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${row.status === 'online' ? 'text-emerald-500' : 'text-rose-500'
+                                                }`}>
                                                 {row.status}
                                             </span>
                                         </div>

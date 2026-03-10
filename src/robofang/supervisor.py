@@ -25,14 +25,17 @@ import logging
 from typing import Optional, Deque
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import json
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 SUPERVISOR_PORT = 10872
 BRIDGE_PORT = 10871
+FLEET_REGISTRY_PATH = r"D:\Dev\repos\mcp-central-docs\operations\fleet-registry.json"
+REPOS_ROOT = r"D:\Dev\repos"
 
 # Command to start the bridge — same as running `python -m RoboFang.main`
 # We use sys.executable so we always get the same Python that ran the supervisor.
@@ -54,6 +57,180 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] supervisor: %(message)s",
 )
 logger = logging.getLogger("ROBOFANG_supervisor")
+
+# ── Heartbeat ────────────────────────────────────────────────────────────────
+
+
+class HeartbeatManager:
+    """Maintains an adversarial system pulse for health monitoring."""
+
+    def __init__(self, interval: float = 5.0):
+        self.interval = interval
+        self.last_pulse = 0.0
+        self.pulse_count = 0
+        self._running = False
+        self._lock = threading.Lock()
+        self.integrity_status = "nominal"
+
+    def start(self):
+        self._running = True
+        thread = threading.Thread(target=self._run, daemon=True)
+        thread.start()
+
+    def _run(self):
+        while self._running:
+            # Adversarial check: verify we can still reach the bridge if running
+            check_state = self._adversarial_check()
+
+            with self._lock:
+                self.last_pulse = time.time()
+                self.pulse_count += 1
+                self.integrity_status = check_state
+            time.sleep(self.interval)
+
+    def _adversarial_check(self) -> str:
+        """Internal integrity check to ensure RoboFang hasn't been 'lobotomized'."""
+        try:
+            # Example check: Verify bridge port is bound if we think it should be
+            if _bridge.status["running"]:
+                import socket
+
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.settimeout(0.5)
+                    if s.connect_ex(("127.0.0.1", BRIDGE_PORT)) != 0:
+                        return "degraded (bridge port unreachable)"
+            return "nominal"
+        except Exception:
+            return "degraded"
+
+    def get_pulse(self):
+        with self._lock:
+            return {
+                "timestamp": self.last_pulse,
+                "count": self.pulse_count,
+                "uptime": self.pulse_count * self.interval,
+                "status": "alive",
+                "integrity": self.integrity_status,
+            }
+
+
+_pulse = HeartbeatManager()
+_pulse.start()
+
+
+class FleetHealthMonitor:
+    """Monitors connectivity and cohesion across the federated fleet."""
+
+    def __init__(self, interval: float = 30.0):
+        self.interval = interval
+        self.cohesion_score = 100
+        self.node_stats = {}  # node_id: {alive: bool, latency: float}
+        self._running = False
+        self._lock = threading.Lock()
+
+    def start(self):
+        self._running = True
+        threading.Thread(target=self._run, daemon=True, name="fleet-health").start()
+
+    def _run(self):
+        while self._running:
+            self._check_fleet()
+            time.sleep(self.interval)
+
+    def _check_fleet(self):
+        try:
+            with open(FLEET_REGISTRY_PATH, "r") as f:
+                registry = json.load(f)
+                fleet = registry.get("fleet", [])
+        except Exception:
+            return
+
+        import socket
+
+        new_stats = {}
+        alive_count = 0
+
+        for node in fleet:
+            node_id = node["id"]
+            host = node.get("host", "127.0.0.1")
+            port = node.get("port")
+
+            if not port:
+                continue
+
+            start_t = time.time()
+            try:
+                with socket.create_connection((host, port), timeout=1.0):
+                    latency = (time.time() - start_t) * 1000
+                    new_stats[node_id] = {"alive": True, "latency": latency}
+                    alive_count += 1
+            except Exception:
+                new_stats[node_id] = {"alive": False, "latency": -1}
+
+        with self._lock:
+            self.node_stats = new_stats
+            if fleet:
+                self.cohesion_score = int((alive_count / len(fleet)) * 100)
+            else:
+                self.cohesion_score = 100
+
+    def get_report(self):
+        with self._lock:
+            return {
+                "cohesion_score": self.cohesion_score,
+                "nodes": self.node_stats,
+                "timestamp": time.time(),
+            }
+
+
+class SkillsWatcher:
+    """Auto-discovers new MCP/Moltbot repositories in REPOS_ROOT."""
+
+    def __init__(self, interval: float = 600.0):
+        self.interval = interval
+        self.discovered_nodes = []
+        self._running = False
+
+    def start(self):
+        self._running = True
+        threading.Thread(target=self._run, daemon=True, name="skills-watcher").start()
+
+    def _run(self):
+        while self._running:
+            self._scan()
+            time.sleep(self.interval)
+
+    def _scan(self):
+        new_discoveries = []
+        if not os.path.exists(REPOS_ROOT):
+            return
+
+        for folder in os.listdir(REPOS_ROOT):
+            full_path = os.path.join(REPOS_ROOT, folder)
+            if not os.path.isdir(full_path):
+                continue
+
+            # Look for indicators of an MCP server or Moltbot skill
+            if (
+                os.path.exists(os.path.join(full_path, "mcpb.json"))
+                or os.path.exists(os.path.join(full_path, "mcp.json"))
+                or os.path.exists(os.path.join(full_path, "SKILL.md"))
+            ):
+                new_discoveries.append(
+                    {"id": folder, "path": full_path, "type": "discovered_mcp"}
+                )
+
+        self.discovered_nodes = new_discoveries
+
+    def get_discoveries(self):
+        return self.discovered_nodes
+
+
+_health = FleetHealthMonitor()
+_health.start()
+
+_watcher = SkillsWatcher()
+_watcher.start()
 
 # ── Process State ─────────────────────────────────────────────────────────────
 
@@ -124,7 +301,7 @@ class BridgeProcess:
                 return {"ok": False, "reason": str(e)}
 
     def restart(self) -> dict:
-        stop_result = self.stop()
+        self.stop()
         time.sleep(0.5)
         return self.start()
 
@@ -215,6 +392,124 @@ class BridgeProcess:
 # Singleton
 _bridge = BridgeProcess()
 
+
+class FleetManager:
+    """Manages installation and status of fleet nodes."""
+
+    def __init__(self):
+        self._installs = {}  # id: {status: str, logs: list}
+        self._lock = threading.Lock()
+
+    def get_market(self):
+        try:
+            with open(FLEET_REGISTRY_PATH, "r") as f:
+                return json.load(f)["fleet"]
+        except Exception as e:
+            logger.error(f"Failed to load fleet registry: {e}")
+            return []
+
+    def install(self, node_id: str):
+        market = self.get_market()
+        node = next((n for n in market if n["id"] == node_id), None)
+        if not node:
+            return {"ok": False, "reason": "Node not found in registry"}
+
+        with self._lock:
+            if (
+                node_id in self._installs
+                and self._installs[node_id]["status"] == "installing"
+            ):
+                return {"ok": False, "reason": "Installation already in progress"}
+            self._installs[node_id] = {"status": "installing", "logs": []}
+
+        def run_install():
+            logger.info(f"Starting installation for {node_id}")
+            path = node["repo_path"]
+            repo_url = f"https://github.com/sandraschi/{node_id}.git"  # Assumption for this environment
+
+            def log(msg):
+                with self._lock:
+                    self._installs[node_id]["logs"].append(msg)
+                    logger.info(f"[{node_id}] {msg}")
+
+            try:
+                if not os.path.exists(path):
+                    log(f"Cloning {repo_url} to {path}...")
+                    subprocess.run(
+                        ["git", "clone", "--depth", "1", repo_url, path],
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                else:
+                    log(f"Path {path} already exists. Skipping clone.")
+
+                # Setup
+                if os.path.exists(os.path.join(path, "pyproject.toml")):
+                    log("Detected Python project. Running uv sync...")
+                    subprocess.run(
+                        ["uv", "sync"],
+                        cwd=path,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+                elif os.path.exists(os.path.join(path, "package.json")):
+                    log("Detected Node project. Running npm install...")
+                    subprocess.run(
+                        ["npm.cmd", "install"],
+                        cwd=path,
+                        shell=True,
+                        check=True,
+                        capture_output=True,
+                        text=True,
+                    )
+
+                with self._lock:
+                    self._installs[node_id]["status"] = "completed"
+                log("Installation complete.")
+            except Exception as e:
+                with self._lock:
+                    self._installs[node_id]["status"] = "failed"
+                log(f"Installation failed: {str(e)}")
+
+        thread = threading.Thread(target=run_install, daemon=True)
+        thread.start()
+        return {"ok": True}
+
+    def get_status(self):
+        with self._lock:
+            return self._installs
+
+
+_fleet = FleetManager()
+
+
+class SupervisorInterface:
+    @property
+    def status(self):
+        return _bridge.status
+
+    def get_pulse(self):
+        return (
+            _pulse.get_pulse()["pulse"]
+            if "pulse" in _pulse.get_pulse()
+            else _pulse.get_pulse()
+        )
+
+    @property
+    def fleet_nodes(self):
+        return _fleet.get_status()
+
+    def get_fleet_health(self):
+        return _health.get_report()
+
+    def get_discoveries(self):
+        return _watcher.get_discoveries()
+
+
+supervisor = SupervisorInterface()
+
 # ── FastAPI App ───────────────────────────────────────────────────────────────
 
 app = FastAPI(title="RoboFang Supervisor", version="1.0.0")
@@ -224,6 +519,8 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:10864",
         "http://127.0.0.1:10864",
+        "http://localhost:10870",
+        "http://127.0.0.1:10870",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
     ],
@@ -273,6 +570,44 @@ def set_auto_restart(req: AutoRestartRequest):
     return {"success": True, "auto_restart": AUTO_RESTART}
 
 
+@app.get("/supervisor/fleet/market")
+def get_fleet_market():
+    return {"success": True, "market": _fleet.get_market()}
+
+
+class InstallRequest(BaseModel):
+    id: str
+
+
+@app.post("/supervisor/fleet/install")
+def install_fleet_node(req: InstallRequest, background_tasks: BackgroundTasks):
+    result = _fleet.install(req.id)
+    return {"success": result.get("ok", False), **result}
+
+
+@app.get("/supervisor/fleet/status")
+def get_fleet_status():
+    return {"success": True, "status": _fleet.get_status()}
+
+
+@app.get("/supervisor/pulse")
+def get_supervisor_pulse():
+    """Returns the heartbeat pulse of the supervisor with integrity check."""
+    return {"success": True, "pulse": _pulse.get_pulse()}
+
+
+@app.get("/supervisor/fleet/health")
+def get_fleet_health_report():
+    """Returns the comprehensive fleet health report."""
+    return {"success": True, "report": _health.get_report()}
+
+
+@app.get("/supervisor/fleet/discoveries")
+def get_fleet_discoveries():
+    """Returns the list of auto-discovered MCP servers."""
+    return {"success": True, "discoveries": _watcher.get_discoveries()}
+
+
 @app.get("/supervisor/health")
 def supervisor_health():
     """Simple liveness probe for the supervisor itself."""
@@ -289,4 +624,12 @@ if __name__ == "__main__":
     logger.info(f"RoboFang Supervisor starting on port {SUPERVISOR_PORT}")
     logger.info(f"Bridge command: {' '.join(BRIDGE_CMD)}")
     logger.info(f"Bridge CWD:     {BRIDGE_CWD}")
+    # Kill existing terminals before starting
+    os.system(
+        'taskkill /F /IM powershell.exe /T /FI "WINDOWTITLE eq RoboFang-Connector*" >nul 2>&1'
+    )
+    os.system(
+        'taskkill /F /IM cmd.exe /T /FI "WINDOWTITLE eq RoboFang-Connector*" >nul 2>&1'
+    )
+
     uvicorn.run(app, host="0.0.0.0", port=SUPERVISOR_PORT, log_level="info")

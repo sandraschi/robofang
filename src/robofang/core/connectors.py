@@ -520,11 +520,11 @@ class HueConnector(BaseConnector):
             return [
                 {
                     "name": n,
-                    "on": l.on,
-                    "brightness": l.brightness,
-                    "reachable": l.reachable,
+                    "on": light.on,
+                    "brightness": light.brightness,
+                    "reachable": light.reachable,
                 }
-                for n, l in list(lights.items())[:limit]
+                for n, light in list(lights.items())[:limit]
             ]
         except Exception as e:
             self.logger.error(f"Hue get_messages error: {e}")
@@ -1392,7 +1392,18 @@ class MCPBridgeConnector(BaseConnector):
 
     def __init__(self, connector_id: str, config: Dict[str, Any]):
         super().__init__(connector_id, config)
-        self._url: str = config.get("url", "http://127.0.0.1:8000/mcp")
+        # SOTA: Prioritize 'mcp_backend' from federation_map over generic 'url'
+        backend_url = (
+            config.get("mcp_backend")
+            or config.get("url")
+            or "http://127.0.0.1:8000/mcp"
+        )
+
+        # Normalize URL: Ensure it ends with /mcp if it's a bridge to one of our FastMCP servers
+        if not backend_url.endswith("/mcp") and ":10" in backend_url:
+            backend_url = f"{backend_url.rstrip('/')}/mcp"
+
+        self._url: str = backend_url
         self._name: str = config.get("name", connector_id)
         self._start_cmd: Optional[List[str]] = config.get("start_cmd")
         self._start_cwd: Optional[str] = config.get("start_cwd")

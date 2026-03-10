@@ -6,7 +6,7 @@ import {
     Loader2, RefreshCw, Wifi, WifiOff,
 } from 'lucide-react';
 
-const BRIDGE = 'http://localhost:10865';
+const BRIDGE = 'http://localhost:10871';
 const POLL_INTERVAL_MS = 4_000; // live-tail poll every 4s
 
 interface LogEntry {
@@ -49,8 +49,8 @@ const Logger: React.FC = () => {
             setLogs(entries);
             setMeta({ buffer_size: data.buffer_size, buffer_used: data.buffer_used });
             latestIdRef.current = data.latest_id ?? null;
-        } catch (e) {
-            setError('Bridge unreachable at :10865');
+        } catch {
+            setError('Bridge unreachable at :10871');
         } finally {
             setLoading(false);
         }
@@ -126,29 +126,38 @@ const Logger: React.FC = () => {
         URL.revokeObjectURL(url);
     };
 
-    const handleAiAnalysis = () => {
+    const handleAiAnalysis = async () => {
         setIsAnalyzing(true);
-        // Summarise top error/warn messages as a local heuristic
-        const errors = logs.filter(l => l.level === 'error');
-        const warns = logs.filter(l => l.level === 'warn');
-        const mcpIssues = logs.filter(l => l.category === 'mcp' && l.level !== 'info');
+        try {
+            // Fetch live reasoning logs for real cognitive context
+            const r = await fetch(`${BRIDGE}/deliberations?limit=20`);
+            const deliberationData = await r.json();
+            const deliberations: { type: string, content: string }[] = deliberationData.deliberations ?? [];
 
-        setTimeout(() => {
+            // Summarise top error/warn messages and cognitive events
+            const errors = logs.filter(l => l.level === 'error');
+            const warns = logs.filter(l => l.level === 'warn');
+            const thoughts = deliberations.filter(d => d.type === 'thought');
+
             const summary = [
                 errors.length > 0
                     ? `${errors.length} error(s) detected — latest: "${errors[errors.length - 1].message}"`
-                    : 'No errors in ring buffer.',
+                    : 'No critical errors in bridge ring buffer.',
                 warns.length > 0
-                    ? `${warns.length} warning(s) — check ${[...new Set(warns.map(w => w.source))].slice(0, 3).join(', ')}.`
-                    : 'No warnings.',
-                mcpIssues.length > 0
-                    ? `${mcpIssues.length} MCP anomalies — possible connector downtime.`
-                    : 'MCP layer looks clean.',
-                `Buffer: ${meta?.buffer_used ?? logs.length}/${meta?.buffer_size ?? 300} entries.`,
+                    ? `${warns.length} warning(s) flagged from ${[...new Set(warns.map(w => w.source))].slice(0, 2).join(', ')}.`
+                    : 'System warnings are within nominal limits.',
+                thoughts.length > 0
+                    ? `Active reasoning detected: "${thoughts[thoughts.length - 1].content.slice(0, 60)}..."`
+                    : 'No proactive agent thoughts recorded in current window.',
+                `Buffer utilization: ${meta?.buffer_used ?? logs.length}/${meta?.buffer_size ?? 300} entries.`,
             ].join(' ');
+
             setAiAnalysis(summary);
+        } catch {
+            setAiAnalysis("AI Forensics analysis failed: could not reach substrate reasoning engine.");
+        } finally {
             setIsAnalyzing(false);
-        }, 1200);
+        }
     };
 
     // Filtering
@@ -201,11 +210,10 @@ const Logger: React.FC = () => {
                     {/* Live toggle */}
                     <button
                         onClick={() => setLive(v => !v)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all ${
-                            live
-                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
-                                : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
-                        }`}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-xs font-bold uppercase tracking-wider transition-all ${live
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 hover:bg-emerald-500/20'
+                            : 'bg-white/5 border-white/10 text-slate-500 hover:text-white'
+                            }`}
                     >
                         {live ? <Wifi size={14} /> : <WifiOff size={14} />}
                         {live ? 'Live' : 'Paused'}
@@ -293,11 +301,10 @@ const Logger: React.FC = () => {
                                     <button
                                         key={lvl}
                                         onClick={() => setSelectedLevel(lvl)}
-                                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
-                                            selectedLevel === lvl
-                                                ? 'bg-indigo-600 text-white shadow-lg'
-                                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                                        }`}
+                                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${selectedLevel === lvl
+                                            ? 'bg-indigo-600 text-white shadow-lg'
+                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                            }`}
                                     >
                                         {lvl}
                                     </button>
@@ -309,11 +316,10 @@ const Logger: React.FC = () => {
                                     <button
                                         key={cat}
                                         onClick={() => setSelectedCategory(cat)}
-                                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${
-                                            selectedCategory === cat
-                                                ? 'bg-purple-600 text-white shadow-lg'
-                                                : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
-                                        }`}
+                                        className={`px-3 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all ${selectedCategory === cat
+                                            ? 'bg-purple-600 text-white shadow-lg'
+                                            : 'text-slate-500 hover:text-slate-300 hover:bg-white/5'
+                                            }`}
                                     >
                                         {cat}
                                     </button>

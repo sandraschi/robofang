@@ -1,5 +1,4 @@
-import React from 'react';
-import { Wrench, Terminal, Cpu, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 
 export default function Tools() {
     return (

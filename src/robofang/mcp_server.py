@@ -316,8 +316,8 @@ def robofang_quick_start(bridge_url: str = "http://localhost:10871") -> str:
     """Get step-by-step instructions to connect and use the RoboFang Sovereign Hub (Bridge + MCP)."""
     return f"""You are helping set up the RoboFang Sovereign Hub.
 
-1. Start the Bridge: from the RoboFang repo run `uv run python -m RoboFang.main` or `RoboFang-bridge` (default port 10871). Or set PORT=10867 and run the same.
-2. The Sovereign Dashboard runs separately on port 10864 (see dashboard/start.bat). It talks to the Bridge for fleet, logs, and deliberations.
+1. Start the Bridge: from the RoboFang repo run `uv run python -m robofang.main` or `robofang-bridge` (default port 10871). Or set PORT=10867 and run the same.
+2. The Sovereign Dashboard runs separately on port 10864 (or 10870). It talks to the Bridge for fleet, logs, and deliberations.
 3. MCP clients (Cursor, Claude Desktop): connect via SSE to {bridge_url}/sse so the hub appears as an MCP server with tools robofang_status, robofang_help, robofang_ask, robofang_fleet, robofang_deliberations, robofang_agentic_workflow.
 4. Use robofang_status first to confirm the Bridge is up and connectors are online. Use robofang_ask for single questions; set use_council=True for Council of Dozens synthesis. Use robofang_agentic_workflow for multi-step goals.
 5. Help: robofang_help() for categories; robofang_help(category="tools") for tool list; robofang_help(category="council", topic="use_council") for detail."""
@@ -332,3 +332,36 @@ def robofang_council_workflow() -> str:
 3. The Council runs Enrich (Foreman spec) -> Execute (ReAct) -> Audit (Satisficer). Results appear in the response.
 4. Optionally call robofang_deliberations(limit=20) to inspect the reasoning log and then summarize the outcome for the user.
 5. For multi-step goals that mix status, ask, and deliberations, use robofang_agentic_workflow(goal="...") and describe the goal in natural language."""
+
+
+# ─── Entry Point ─────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import os
+    import sys
+    from fastmcp import FastMCP
+
+    # Setup basic logging for standalone run
+    logging.basicConfig(level=logging.INFO)
+
+    # Check for SSE vs stdio
+    transport = "sse" if "sse" in sys.argv else "stdio"
+    port = int(os.getenv("MCP_PORT", 10867))
+
+    mcp_standalone = FastMCP("RoboFang Substrate")
+
+    # We don't have an orchestrator in standalone mode yet,
+    # but we can register tools that don't depend on it or
+    # provide a mock. For now, just show it's alive.
+    @mcp_standalone.tool()
+    async def substrate_ping() -> str:
+        return "RoboFang Substrate is alive and reachable."
+
+    logger.info(
+        f"Starting RoboFang Substrate on {transport} (port {port if transport == 'sse' else 'N/A'})..."
+    )
+
+    if transport == "sse":
+        mcp_standalone.run(transport="sse", port=port)
+    else:
+        mcp_standalone.run(transport="stdio")

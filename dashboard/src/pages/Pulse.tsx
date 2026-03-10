@@ -1,8 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Activity, Clock, Zap, Shield, Loader2, AlertCircle, RefreshCw, Radio } from 'lucide-react';
+import {
+    Activity,
+    Clock,
+    Zap,
+    Shield,
+    Loader2,
+    AlertCircle,
+    RefreshCw,
+    Radio,
+} from "lucide-react";
 
-const BRIDGE = 'http://localhost:10865';
+const BRIDGE = 'http://localhost:10871';
 
 interface FeedPost {
     id: string | number;
@@ -69,8 +78,8 @@ const Pulse: React.FC = () => {
                 const posts: FeedPost[] = Array.isArray(data)
                     ? data
                     : Array.isArray(data.posts) ? data.posts
-                    : Array.isArray(data.feed) ? data.feed
-                    : [];
+                        : Array.isArray(data.feed) ? data.feed
+                            : [];
 
                 posts.slice(0, 10).forEach((p, i) => {
                     const text = p.content ?? p.body ?? '(no content)';
@@ -103,7 +112,7 @@ const Pulse: React.FC = () => {
                 }
 
                 // One event per offline connector (max 5)
-                offline.slice(0, 5).forEach((name, i) => {
+                offline.slice(0, 5).forEach((name) => {
                     combined.push({
                         id: `conn-offline-${name}`,
                         type: 'Connector',
@@ -143,7 +152,7 @@ const Pulse: React.FC = () => {
             setEvents(combined);
             setLastRefresh(new Date());
         } catch {
-            setError('Bridge unreachable at :10865');
+            setError('Bridge unreachable at :10871');
         } finally {
             setLoading(false);
         }

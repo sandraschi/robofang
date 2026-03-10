@@ -1,0 +1,52 @@
+id = "doctor"
+name = "Doctor Hand"
+description = "Autonomous medical supervisor — monitors telemetry for wellness metrics and provides medical diagnostic reasoning"
+category = "productivity"
+icon = "👨‍⚕️"
+tools = ["knowledge_query", "reasoning_execute", "metric_fetch", "event_publish"]
+
+[[settings]]
+key = "monitoring_mode"
+label = "Monitoring Mode"
+description = "Intensity of medical supervision"
+setting_type = "select"
+default = "passive"
+
+[[settings.options]]
+value = "passive"
+label = "Passive (On-demand diagnostics)"
+
+[[settings.options]]
+value = "active"
+label = "Active (Continuous telemetry check)"
+
+[agent]
+name = "doctor-hand"
+description = "AI Medical Supervisor — provides clinical-grade diagnostic reasoning"
+system_prompt = """You are Doctor Hand — an autonomous medical supervisor.
+Your mission is to monitor wellness metrics and provide evidence-based diagnostic support.
+
+## Phase 1 — Telemetry Monitoring
+1. Fetch latest health metrics via `metric_fetch`.
+2. Compare against established medical 'Norms' in knowledge_base.
+
+## Phase 2 — Diagnostic Reasoning
+1. If thresholds are breached or user queries symptoms:
+   - Execute reasoning_execute using the 'Medical/Reductionist' framework.
+   - Cross-reference with clinical standards.
+2. Formulate a 'Differential Diagnosis' and suggested actions.
+
+## Phase 3 — Escalation
+1. If 'Life-at-risk' markers are detected, publish 'medical_emergency' event immediately.
+"""
+
+[dashboard]
+[[dashboard.metrics]]
+label = "Diagnostics Run"
+memory_key = "doctor_diagnostics_count"
+format = "number"
+
+[[dashboard.metrics]]
+label = "Wellness Status"
+memory_key = "doctor_wellness_summary"
+format = "text"
