@@ -17,11 +17,27 @@ from robofang.core.storage import RoboFangStorage
 from robofang.core.knowledge import KnowledgeEngine
 from robofang.core.security_secrets import SecretsManager
 from robofang.core.hands import HandsManager
+from robofang.bridges.journal_bridge import JournalBridge
 
 logger = logging.getLogger(__name__)
 
 # Resolve templates relative to the package root (src/RoboFang/../../templates)
 _PKG_ROOT = Path(__file__).parent.parent.parent.parent  # repo root
+
+
+class _OrchestratorMemory:
+    """Key-value memory backed by storage fleet_config for PA/hand metrics."""
+
+    _PREFIX = "mem_"
+
+    def __init__(self, storage: RoboFangStorage):
+        self._storage = storage
+
+    def store(self, key: str, value: Any) -> None:
+        self._storage.set_fleet_config(self._PREFIX + key, value)
+
+    def recall(self, key: str) -> Optional[Any]:
+        return self._storage.get_fleet_config(self._PREFIX + key)
 
 
 class OrchestrationClient:
@@ -61,6 +77,7 @@ class OrchestrationClient:
         self.secrets = SecretsManager(storage=self.storage)
         self.personality = PersonalityEngine(storage=self.storage)
         self.knowledge = KnowledgeEngine(storage=self.storage)
+        self.memory = _OrchestratorMemory(storage=self.storage)
         self.hands = HandsManager(self)
 
         # Load bundled and specialized hands
@@ -76,6 +93,8 @@ class OrchestrationClient:
 
         self._load_topology()
         self._init_connectors()
+        adn_connector = self.connectors.get("advanced-memory")
+        self.journal_bridge = JournalBridge(adn_connector)
         self._tool_registry: Dict[str, Any] = {}
         self._build_tool_bridge()
 

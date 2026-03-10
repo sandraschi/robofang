@@ -107,11 +107,26 @@ async def get_fleet_health():
 
 @router.post("/forensics")
 async def run_forensics():
-    """Trigger an adversarial forensic sweep."""
+    """Trigger an adversarial forensic sweep using real pulse and fleet health."""
     logger.info("Initiating agentic forensic sweep...")
-    # Simulate a forensic pass
-    time.sleep(1.5)
-    return {
-        "success": True,
-        "message": "FORENSIC_UPDATE: Sweep complete. All nodes verified. Entropy levels within stable bounds. No adversarial injections detected in the neural backbone.",
-    }
+    pulse = supervisor.get_pulse()
+    report = supervisor.get_fleet_health()
+    discoveries = supervisor.get_discoveries()
+    anomalies = report.get("anomalies", [])
+    cohesion = report.get("cohesion_score", 0)
+    risk = report.get("risk_level", "unknown")
+    council = pulse.get("council_active", False)
+    integrity = pulse.get("integrity", "unknown")
+    if anomalies:
+        message = (
+            f"FORENSIC_UPDATE: Sweep complete. Integrity={integrity}, "
+            f"council_active={council}, cohesion={cohesion}, risk={risk}. "
+            f"Anomalies: {anomalies}. Discoveries: {len(discoveries)}."
+        )
+    else:
+        message = (
+            f"FORENSIC_UPDATE: Sweep complete. All nodes verified. "
+            f"Integrity={integrity}, council_active={council}, "
+            f"cohesion={cohesion}, risk={risk}. No adversarial injections detected."
+        )
+    return {"success": True, "message": message}

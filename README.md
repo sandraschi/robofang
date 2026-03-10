@@ -67,10 +67,14 @@ uv venv; .venv\Scripts\activate
 
 **Dashboard:** `http://localhost:10864`
 
+**First-run / Comms:** Open the dashboard → **Onboarding** to set Telegram and Discord credentials for command replies and notifications. See [docs/ONBOARDING_AND_COMMS_CREDENTIALS.md](docs/ONBOARDING_AND_COMMS_CREDENTIALS.md) and [docs/COMMAND_VIA_EMAIL_TELEGRAM.md](docs/COMMAND_VIA_EMAIL_TELEGRAM.md).
+
 ---
 
 ## Documentation
 
+- **[ONBOARDING_AND_COMMS_CREDENTIALS.md](docs/ONBOARDING_AND_COMMS_CREDENTIALS.md)**: Onboarding page and where comms credentials live.
+- **[COMMAND_VIA_EMAIL_TELEGRAM.md](docs/COMMAND_VIA_EMAIL_TELEGRAM.md)**: Sending commands via Telegram or email and the `/hooks/command` webhook.
 - **[TECHNICAL_DESCRIPTION.md](docs/TECHNICAL_DESCRIPTION.md)**: Architectural details and protocol specifications.
 - **[docs/AGENTIC_OS_PHILOSOPHY.md](docs/AGENTIC_OS_PHILOSOPHY.md)**: Core design principles for sovereign agents.
 - **[docs/SAFETY.md](docs/SAFETY.md)**: Logic regarding the Dark Twin Universe (DTU) and resource limits.

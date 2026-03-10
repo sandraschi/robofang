@@ -2,20 +2,21 @@
 
 ## Onboarding page
 
-There is **no** onboarding page in the RoboFang dashboard. The app has no `/onboarding` route (see `dashboard/src/App.tsx`). If you want a single “first-run” or “comms setup” flow, it would need to be added (e.g. as a new route and page).
+**Route:** `/onboarding` (sidebar: Onboarding).
 
-## Where credentials live today
+The onboarding page lets you set Telegram and Discord credentials in the UI. Values are stored in the bridge storage (secrets) and used immediately for command replies and notifications. Leave a field empty to keep the current value (env or previously saved).
 
-Comms credentials are **not** entered in the Settings UI. They are configured as follows:
+- **Telegram**: Bot token (from @BotFather), Chat ID (e.g. from @userinfobot).
+- **Discord**: Webhook URL (Server Settings → Integrations → Webhooks).
 
-- **Settings page** (`/settings`): Personas (name + system prompt), Security (subject/role/permissions), Bridge status. No username/password or API keys for Telegram, Discord, or email.
-- **Telegram / Discord**: Environment variables  
-  `ROBOFANG_TELEGRAM_TOKEN`, `ROBOFANG_TELEGRAM_CHAT_ID`, `ROBOFANG_DISCORD_WEBHOOK`  
-  (set in the bridge process env, not in the dashboard).
-- **Email (built-in EmailConnector)**: IMAP/SMTP settings in connector config (e.g. `federation_map.json` or config passed to the orchestrator): `smtp_host`, `smtp_user`, `smtp_password`, `imap_host`, `imap_user`, `imap_password`. Not in the Settings UI.
-- **Email via email-MCP**: Credentials are managed entirely inside the email-MCP server; RoboFang only talks to email-MCP over HTTP (see `docs/COMMAND_VIA_EMAIL_TELEGRAM.md`).
+Backend: `GET /api/settings/comms` (returns `telegram_configured`, `discord_configured`), `POST /api/settings/comms` (body: `telegram_token?`, `telegram_chat_id?`, `discord_webhook?`). Only non-empty fields are saved.
 
-To have “username/password (or API keys) for all comms” in one place, you would need either:
+## Where credentials live
 
-1. An **onboarding** or **Comms credentials** page in the dashboard that writes to config/env or a secrets store the bridge reads, or  
-2. Continued use of env + `federation_map.json` (and email-MCP config) as the single source of truth, documented for operators.
+- **Onboarding / Settings UI**: Telegram and Discord can be set on the **Onboarding** page. Stored in bridge storage (secrets). The messaging bridge reads storage first, then env.
+- **Settings page** (`/settings`): Personas, Security policies, Bridge status. No comms credentials there (use Onboarding).
+- **Env (alternative)**: `ROBOFANG_TELEGRAM_TOKEN`, `ROBOFANG_TELEGRAM_CHAT_ID`, `ROBOFANG_DISCORD_WEBHOOK` — used if not set via Onboarding.
+- **Email (built-in EmailConnector)**: IMAP/SMTP in connector config (e.g. `federation_map.json`). Not in Onboarding.
+- **Email via email-MCP**: Managed inside the email-MCP server (see [COMMAND_VIA_EMAIL_TELEGRAM.md](COMMAND_VIA_EMAIL_TELEGRAM.md)).
+
+For sending commands to RoboFang via Telegram or email and how replies work, see [COMMAND_VIA_EMAIL_TELEGRAM.md](COMMAND_VIA_EMAIL_TELEGRAM.md).

@@ -4,9 +4,9 @@
 
 - **Command webhook**: `POST http://localhost:10871/hooks/command`  
   Body (JSON): `{ "message": "your natural language command", "reply_to": "telegram" | "discord" | null }`  
-  The bridge runs `orchestrator.ask(message)`. If `reply_to` is `"telegram"` or `"discord"`, the reply is sent to that channel (using the existing messaging config).
+  The bridge runs `orchestrator.ask(message)`. If `reply_to` is `"telegram"` or `"discord"`, the reply is sent to that channel.
 
-- **Outbound messaging** (already in place): env vars `ROBOFANG_TELEGRAM_TOKEN`, `ROBOFANG_TELEGRAM_CHAT_ID`, `ROBOFANG_DISCORD_WEBHOOK` let RoboFang send to Telegram/Discord. The command webhook uses these to send the reply when `reply_to` is set.
+- **Outbound messaging**: Set Telegram/Discord via the dashboard **Onboarding** page (stored in bridge storage) or env vars `ROBOFANG_TELEGRAM_TOKEN`, `ROBOFANG_TELEGRAM_CHAT_ID`, `ROBOFANG_DISCORD_WEBHOOK`. The bridge reads storage first, then env.
 
 - **Inbound**: There is no built-in “email listener” or “Telegram bot” inside RoboFang. You need a small adapter that turns email or Telegram into HTTP POSTs to the command webhook.
 
@@ -14,7 +14,7 @@
 
 ## Option 1: Telegram
 
-1. Create a bot with [@BotFather](https://t.me/BotFather), get the token. Set `ROBOFANG_TELEGRAM_TOKEN` and `ROBOFANG_TELEGRAM_CHAT_ID` (the chat where you want replies) in the bridge env.
+1. Create a bot with [@BotFather](https://t.me/BotFather), get the token. Set credentials either via the dashboard **Onboarding** page or env vars `ROBOFANG_TELEGRAM_TOKEN` and `ROBOFANG_TELEGRAM_CHAT_ID` (the chat where you want replies).
 2. Run a small Telegram bot (on your machine or a server) that:
    - Receives messages (long-poll `getUpdates` or webhook).
    - For each message from your chat:  
@@ -52,5 +52,5 @@ RoboFang does not read your mailbox itself. Use an “email → HTTP” bridge t
 
 | Channel   | How to send a command | Reply |
 |----------|------------------------|-------|
-| Telegram | Bot receives message → POST `/hooks/command` with `message` + `reply_to: "telegram"` | Bridge sends reply via Telegram (env: token + chat_id). |
+| Telegram | Bot receives message → POST `/hooks/command` with `message` + `reply_to: "telegram"` | Bridge sends reply via Telegram (credentials from Onboarding or env). |
 | Email    | email-MCP bridge (or IMAP script) POSTs body/subject to `/hooks/command` | Set `reply_to: "discord"` or `"telegram"` to get reply there; no built-in “reply by email”. |
