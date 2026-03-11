@@ -18,9 +18,7 @@
 | :---: | :---: |
 | ![EXPECTATION](assets/whimsical-clobber.png) | ![REALITY](assets/sad_reality.png) |
 
-> [!TIP]
-> ### 🍌 Agentic Banana: Low-Hanging Agency
-> Getting started with Robofang is a "low-hanging fruit." Clone the project, pick your hands, and enable agency in under 5 minutes. No monolithic setup, just quick potassium-rich progress.
+
 
 ## The Vision: Beyond the Chatbox
 
@@ -61,7 +59,7 @@ To understand how to deploy and use Robofang, please follow our hierarchical doc
 -   [**MCP Fleet Catalog**](docs/MCP_FLEET.md): A comprehensive list of the digital hands currently available and the ones we have in the pipeline.
 -   [**Robotics Profile**](docs/ROBOTICS.md): Our strategy for physical agency, detailing our hardware choices from the entry-level Yahboom to our humanoid champion, the Noetix Bumi.
 
-## Join the Robofang Grid 🍌
+## Join the Robofang Grid
 
 Robofang is a community-driven project. Join our Discord to share your "Hands," discuss cognitive architectures, or just show off your latest level-3 agency milestones.
 
