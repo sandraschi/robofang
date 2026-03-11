@@ -29,7 +29,7 @@ But hands alone are merely interfaces. To achieve true autonomy, intelligence mu
 
 For too long, our interaction with AI has been confined to a text-based "chatbox." We ask questions, and we get answers. But true utility—true intelligence—requires the ability to interact with the world. Whether that world is digital, virtual, or physical, an agent without the means to effect change is merely a spectator. 
 
-Robofang provides the foundation where agency is materialized. It represents the transition from AI as a service to AI as an actor. We don't just want to weed your inbox; we want to give our agents the dexterity to navigate your digital life, the creativity to build in virtual spaces, and the physicality to interact with your physical home.
+Robofang provides the foundation where agency is materialized. It represents the transition from AI as a service to AI as an actor. **Agents need hands! But not just "inbox weeder" hands!** We don't just want to automate your email sorting; we want to give our agents the dexterity to navigate your digital life, the creativity to build in virtual spaces, and the physicality to interact with your physical home.
 
 ## The Three Levels of Agency
 
