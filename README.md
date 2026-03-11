@@ -18,11 +18,9 @@
 
 ## Expectation vs Reality
 
-````carousel
-![OUR PLAN](assets/our_plan.png)
-<!-- slide -->
-![SAD REALITY](assets/sad_reality.png)
-````
+| **THE PLAN** | **THE REALITY** |
+| :---: | :---: |
+| ![OUR PLAN](assets/our_plan.png) | ![SAD REALITY](assets/sad_reality.png) |
 
 > [!TIP]
 > ### 🍌 Agentic Banana: Low-Hanging Agency
