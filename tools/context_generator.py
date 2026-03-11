@@ -19,7 +19,7 @@ class ContextGenerator:
         with open(self.fed_map_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def generate_tool_manifest(self, domain_filter: str = None) -> str:
+    def generate_tool_manifest(self, domain_filter: str | None = None) -> str:
         """
         Generates a Markdown manifest of available MCP servers and their capabilities.
         """

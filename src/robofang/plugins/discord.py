@@ -8,6 +8,7 @@ connector is registered as "discord" in PluginManager and is the one used when
 """
 
 import logging
+
 from robofang.core.connectors import DiscordConnector as CoreDiscordConnector
 
 logger = logging.getLogger(__name__)

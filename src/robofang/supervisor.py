@@ -16,19 +16,19 @@ Architecture:
 from __future__ import annotations
 
 import collections
+import json
+import logging
 import os
 import subprocess
 import sys
 import threading
 import time
-import logging
-from typing import Optional, Deque
+from typing import Deque, Optional
 
 import uvicorn
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import json
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -216,9 +216,7 @@ class SkillsWatcher:
                 or os.path.exists(os.path.join(full_path, "mcp.json"))
                 or os.path.exists(os.path.join(full_path, "SKILL.md"))
             ):
-                new_discoveries.append(
-                    {"id": folder, "path": full_path, "type": "discovered_mcp"}
-                )
+                new_discoveries.append({"id": folder, "path": full_path, "type": "discovered_mcp"})
 
         self.discovered_nodes = new_discoveries
 
@@ -370,9 +368,7 @@ class BridgeProcess:
                 self._stopped_at = time.time()
                 if exit_code not in (0, -15, None):  # -15 = SIGTERM
                     self._crash_count += 1
-                    self._logs.append(
-                        f"[supervisor] Bridge exited with code {exit_code}"
-                    )
+                    self._logs.append(f"[supervisor] Bridge exited with code {exit_code}")
             logger.info(f"Bridge reader loop ended, exit={exit_code}")
 
             # Auto-restart on crash
@@ -380,9 +376,7 @@ class BridgeProcess:
                 logger.warning(
                     f"Bridge crashed (exit {exit_code}), auto-restarting in {AUTO_RESTART_DELAY_S}s"
                 )
-                self._logs.append(
-                    f"[supervisor] Auto-restarting in {AUTO_RESTART_DELAY_S}s..."
-                )
+                self._logs.append(f"[supervisor] Auto-restarting in {AUTO_RESTART_DELAY_S}s...")
                 time.sleep(AUTO_RESTART_DELAY_S)
                 self.start()
         except Exception as e:
@@ -415,17 +409,16 @@ class FleetManager:
             return {"ok": False, "reason": "Node not found in registry"}
 
         with self._lock:
-            if (
-                node_id in self._installs
-                and self._installs[node_id]["status"] == "installing"
-            ):
+            if node_id in self._installs and self._installs[node_id]["status"] == "installing":
                 return {"ok": False, "reason": "Installation already in progress"}
             self._installs[node_id] = {"status": "installing", "logs": []}
 
         def run_install():
             logger.info(f"Starting installation for {node_id}")
             path = node["repo_path"]
-            repo_url = f"https://github.com/sandraschi/{node_id}.git"  # Assumption for this environment
+            repo_url = (
+                f"https://github.com/sandraschi/{node_id}.git"  # Assumption for this environment
+            )
 
             def log(msg):
                 with self._lock:
@@ -471,7 +464,7 @@ class FleetManager:
             except Exception as e:
                 with self._lock:
                     self._installs[node_id]["status"] = "failed"
-                log(f"Installation failed: {str(e)}")
+                log(f"Installation failed: {e!s}")
 
         thread = threading.Thread(target=run_install, daemon=True)
         thread.start()
@@ -491,11 +484,7 @@ class SupervisorInterface:
         return _bridge.status
 
     def get_pulse(self):
-        return (
-            _pulse.get_pulse()["pulse"]
-            if "pulse" in _pulse.get_pulse()
-            else _pulse.get_pulse()
-        )
+        return _pulse.get_pulse()["pulse"] if "pulse" in _pulse.get_pulse() else _pulse.get_pulse()
 
     @property
     def fleet_nodes(self):
@@ -628,8 +617,6 @@ if __name__ == "__main__":
     os.system(
         'taskkill /F /IM powershell.exe /T /FI "WINDOWTITLE eq RoboFang-Connector*" >nul 2>&1'
     )
-    os.system(
-        'taskkill /F /IM cmd.exe /T /FI "WINDOWTITLE eq RoboFang-Connector*" >nul 2>&1'
-    )
+    os.system('taskkill /F /IM cmd.exe /T /FI "WINDOWTITLE eq RoboFang-Connector*" >nul 2>&1')
 
     uvicorn.run(app, host="0.0.0.0", port=SUPERVISOR_PORT, log_level="info")

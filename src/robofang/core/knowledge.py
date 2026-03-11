@@ -4,7 +4,8 @@ RoboFang Knowledge Engine: SOTA RAG & Semantic Retrieval.
 """
 
 import logging
-from typing import List, Any, Optional
+from typing import Any, List, Optional
+
 from robofang.core.storage import RoboFangStorage
 
 logger = logging.getLogger(__name__)
@@ -46,9 +47,7 @@ class KnowledgeEngine:
         # 3. Long-Context Reranking (LCR) / Synthesis
         return await self.satisfice_context(context_parts)
 
-    async def semantic_search(
-        self, query: str, orchestrator: Optional[Any] = None
-    ) -> List[str]:
+    async def semantic_search(self, query: str, orchestrator: Optional[Any] = None) -> List[str]:
         """Deep search within the Advanced Memory graph using memops."""
         if not orchestrator:
             return []
@@ -69,8 +68,7 @@ class KnowledgeEngine:
             if result.get("success"):
                 hits = result.get("result", {}).get("results", [])
                 return [
-                    f"[ADN:{h.get('title')}] {h.get('teaser', h.get('content', ''))}"
-                    for h in hits
+                    f"[ADN:{h.get('title')}] {h.get('teaser', h.get('content', ''))}" for h in hits
                 ]
         except Exception as e:
             self.logger.error(f"Semantic search failed: {e}")

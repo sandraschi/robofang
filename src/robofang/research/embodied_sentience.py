@@ -14,17 +14,15 @@ Architecture:
 """
 
 import asyncio
-import logging
 import json
-from typing import Dict, Any, Optional
+import logging
+from typing import Any, Dict, Optional, Set
 
 from robofang.core.orchestrator import OrchestrationClient
 from robofang.core.resonite_link import ResoniteLinkClient
 
 # Configure Logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("embodied_sentience")
 
 
@@ -36,6 +34,7 @@ class SentientLoop:
             host=self.config.get("resonite_host", "localhost"),
             port=self.config.get("resonite_port", 4242),
         )
+        self._background_tasks: Set[asyncio.Task] = set()
         self.running = False
         self.perception_queue = asyncio.Queue()
 
@@ -70,7 +69,9 @@ class SentientLoop:
             logger.warning("ResoniteLink inactive. Prototype will focus on OSC/Unity.")
 
         # 2. Start Perception (Real System Telemetry)
-        asyncio.create_task(self._pulse_system_telemetry())
+        task = asyncio.create_task(self._pulse_system_telemetry())
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
         # 3. The Loop
         try:
@@ -131,9 +132,7 @@ class SentientLoop:
                 "log", {"message": f"Sentient Decision: {cognition_results}"}
             )
             if "move" in cognition_results.lower():
-                await self.resonite.spawn_object(
-                    "vbot_scout", {"x": 1.0, "y": 0, "z": 0}
-                )
+                await self.resonite.spawn_object("vbot_scout", {"x": 1.0, "y": 0, "z": 0})
 
         # 2. Unity/Physical Robotics (Simulated via logs for now, hooked to MCP in production)
         if "scan" in cognition_results.lower():

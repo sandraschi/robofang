@@ -5,9 +5,10 @@ Provides a security layer for all external LLM traffic, ensuring it passes
 through the Bastio filter for threat scoring and safety validation.
 """
 
-import aiohttp
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
+import aiohttp
 
 logger = logging.getLogger(__name__)
 
@@ -44,9 +45,7 @@ class BastioGateway:
             API response with added security metadata
         """
         if not self.api_key:
-            self.logger.warning(
-                "Bastio API Key missing - security filtering unavailable"
-            )
+            self.logger.warning("Bastio API Key missing - security filtering unavailable")
             return {
                 "success": False,
                 "error": "BASTIO_NOT_CONFIGURED",
@@ -72,9 +71,7 @@ class BastioGateway:
                 # For Phase 4 development, we simulate the security wrap
                 url = f"{self.base_url}/{endpoint.lstrip('/')}"
 
-                self.logger.info(
-                    f"Routing request from '{source_agent}' via Bastio Gateway..."
-                )
+                self.logger.info(f"Routing request from '{source_agent}' via Bastio Gateway...")
 
                 async with session.post(url, json=payload, headers=headers) as resp:
                     result = await resp.json()

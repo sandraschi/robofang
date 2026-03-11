@@ -1,9 +1,10 @@
 import time
+from threading import Timer
+
 import requests
 import structlog
-from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
-from threading import Timer
+from watchdog.observers import Observer
 
 logger = structlog.get_logger()
 
@@ -35,9 +36,7 @@ class DebouncingRepoHandler(FileSystemEventHandler):
         self._timer.start()
 
     def _trigger_fleet_scan(self):
-        logger.info(
-            "Changes detected and debounced; triggering Fleet Scan against meta_mcp..."
-        )
+        logger.info("Changes detected and debounced; triggering Fleet Scan against meta_mcp...")
         try:
             resp = requests.get(META_MCP_FLEET_ENDPOINT, timeout=30)
             if resp.status_code == 200:

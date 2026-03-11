@@ -1,13 +1,13 @@
+import asyncio
 import os
 import sys
-import asyncio
 
 # Add src to path
 sys.path.append(os.path.abspath("src"))
 
-from robofang.core.storage import robofangStorage
-from robofang.core.security import SecurityManager
 from robofang.core.personality import PersonalityEngine
+from robofang.core.security import SecurityManager
+from robofang.core.storage import robofangStorage
 
 
 async def verify_persistence():

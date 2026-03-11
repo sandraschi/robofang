@@ -5,9 +5,10 @@ Provides resource monitoring and quota enforcement for local fleet processes,
 ensuring CPU and RAM usage stay within defined safety limits.
 """
 
-import psutil
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -85,15 +86,11 @@ class LocalBastionManager:
 
             if cpu_usage > self.cpu_quota:
                 status = "CRITICAL" if cpu_usage > 95 else "WARNING"
-                violations.append(
-                    f"System CPU ({cpu_usage}%) exceeds quota ({self.cpu_quota}%)"
-                )
+                violations.append(f"System CPU ({cpu_usage}%) exceeds quota ({self.cpu_quota}%)")
 
             if ram_usage > self.ram_quota:
                 status = "CRITICAL" if ram_usage > 95 else "WARNING"
-                violations.append(
-                    f"System RAM ({ram_usage}%) exceeds quota ({self.ram_quota}%)"
-                )
+                violations.append(f"System RAM ({ram_usage}%) exceeds quota ({self.ram_quota}%)")
 
             if violations:
                 for v in violations:
@@ -159,8 +156,6 @@ class LocalBastionManager:
                 psutil.AccessDenied,
                 psutil.TimeoutExpired,
             ) as e:
-                self.logger.error(
-                    "Bastion enforce_quotas failed for pid %s: %s", worst_pid, e
-                )
+                self.logger.error("Bastion enforce_quotas failed for pid %s: %s", worst_pid, e)
                 return False
         return False

@@ -5,6 +5,7 @@ RoboFang Secrets Manager: Secure encryption for connector credentials.
 
 import logging
 from typing import Optional
+
 from robofang.core.storage import RoboFangStorage
 
 logger = logging.getLogger(__name__)

@@ -6,12 +6,11 @@ Implements a WebSocket server on port 4242 for real-time 3D world interaction.
 import asyncio
 import json
 import logging
-import websockets
 from typing import Set
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+import websockets
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("resonite_server")
 
 

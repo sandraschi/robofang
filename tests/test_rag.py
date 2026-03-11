@@ -1,39 +1,36 @@
 import os
 import sys
+
 import pytest
-from pathlib import Path
+
+from robofang.core.robofang_rag import RoboFangRAG
 
 # Add mcp-central-docs to path to ensure tests pass
-MCP_CENTRAL_DOCS_PATH = os.environ.get(
-    "MCP_CENTRAL_DOCS_PATH", "d:/Dev/repos/mcp-central-docs/src"
-)
+MCP_CENTRAL_DOCS_PATH = os.environ.get("MCP_CENTRAL_DOCS_PATH", "d:/Dev/repos/mcp-central-docs/src")
 if MCP_CENTRAL_DOCS_PATH not in sys.path:
     sys.path.append(MCP_CENTRAL_DOCS_PATH)
 
 # Add robofang to path
-robofang_SRC_PATH = str(Path(__file__).parent.parent / "src")
-if robofang_SRC_PATH not in sys.path:
-    sys.path.insert(0, robofang_SRC_PATH)
 
-from robofang.core.robofang_rag import robofangRAG
+
 
 
 @pytest.fixture
 def temp_rag(tmp_path):
     # Use a temporary directory for LanceDB and tracking JSON
     db_path = str(tmp_path / "lancedb")
-    rag = robofangRAG(db_path=db_path, table_name="test_media")
+    rag = RoboFangRAG(db_path=db_path, table_name="test_media")
     return rag, tmp_path
 
 
 def test_rag_initialization(temp_rag):
-    rag, tmp_path = temp_rag
+    _rag, tmp_path = temp_rag
     assert (tmp_path / "lancedb").exists()
     assert (tmp_path / "lancedb" / "sync_tracking.json").exists()
 
 
 def test_delta_sync(temp_rag):
-    rag, tmp_path = temp_rag
+    rag, _tmp_path = temp_rag
 
     docs = [
         {

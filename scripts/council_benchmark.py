@@ -1,9 +1,9 @@
 import asyncio
-import time
 import json
 import logging
 import os
 import sys
+import time
 from pathlib import Path
 
 # Add src to path
@@ -12,9 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 from robofang.core.reasoning import ReasoningEngine
 
 # Setup logging
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("council_benchmark")
 
 CANONICAL_TASKS = [

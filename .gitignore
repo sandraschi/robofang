@@ -42,3 +42,12 @@ logs/
 
 # Windows Sandbox
 *.wsb.log
+
+# RoboFang Runtime & Data
+exchange/sandbox/
+data/*.db
+data/benchmarks/
+robofang_test.db
+grafana-data/
+prometheus-data/
+memory/

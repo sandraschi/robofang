@@ -3,11 +3,11 @@ RoboFang Storage Layer: Persistent state management using SQLite.
 Handles durability for security policies, personas, and fleet configuration.
 """
 
-import sqlite3
-import logging
 import json
+import logging
+import sqlite3
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -94,9 +94,7 @@ class RoboFangStorage:
         """Load all security policies into memory."""
         policies = {}
         with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT subject, role, permissions FROM security_policies"
-            )
+            cursor = conn.execute("SELECT subject, role, permissions FROM security_policies")
             for subject, role, permissions_json in cursor.fetchall():
                 policies[subject] = {
                     "role": role,
@@ -145,9 +143,7 @@ class RoboFangStorage:
 
     # --- Secret Operations ---
 
-    def save_secret(
-        self, key_name: str, value: str, metadata: Optional[Dict[str, Any]] = None
-    ):
+    def save_secret(self, key_name: str, value: str, metadata: Optional[Dict[str, Any]] = None):
         """Persist a secret to the database."""
         with self._get_connection() as conn:
             conn.execute(
@@ -162,9 +158,7 @@ class RoboFangStorage:
     def get_secret(self, key_name: str) -> Optional[str]:
         """Retrieve a secret by name."""
         with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT value FROM secrets WHERE key_name = ?", (key_name,)
-            )
+            cursor = conn.execute("SELECT value FROM secrets WHERE key_name = ?", (key_name,))
             row = cursor.fetchone()
             if row:
                 return row[0]
@@ -187,9 +181,7 @@ class RoboFangStorage:
     def get_fleet_config(self, key: str) -> Optional[Any]:
         """Retrieve a value by key; returns None if missing."""
         with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT value FROM fleet_config WHERE key = ?", (key,)
-            )
+            cursor = conn.execute("SELECT value FROM fleet_config WHERE key = ?", (key,))
             row = cursor.fetchone()
             if row:
                 try:

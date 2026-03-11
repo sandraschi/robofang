@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import logging
 import os
-import httpx
 
+import httpx
 
 logger = logging.getLogger("ROBOFANG_messaging")
 

@@ -48,9 +48,7 @@ async def test_send_message():
 
     conn = MoltbookConnector("moltbook", {"api_key": MOLTBOOK_API_KEY})
     await conn.connect()
-    ok = await conn.send_message(
-        "feed", "[robofang test] MoltbookConnector scaffold check"
-    )
+    ok = await conn.send_message("feed", "[robofang test] MoltbookConnector scaffold check")
     print(f"send_message() -> {ok}")
     await conn.disconnect()
     assert isinstance(ok, bool)

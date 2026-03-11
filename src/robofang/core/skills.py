@@ -1,9 +1,10 @@
 """RoboFang Skill Bridge: Loading and parsing legacy OpenClaw markdown skills."""
 
-import yaml
 import logging
 from pathlib import Path
-from typing import Dict, List, Optional, Any
+from typing import Any, Dict, List, Optional
+
+import yaml
 
 logger = logging.getLogger(__name__)
 
@@ -61,9 +62,7 @@ class SkillLoader:
                         {
                             "id": item.name,
                             "name": skill_info["metadata"].get("name", item.name),
-                            "description": skill_info["metadata"].get(
-                                "description", ""
-                            ),
+                            "description": skill_info["metadata"].get("description", ""),
                             "tags": skill_info["metadata"].get("tags", []),
                         }
                     )

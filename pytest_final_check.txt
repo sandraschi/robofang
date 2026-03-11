@@ -1,0 +1,79 @@
+============================= test session starts =============================
+platform win32 -- Python 3.13.11, pytest-8.4.2, pluggy-1.6.0 -- C:\Users\sandr\miniconda3\python.exe
+cachedir: .pytest_cache
+metadata: {'Python': '3.13.11', 'Platform': 'Windows-11-10.0.28020-SP0', 'Packages': {'pytest': '8.4.2', 'pluggy': '1.6.0'}, 'Plugins': {'langsmith': '0.3.42', 'asyncio': '0.23.8', 'html': '4.1.1', 'metadata': '3.1.1', 'mock': '3.14.1', 'cov': '2.12.1', 'anyio': '4.12.1', 'hypothesis': '6.151.5', 'httpx': '0.35.0'}, 'JAVA_HOME': 'C:\\Program Files\\Eclipse Adoptium\\jdk-25.0.1.8-hotspot'}
+hypothesis profile 'default'
+rootdir: D:\Dev\repos\robofang
+configfile: pytest.ini
+testpaths: tests
+plugins: langsmith-0.3.42, asyncio-0.23.8, html-4.1.1, metadata-3.1.1, mock-3.14.1, cov-2.12.1, anyio-4.12.1, hypothesis-6.151.5, httpx-0.35.0
+asyncio: mode=Mode.AUTO
+collecting ... collected 43 items
+
+tests/connectors/test_calibre.py::test_connect PASSED                    [  2%]
+tests/connectors/test_calibre.py::test_get_messages PASSED               [  4%]
+tests/connectors/test_calibre.py::test_search PASSED                     [  6%]
+tests/connectors/test_discord.py::test_connect PASSED                    [  9%]
+tests/connectors/test_discord.py::test_send_message PASSED               [ 11%]
+tests/connectors/test_discord.py::test_get_messages PASSED               [ 13%]
+tests/connectors/test_email.py::test_connect PASSED                      [ 16%]
+tests/connectors/test_email.py::test_get_messages PASSED                 [ 18%]
+tests/connectors/test_email.py::test_get_unread PASSED                   [ 20%]
+tests/connectors/test_email.py::test_send_message PASSED                 [ 23%]
+tests/connectors/test_homeassistant.py::test_connect PASSED              [ 25%]
+tests/connectors/test_homeassistant.py::test_get_messages PASSED         [ 27%]
+tests/connectors/test_homeassistant.py::test_light_toggle PASSED         [ 30%]
+tests/connectors/test_homeassistant.py::test_switch_control PASSED       [ 32%]
+tests/connectors/test_hue.py::test_connect PASSED                        [ 34%]
+tests/connectors/test_hue.py::test_get_messages PASSED                   [ 37%]
+tests/connectors/test_hue.py::test_send_on_off PASSED                    [ 39%]
+tests/connectors/test_hue.py::test_send_color PASSED                     [ 41%]
+tests/connectors/test_mcp_bridge.py::test_connect PASSED                 [ 44%]
+tests/connectors/test_mcp_bridge.py::test_tools_list PASSED              [ 46%]
+tests/connectors/test_mcp_bridge.py::test_call_tool PASSED               [ 48%]
+tests/connectors/test_moltbook.py::test_connect PASSED                   [ 51%]
+tests/connectors/test_moltbook.py::test_get_messages PASSED              [ 53%]
+tests/connectors/test_moltbook.py::test_send_message PASSED              [ 55%]
+tests/connectors/test_plex.py::test_connect PASSED                       [ 58%]
+tests/connectors/test_plex.py::test_get_messages PASSED                  [ 60%]
+tests/connectors/test_plex.py::test_library_sections PASSED              [ 62%]
+tests/connectors/test_plex.py::test_active_sessions PASSED               [ 65%]
+tests/connectors/test_ring.py::test_connect PASSED                       [ 67%]
+tests/connectors/test_ring.py::test_get_messages PASSED                  [ 69%]
+tests/connectors/test_shelly.py::test_connect PASSED                     [ 72%]
+tests/connectors/test_shelly.py::test_get_messages PASSED                [ 74%]
+tests/connectors/test_shelly.py::test_send_on_off PASSED                 [ 76%]
+tests/connectors/test_tapo.py::test_connect PASSED                       [ 79%]
+tests/connectors/test_tapo.py::test_get_messages PASSED                  [ 81%]
+tests/connectors/test_tapo.py::test_send_readonly_rejected PASSED        [ 83%]
+tests/connectors/test_tapo.py::test_send_toggle PASSED                   [ 86%]
+tests/test_agentic_workflow.py::TestAgenticWorkflow::test_approval_gate_rejection PASSED [ 88%]
+tests/test_agentic_workflow.py::TestAgenticWorkflow::test_approval_gate_success PASSED [ 90%]
+tests/test_agentic_workflow.py::TestAgenticWorkflow::test_orchestrator_tool_bridge PASSED [ 93%]
+tests/test_agentic_workflow.py::TestAgenticWorkflow::test_react_loop_success PASSED [ 95%]
+tests/test_rag.py::test_rag_initialization PASSED                        [ 97%]
+tests/test_rag.py::test_delta_sync PASSED                                [100%]
+
+============================== warnings summary ===============================
+tests/connectors/test_ring.py::test_connect
+tests/connectors/test_ring.py::test_get_messages
+  C:\Users\sandr\miniconda3\Lib\site-packages\ring_doorbell\util.py:112: DeprecationWarning: Ring.update_data is deprecated, use Ring.async_update_data
+    warn(msg, DeprecationWarning, stacklevel=1)
+
+tests/test_rag.py::test_delta_sync
+tests/test_rag.py::test_delta_sync
+  D:\Dev\repos\robofang\src\robofang\core\rag_base.py:56: DeprecationWarning: table_names() is deprecated, use list_tables() instead
+    if overwrite or self.table_name not in self.db.table_names():
+
+tests/test_rag.py::test_delta_sync
+tests/test_rag.py::test_delta_sync
+tests/test_rag.py::test_delta_sync
+  C:\Users\sandr\miniconda3\Lib\asyncio\events.py:89: DeprecationWarning: table_names() is deprecated, use list_tables() instead
+    self._context.run(self._callback, *self._args)
+
+tests/test_rag.py::test_delta_sync
+  D:\Dev\repos\robofang\src\robofang\core\rag_base.py:71: DeprecationWarning: table_names() is deprecated, use list_tables() instead
+    if self.table_name not in self.db.table_names():
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================= 43 passed, 8 warnings in 149.44s (0:02:29) ==================

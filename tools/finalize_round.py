@@ -8,9 +8,7 @@ from council_orchestrator import CouncilOrchestrator
 def main():
     root = "d:/dev/repos/RoboFang"
     orchestrator = CouncilOrchestrator(root)
-    session_file = (
-        Path(root) / "exchange" / "debates" / "resonite_spatial_vlm_session.json"
-    )
+    session_file = Path(root) / "exchange" / "debates" / "resonite_spatial_vlm_session.json"
 
     debugger_output = """
 ## The "Gorgon-Eye" Red-Team Review (Debugger Critique)

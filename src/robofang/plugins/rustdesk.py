@@ -23,9 +23,7 @@ class RustDeskConnector(BaseConnector):
         self.logger.info("Connecting to RustDesk relay server...")
         # Real relay connection would go here; no stub connection.
         self.active = False
-        self.logger.warning(
-            "RustDeskConnector: relay not configured; connect not implemented."
-        )
+        self.logger.warning("RustDeskConnector: relay not configured; connect not implemented.")
         return False
 
     async def disconnect(self) -> bool:

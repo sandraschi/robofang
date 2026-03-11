@@ -6,8 +6,9 @@ Implements the new WebSocket JSON protocol for real-time 3D interaction.
 import asyncio
 import json
 import logging
+from typing import Any, Callable, Dict, Optional, Set
+
 import websockets
-from typing import Dict, Any, Optional, Callable
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +24,7 @@ class ResoniteLinkClient:
         self.ws: Optional[websockets.WebSocketClientProtocol] = None
         self.logger = logging.getLogger("robofang.resonite.link")
         self.callbacks: Dict[str, Callable] = {}
+        self._background_tasks: Set[asyncio.Task] = set()
         self.running = False
 
     async def connect(self):
@@ -30,7 +32,9 @@ class ResoniteLinkClient:
         try:
             self.ws = await websockets.connect(self.uri)
             self.running = True
-            asyncio.create_task(self._listen())
+            task = asyncio.create_task(self._listen())
+            self._background_tasks.add(task)
+            task.add_done_callback(self._background_tasks.discard)
             self.logger.info(f"Connected to ResoniteLink at {self.uri}")
             return True
         except Exception as e:
@@ -81,9 +85,7 @@ class ResoniteLinkClient:
     # High-level actions
     async def spawn_object(self, template_url: str, position: Dict[str, float]):
         """Spawn a 3D object in the current world."""
-        return await self.send_command(
-            "spawn", {"template": template_url, "position": position}
-        )
+        return await self.send_command("spawn", {"template": template_url, "position": position})
 
     async def set_component_value(self, component_id: str, field: str, value: Any):
         """Set a specific field on a Resonite component."""

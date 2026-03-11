@@ -1,7 +1,9 @@
 """RoboFang Channel Tools: Interaction with communication channels (Discord, Telegram, OSC)."""
 
-from typing import Dict, Any, Literal
+from typing import Any, Dict, Literal
+
 from fastmcp import Context, FastMCP
+
 from robofang.core.orchestrator import OrchestrationClient
 
 mcp = FastMCP("RoboFang-channels")

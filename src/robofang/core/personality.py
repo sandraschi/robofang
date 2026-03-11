@@ -4,7 +4,8 @@ Ensures consistent character logic across federated models.
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
 from robofang.core.storage import RoboFangStorage
 
 logger = logging.getLogger(__name__)

@@ -5,6 +5,7 @@ Robotics Hand: Physical embodiment and interaction via noetic_bumi.
 
 import logging
 from typing import Any
+
 from robofang.core.base_hand import Hand
 
 logger = logging.getLogger(__name__)

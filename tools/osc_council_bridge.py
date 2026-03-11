@@ -39,15 +39,15 @@ Usage
 import asyncio
 import logging
 import uuid
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger("RoboFang.osc_council_bridge")
 
 # Try to import python-osc; fall back gracefully so the module can always be imported
 try:
-    from pythonosc.udp_client import SimpleUDPClient
     from pythonosc.dispatcher import Dispatcher
     from pythonosc.osc_server import AsyncIOOSCUDPServer
+    from pythonosc.udp_client import SimpleUDPClient
 
     _HAS_PYTHONOSC = True
 except ImportError:
@@ -90,10 +90,8 @@ async def _ensure_listener(listen_port: int = 9010) -> None:
     dispatcher = Dispatcher()
     dispatcher.map("/RoboFang/council/response", _osc_response_handler)
 
-    server = AsyncIOOSCUDPServer(
-        ("0.0.0.0", listen_port), dispatcher, asyncio.get_event_loop()
-    )
-    transport, protocol = await server.create_serve_endpoint()
+    server = AsyncIOOSCUDPServer(("0.0.0.0", listen_port), dispatcher, asyncio.get_event_loop())
+    transport, _protocol = await server.create_serve_endpoint()
     _listener_port = listen_port
 
     async def _run():
@@ -159,9 +157,7 @@ async def query_osc_agent(
     try:
         client = SimpleUDPClient(host, port)
         client.send_message("/RoboFang/council/prompt", [round_id, adjudicator, prompt])
-        logger.info(
-            f"OSC prompt sent → {host}:{port} | round={round_id} | agent={adjudicator}"
-        )
+        logger.info(f"OSC prompt sent → {host}:{port} | round={round_id} | agent={adjudicator}")
     except Exception as e:
         _pending_rounds.pop(round_id, None)
         return {

@@ -67,7 +67,7 @@ async def test_send_on_off():
         print("SKIP: no devices online")
         await conn.disconnect()
         return
-    alias = list(conn._online.keys())[0]
+    alias = next(iter(conn._online.keys()))
     ok_on = await conn.send_message(alias, "on")
     print(f"  {alias} on -> {ok_on}")
     await asyncio.sleep(1)

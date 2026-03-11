@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search, Download, Trash2, AlertCircle, Info,
@@ -24,9 +25,16 @@ interface LogsMeta {
 }
 
 const Logger: React.FC = () => {
+    const [searchParams] = useSearchParams();
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [meta, setMeta] = useState<LogsMeta | null>(null);
-    const [searchQuery, setSearchQuery] = useState('');
+    const [searchQuery, setSearchQuery] = useState(() =>
+        searchParams.get('source') ?? searchParams.get('search') ?? ''
+    );
+    useEffect(() => {
+        const q = searchParams.get('source') ?? searchParams.get('search') ?? '';
+        setSearchQuery(q);
+    }, [searchParams]);
     const [selectedLevel, setSelectedLevel] = useState<string>('all');
     const [selectedCategory, setSelectedCategory] = useState<string>('all');
     const [aiAnalysis, setAiAnalysis] = useState<string | null>(null);

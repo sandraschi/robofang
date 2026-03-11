@@ -30,10 +30,10 @@ import imaplib
 import logging
 import smtplib
 import subprocess
+from email.header import decode_header as _decode_header
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.header import decode_header as _decode_header
-from typing import Any, Dict, List, Optional
+from typing import Any, ClassVar, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -110,7 +110,8 @@ class MoltbookConnector(BaseConnector):
     def __init__(self, name: str, config: Dict[str, Any]):
         super().__init__(name, config)
         import os
-        from robofang.core.moltbook import MoltbookClient  # noqa: PLC0415
+
+        from robofang.core.moltbook import MoltbookClient
 
         api_key = config.get("api_key") or os.getenv("MOLTBOOK_API_KEY")
         self._client = MoltbookClient(
@@ -181,7 +182,7 @@ class EmailConnector(BaseConnector):
         if not self.imap_host:
             self.logger.error("EmailConnector: imap_host not configured.")
             return False
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def _check():
             m = imaplib.IMAP4_SSL(self.imap_host, self.imap_port)
@@ -211,7 +212,7 @@ class EmailConnector(BaseConnector):
         html = kwargs.get("html")
         cc = kwargs.get("cc", [])
         bcc = kwargs.get("bcc", [])
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def _send():
             msg = MIMEMultipart("alternative")
@@ -247,7 +248,7 @@ class EmailConnector(BaseConnector):
         """Fetch emails from IMAP folder."""
         if not self.imap_host:
             return []
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def _fetch():
             mail = imaplib.IMAP4_SSL(self.imap_host, self.imap_port)
@@ -266,20 +267,14 @@ class EmailConnector(BaseConnector):
                 if msg.is_multipart():
                     for part in msg.walk():
                         if part.get_content_type() == "text/plain":
-                            body = part.get_payload(decode=True).decode(
-                                "utf-8", errors="replace"
-                            )
+                            body = part.get_payload(decode=True).decode("utf-8", errors="replace")
                             break
                 else:
-                    body = msg.get_payload(decode=True).decode(
-                        "utf-8", errors="replace"
-                    )
+                    body = msg.get_payload(decode=True).decode("utf-8", errors="replace")
                 results.append(
                     {
                         "id": eid.decode(),
-                        "subject": _decode_mime_header(
-                            msg.get("Subject", "(No Subject)")
-                        ),
+                        "subject": _decode_mime_header(msg.get("Subject", "(No Subject)")),
                         "from": _decode_mime_header(msg.get("From", "Unknown")),
                         "date": msg.get("Date", ""),
                         "body_preview": body[:300],
@@ -318,7 +313,7 @@ class TapoConnector(BaseConnector):
 
     async def connect(self) -> bool:
         try:
-            from kasa import Discover, Credentials  # noqa: PLC0415
+            from kasa import Credentials, Discover
         except ImportError:
             self.logger.error("python-kasa not installed. pip install python-kasa")
             return False
@@ -344,9 +339,7 @@ class TapoConnector(BaseConnector):
                 self.logger.warning(f"Tapo: {alias} ({host}) unreachable: {e}")
 
         self.active = ok_count > 0 or not device_list
-        self.logger.info(
-            f"TapoConnector: {ok_count}/{len(device_list)} devices online."
-        )
+        self.logger.info(f"TapoConnector: {ok_count}/{len(device_list)} devices online.")
         return self.active
 
     async def disconnect(self) -> bool:
@@ -426,7 +419,7 @@ class HueConnector(BaseConnector):
     """
 
     connector_type = "hue"
-    _COLOURS = {
+    _COLOURS: ClassVar[Dict[str, List[float]]] = {
         "red": [0.675, 0.322],
         "green": [0.408, 0.517],
         "blue": [0.167, 0.040],
@@ -441,7 +434,7 @@ class HueConnector(BaseConnector):
 
     async def connect(self) -> bool:
         try:
-            from phue import Bridge  # noqa: PLC0415
+            from phue import Bridge
         except ImportError:
             self.logger.error("phue not installed. pip install phue")
             return False
@@ -449,7 +442,7 @@ class HueConnector(BaseConnector):
         if not bridge_ip:
             self.logger.error("HueConnector: bridge_ip not configured.")
             return False
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
 
             def _conn():
@@ -477,7 +470,7 @@ class HueConnector(BaseConnector):
         """Control Hue. target=light name or 'all'. content: on|off|bri:N|color:NAME"""
         if not self._bridge:
             return False
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         cmd = content.strip().lower()
 
         def _set():
@@ -513,7 +506,7 @@ class HueConnector(BaseConnector):
     async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
         if not self._bridge:
             return []
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
             lights = await loop.run_in_executor(
                 None, lambda: self._bridge.get_light_objects("name")
@@ -554,7 +547,7 @@ class ShellyConnector(BaseConnector):
         self._online: Dict[str, Dict[str, Any]] = {}  # alias → device info
 
     async def _get(self, host: str, path: str) -> Optional[Dict]:
-        import httpx  # noqa: PLC0415
+        import httpx
 
         try:
             async with httpx.AsyncClient(timeout=5.0) as c:
@@ -565,7 +558,7 @@ class ShellyConnector(BaseConnector):
             return None
 
     async def _post(self, host: str, path: str, data: Dict) -> Optional[Dict]:
-        import httpx  # noqa: PLC0415
+        import httpx
 
         try:
             async with httpx.AsyncClient(timeout=5.0) as c:
@@ -616,17 +609,11 @@ class ShellyConnector(BaseConnector):
             else:
                 if cmd == "toggle":
                     status = await self._get(host, "/rpc/Shelly.GetStatus")
-                    current = (
-                        status.get("switch:0", {}).get("output", False)
-                        if status
-                        else False
-                    )
+                    current = status.get("switch:0", {}).get("output", False) if status else False
                     on_val = not current
                 else:
                     on_val = cmd == "on"
-                result = await self._post(
-                    host, "/rpc/Switch.Set", {"id": ch, "on": on_val}
-                )
+                result = await self._post(host, "/rpc/Switch.Set", {"id": ch, "on": on_val})
             ok = result is not None
             self.logger.info(f"Shelly {target} {cmd} -> {ok}")
             return ok
@@ -688,19 +675,15 @@ class HomeAssistantConnector(BaseConnector):
         super().__init__(name, config)
         import os
 
-        self._url = (
-            config.get("url") or os.getenv("HA_URL", "http://localhost:8123")
-        ).rstrip("/")
+        self._url = (config.get("url") or os.getenv("HA_URL", "http://localhost:8123")).rstrip("/")
         self._token = config.get("access_token") or os.getenv("HA_TOKEN", "")
         self._headers = {
             "Authorization": f"Bearer {self._token}",
             "Content-Type": "application/json",
         }
 
-    async def _api(
-        self, method: str, path: str, data: Optional[Dict] = None
-    ) -> Optional[Any]:
-        import httpx  # noqa: PLC0415
+    async def _api(self, method: str, path: str, data: Optional[Dict] = None) -> Optional[Any]:
+        import httpx
 
         try:
             async with httpx.AsyncClient(timeout=10.0) as c:
@@ -736,7 +719,7 @@ class HomeAssistantConnector(BaseConnector):
         content — entity_id (or JSON string with extra service data)
         kwargs  — additional service data fields
         """
-        import json as _json  # noqa: PLC0415
+        import json as _json
 
         try:
             if target.startswith("event:"):
@@ -753,9 +736,7 @@ class HomeAssistantConnector(BaseConnector):
             except Exception:
                 service_data = {"entity_id": content}
             service_data.update(kwargs)
-            result = await self._api(
-                "POST", f"/services/{domain}/{service}", service_data
-            )
+            result = await self._api("POST", f"/services/{domain}/{service}", service_data)
             self.logger.info(f"HA service {target} called for {content}")
             return result is not None
         except Exception as e:
@@ -807,7 +788,7 @@ class RingConnector(BaseConnector):
 
     async def connect(self) -> bool:
         try:
-            from ring_doorbell import Ring, Auth  # noqa: PLC0415
+            from ring_doorbell import Auth, Ring
         except ImportError:
             self.logger.error("ring_doorbell not installed. pip install ring_doorbell")
             return False
@@ -878,9 +859,7 @@ class RingConnector(BaseConnector):
                 for device in self._ring.video_doorbells + self._ring.stickup_cams:
                     for event in device.history(
                         limit=limit
-                        // max(
-                            1, len(self._ring.video_doorbells + self._ring.stickup_cams)
-                        )
+                        // max(1, len(self._ring.video_doorbells + self._ring.stickup_cams))
                     ):
                         results.append(
                             {
@@ -890,9 +869,7 @@ class RingConnector(BaseConnector):
                                 "answered": event.get("answered"),
                             }
                         )
-                return sorted(
-                    results, key=lambda e: e.get("created_at", ""), reverse=True
-                )[:limit]
+                return sorted(results, key=lambda e: e.get("created_at", ""), reverse=True)[:limit]
 
             return await loop.run_in_executor(None, _events)
         except Exception as e:
@@ -925,7 +902,7 @@ class PlexConnector(BaseConnector):
 
     async def connect(self) -> bool:
         try:
-            from plexapi.server import PlexServer  # noqa: PLC0415
+            from plexapi.server import PlexServer
         except ImportError:
             self.logger.error("plexapi not installed. pip install plexapi")
             return False
@@ -959,11 +936,7 @@ class PlexConnector(BaseConnector):
 
         def _control():
             clients = self._server.clients()
-            targets = (
-                clients
-                if target == "all"
-                else [c for c in clients if c.title == target]
-            )
+            targets = clients if target == "all" else [c for c in clients if c.title == target]
             if not targets:
                 return False
             for client in targets:
@@ -1036,7 +1009,7 @@ class CalibreConnector(BaseConnector):
         self._library = config.get("library_path", "")
 
     def _cmd(self, *args: str) -> List[str]:
-        cmd = [self._calibredb] + list(args)
+        cmd = [self._calibredb, *list(args)]
         if self._library:
             cmd += ["--library-path", self._library]
         return cmd
@@ -1163,7 +1136,7 @@ class DiscordConnector(BaseConnector):
 
     async def connect(self) -> bool:
         try:
-            import discord  # noqa: PLC0415
+            import discord
         except ImportError:
             self.logger.error("discord.py not installed. pip install discord.py")
             return False
@@ -1208,15 +1181,13 @@ class DiscordConnector(BaseConnector):
     async def send_message(self, target: str, content: str, **kwargs) -> bool:
         if not self._client or not self.active:
             return False
-        channel_id = (
-            int(target) if target != "default" else self.config.get("channel_id")
-        )
+        channel_id = int(target) if target != "default" else self.config.get("channel_id")
         if not channel_id:
             return False
         try:
-            channel = self._client.get_channel(
+            channel = self._client.get_channel(channel_id) or await self._client.fetch_channel(
                 channel_id
-            ) or await self._client.fetch_channel(channel_id)
+            )
             await channel.send(content)
             return True
         except Exception as e:
@@ -1230,9 +1201,9 @@ class DiscordConnector(BaseConnector):
         if not channel_id:
             return []
         try:
-            channel = self._client.get_channel(
+            channel = self._client.get_channel(int(channel_id)) or await self._client.fetch_channel(
                 int(channel_id)
-            ) or await self._client.fetch_channel(int(channel_id))
+            )
             return [
                 {
                     "id": str(m.id),
@@ -1267,7 +1238,7 @@ class SlackConnector(BaseConnector):
 
     async def connect(self) -> bool:
         try:
-            from slack_sdk.web.async_client import AsyncWebClient  # noqa: PLC0415
+            from slack_sdk.web.async_client import AsyncWebClient
         except ImportError:
             self.logger.error("slack_sdk not installed. pip install slack_sdk")
             return False
@@ -1315,9 +1286,7 @@ class SlackConnector(BaseConnector):
         if not channel_id:
             return []
         try:
-            resp = await self._client.conversations_history(
-                channel=channel_id, limit=limit
-            )
+            resp = await self._client.conversations_history(channel=channel_id, limit=limit)
             if not resp.get("ok"):
                 return []
             return [
@@ -1349,7 +1318,7 @@ class ResoniteConnector(BaseConnector):
 
     def __init__(self, name: str, config: Dict[str, Any]):
         super().__init__(name, config)
-        from robofang.core.resonite_link import ResoniteLinkClient  # noqa: PLC0415
+        from robofang.core.resonite_link import ResoniteLinkClient
 
         self.client = ResoniteLinkClient(
             host=config.get("host", "localhost"), port=config.get("port", 4242)
@@ -1429,11 +1398,7 @@ class IoTConnector(BaseConnector):
         return False
 
     async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
-        return [
-            {
-                "status": "deprecated — use TapoConnector, HueConnector, or ShellyConnector"
-            }
-        ]
+        return [{"status": "deprecated — use TapoConnector, HueConnector, or ShellyConnector"}]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1483,11 +1448,7 @@ class MCPBridgeConnector(BaseConnector):
     def __init__(self, connector_id: str, config: Dict[str, Any]):
         super().__init__(connector_id, config)
         # SOTA: Prioritize 'mcp_backend' from federation_map over generic 'url'
-        backend_url = (
-            config.get("mcp_backend")
-            or config.get("url")
-            or "http://127.0.0.1:8000/mcp"
-        )
+        backend_url = config.get("mcp_backend") or config.get("url") or "http://127.0.0.1:8000/mcp"
 
         # Normalize URL: Ensure it ends with /mcp if it's a bridge to one of our FastMCP servers
         if not backend_url.endswith("/mcp") and ":10" in backend_url:
@@ -1504,16 +1465,14 @@ class MCPBridgeConnector(BaseConnector):
         self._client: Optional[Any] = None  # httpx.AsyncClient
 
     async def connect(self) -> bool:
-        import httpx  # noqa: PLC0415
+        import httpx
 
         self._client = httpx.AsyncClient(timeout=self._timeout)
 
         # Try to reach the server
         if await self._ping():
             self.active = True
-            self.logger.info(
-                f"MCPBridgeConnector '{self._name}' reachable at {self._url}"
-            )
+            self.logger.info(f"MCPBridgeConnector '{self._name}' reachable at {self._url}")
             return True
 
         # Not up yet — optionally launch sidecar
@@ -1524,18 +1483,14 @@ class MCPBridgeConnector(BaseConnector):
             await asyncio.sleep(2)
             if await self._ping():
                 self.active = True
-                self.logger.info(
-                    f"MCPBridgeConnector '{self._name}' sidecar up at {self._url}"
-                )
+                self.logger.info(f"MCPBridgeConnector '{self._name}' sidecar up at {self._url}")
                 return True
             self.logger.error(
                 f"MCPBridgeConnector '{self._name}' sidecar didn't respond after start"
             )
             return False
 
-        self.logger.warning(
-            f"MCPBridgeConnector '{self._name}' not reachable at {self._url}"
-        )
+        self.logger.warning(f"MCPBridgeConnector '{self._name}' not reachable at {self._url}")
         return False
 
     async def disconnect(self) -> bool:
@@ -1560,18 +1515,14 @@ class MCPBridgeConnector(BaseConnector):
             content: JSON string of arguments OR plain string passed as "query"
             **kwargs: Additional arguments merged into the tool's arguments dict
         """
-        import json as _json  # noqa: PLC0415
+        import json as _json
 
         if not self.active or not self._client:
             return False
 
         # Build arguments
         try:
-            args = (
-                _json.loads(content)
-                if content.strip().startswith("{")
-                else {"query": content}
-            )
+            args = _json.loads(content) if content.strip().startswith("{") else {"query": content}
         except Exception:
             args = {"query": content}
         args.update(kwargs)
@@ -1591,24 +1542,20 @@ class MCPBridgeConnector(BaseConnector):
             resp.raise_for_status()
             result = resp.json()
             if "error" in result:
-                self.logger.error(
-                    f"MCP tool error from '{self._name}': {result['error']}"
-                )
+                self.logger.error(f"MCP tool error from '{self._name}': {result['error']}")
                 return False
             return True
         except Exception as exc:
-            self.logger.error(
-                f"MCPBridgeConnector '{self._name}' send_message failed: {exc}"
-            )
+            self.logger.error(f"MCPBridgeConnector '{self._name}' send_message failed: {exc}")
             return False
 
-    async def call_tool(self, tool: str, arguments: Dict[str, Any] = None) -> Any:
+    async def call_tool(self, tool: str, arguments: Dict[str, Any] | None = None) -> Any:
         """Call a tool and return the result payload (not just bool).
 
         This is the preferred method for rich orchestration — send_message() is
         the BaseConnector compatibility shim.
         """
-        import json as _json  # noqa: PLC0415
+        import json as _json
 
         if not self.active or not self._client:
             return None
@@ -1640,9 +1587,7 @@ class MCPBridgeConnector(BaseConnector):
             except Exception:
                 return raw
         except Exception as exc:
-            self.logger.error(
-                f"MCPBridgeConnector '{self._name}' call_tool failed: {exc}"
-            )
+            self.logger.error(f"MCPBridgeConnector '{self._name}' call_tool failed: {exc}")
             return None
 
     async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
@@ -1664,9 +1609,7 @@ class MCPBridgeConnector(BaseConnector):
                 for t in tools[:limit]
             ]
         except Exception as exc:
-            self.logger.error(
-                f"MCPBridgeConnector '{self._name}' tools/list failed: {exc}"
-            )
+            self.logger.error(f"MCPBridgeConnector '{self._name}' tools/list failed: {exc}")
             return []
 
     # ── helpers ───────────────────────────────────────────────────────────────
@@ -1724,7 +1667,7 @@ class MCPBridgeConnector(BaseConnector):
 
     async def _start_sidecar(self):
         """Launch the MCP server as a background subprocess."""
-        import os as _os  # noqa: PLC0415
+        import os as _os
 
         env = _os.environ.copy()
         env.update(self._env)

@@ -149,11 +149,7 @@ def parse_arxiv_paper(file_path: str, extra_tags: Optional[List[str]] = None) ->
         if line.lower().strip() in ("abstract", "abstract."):
             abstract_lines = []
             for j in range(i + 1, min(i + 20, len(lines))):
-                if (
-                    lines[j]
-                    .lower()
-                    .startswith(("1 ", "1.", "introduction", "keywords"))
-                ):
+                if lines[j].lower().startswith(("1 ", "1.", "introduction", "keywords")):
                     break
                 abstract_lines.append(lines[j])
             abstract = " ".join(abstract_lines)
@@ -194,9 +190,7 @@ def parse_arxiv_paper(file_path: str, extra_tags: Optional[List[str]] = None) ->
             "source": f"file:{path.name}",
             "arxiv_id": arxiv_id,
             "word_count": word_count,
-            "fidelity": "PyMuPDF full-text"
-            if word_count > 100
-            else "Extraction fallback",
+            "fidelity": "PyMuPDF full-text" if word_count > 100 else "Extraction fallback",
         },
     }
 
@@ -206,9 +200,7 @@ def parse_arxiv_paper(file_path: str, extra_tags: Optional[List[str]] = None) ->
 # ---------------------------------------------------------------------------
 
 
-def push_to_adn(
-    data: Dict, folder: str = "research/arxiv", dry_run: bool = False
-) -> None:
+def push_to_adn(data: Dict, folder: str = "research/arxiv", dry_run: bool = False) -> None:
     """
     Push structured paper data to Advanced Memory (ADN) as a note.
 
@@ -273,9 +265,7 @@ def push_to_adn(
     # Final fallback: print payload for manual copy
     print("\n[!] ADN push failed — note payload for manual ingestion:")
     print(json.dumps(payload, indent=2, ensure_ascii=False))
-    print(
-        "\nInstall memops in your environment or ensure the CLI is accessible via `uv run`."
-    )
+    print("\nInstall memops in your environment or ensure the CLI is accessible via `uv run`.")
 
 
 # ---------------------------------------------------------------------------

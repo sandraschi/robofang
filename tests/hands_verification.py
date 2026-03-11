@@ -1,5 +1,6 @@
 import asyncio
 import logging
+
 from robofang.core.orchestrator import OrchestrationClient
 
 logging.basicConfig(level=logging.INFO)
@@ -16,9 +17,7 @@ async def verify_hands():
     for h in hands_status:
         cat = h["category"]
         categories[cat] = categories.get(cat, 0) + 1
-        print(
-            f"  [{h['category'].upper()}] {h['name']} ({h['id']}) - Icon: {h['icon']}"
-        )
+        print(f"  [{h['category'].upper()}] {h['name']} ({h['id']}) - Icon: {h['icon']}")
 
     print("\nSummary by Category:")
     for cat, count in categories.items():

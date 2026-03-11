@@ -1,6 +1,7 @@
 import os
+from typing import Any, Dict, List, Optional
+
 import tomli
-from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 
@@ -91,9 +92,7 @@ def load_hand_definition(path: str) -> HandDefinition:
     return HandDefinition(**data)
 
 
-def resolve_hand_settings(
-    settings: List[HandSetting], config: Dict[str, Any]
-) -> Dict[str, Any]:
+def resolve_hand_settings(settings: List[HandSetting], config: Dict[str, Any]) -> Dict[str, Any]:
     """
     Resolve user-provided settings against the hand definition.
     Returns prompt_block and env_vars.

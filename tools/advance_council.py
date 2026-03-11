@@ -13,9 +13,7 @@ def main():
     task_name = "Resonite Spatial VLM"
     task_desc = "Architect a spatially-aware VLM system for Resonite that can manipulate ProtoFlux and 3D primitives via WebMCP or OSC."
 
-    session_file = (
-        Path(root) / "exchange" / "debates" / "resonite_spatial_vlm_session.json"
-    )
+    session_file = Path(root) / "exchange" / "debates" / "resonite_spatial_vlm_session.json"
 
     if not session_file.exists():
         session_file = orchestrator.start_debate(task_name, task_desc)
