@@ -1,4 +1,4 @@
-# Robofang: The Sovereign Substrate 🍌
+<h1 align="center">robofang</h1>
 
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Heritage-blue?style=for-the-badge&logo=github" alt="OpenClaw Heritage">
@@ -20,7 +20,7 @@
 
 > [!TIP]
 > ### 🍌 Agentic Banana: Low-Hanging Agency
-> Getting started with Robofang is a "low-hanging fruit." Clone the substrate, pick your hands, and enable agency in under 5 minutes. No monolithic setup, just quick potassium-rich progress.
+> Getting started with Robofang is a "low-hanging fruit." Clone the project, pick your hands, and enable agency in under 5 minutes. No monolithic setup, just quick potassium-rich progress.
 
 ## The Vision: Beyond the Chatbox
 
@@ -30,7 +30,7 @@
 
 For too long, our interaction with AI has been confined to a text-based "chatbox." We ask questions, and we get answers. But true utility—true intelligence—requires the ability to interact with the world. Whether that world is digital, virtual, or physical, an agent without the means to effect change is merely a spectator. 
 
-Robofang provides the "substrate" where agency is materialized. It represents the transition from AI as a service to AI as an actor. We don't just want to weed your inbox; we want to give our agents the dexterity to navigate your digital life, the creativity to build in virtual spaces, and the physicality to interact with your physical home.
+Robofang provides the foundation where agency is materialized. It represents the transition from AI as a service to AI as an actor. We don't just want to weed your inbox; we want to give our agents the dexterity to navigate your digital life, the creativity to build in virtual spaces, and the physicality to interact with your physical home.
 
 ## The Three Levels of Agency
 
@@ -61,16 +61,16 @@ To understand how to deploy and use Robofang, please follow our hierarchical doc
 -   [**MCP Fleet Catalog**](docs/MCP_FLEET.md): A comprehensive list of the digital hands currently available and the ones we have in the pipeline.
 -   [**Robotics Profile**](docs/ROBOTICS.md): Our strategy for physical agency, detailing our hardware choices from the entry-level Yahboom to our humanoid champion, the Noetix Bumi.
 
-## Join the Sovereign Grid 🍌
+## Join the Robofang Grid 🍌
 
-Robofang is a community-driven substrate. Join our Discord to share your "Hands," discuss cognitive architectures, or just show off your latest level-3 agency milestones.
+Robofang is a community-driven project. Join our Discord to share your "Hands," discuss cognitive architectures, or just show off your latest level-3 agency milestones.
 
 <p align="center">
   <a href="https://discord.gg/robofang">
-    <img src="https://img.shields.io/badge/Discord-Join%20the%20Substrate-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Robofang Discord">
+    <img src="https://img.shields.io/badge/Discord-Join%20the%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Robofang Discord">
   </a>
 </p>
 
 ---
 
-*Handcrafted in Vienna. Built for the era of sovereign, high-agency intelligence.*
+*Handcrafted in Vienna. Built for the era of high-agency intelligence.*
