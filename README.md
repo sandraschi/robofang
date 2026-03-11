@@ -1,7 +1,7 @@
 # Robofang: The Sovereign Substrate 🍌
 
 <p align="center">
-  <img src="assets/philosophy.png" alt="Agents Need Hands Core Philosophy" width="800">
+  <img src="assets/whimsical-clobber.png" alt="Robofang Core Philosophy: Agents Need Hands" width="800">
 </p>
 
 <p align="center">
