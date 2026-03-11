@@ -278,7 +278,7 @@ const Dashboard: React.FC = () => {
                                     <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 rounded-full blur-2xl opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
                                     <motion.img
                                         src="/assets/hero.png"
-                                        alt="RoboFang Nanobanana"
+                                        alt="RoboFang Neural Core"
                                         className="w-48 h-48 relative z-10 drop-shadow-[0_0_30px_rgba(99,102,241,0.3)] object-contain"
                                         animate={{ y: [0, -10, 0] }}
                                         transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
