@@ -4,7 +4,8 @@ Provides a sovereign gating layer for agentic actions and resource access.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 from robofang.core.storage import RoboFangStorage
 
 logger = logging.getLogger(__name__)
@@ -26,9 +27,7 @@ class SecurityManager:
         self.storage = storage or RoboFangStorage()
 
         # Load policies from storage or use defaults
-        self.registry: Dict[str, Dict[str, Any]] = (
-            self.storage.load_all_security_policies()
-        )
+        self.registry: Dict[str, Dict[str, Any]] = self.storage.load_all_security_policies()
 
         if not self.registry:
             self.logger.info("Initializing default security policies...")
@@ -50,9 +49,7 @@ class SecurityManager:
             }
             # Persist defaults
             for sub, policy in self.registry.items():
-                self.storage.save_security_policy(
-                    sub, policy["role"], list(policy["permissions"])
-                )
+                self.storage.save_security_policy(sub, policy["role"], list(policy["permissions"]))
 
     async def is_authorized(
         self, subject: str, action: str, resource: Optional[str] = None
@@ -70,9 +67,7 @@ class SecurityManager:
         """
         policy = self.registry.get(subject)
         if not policy:
-            self.logger.warning(
-                f"Access Denied: Subject '{subject}' not found in registry."
-            )
+            self.logger.warning(f"Access Denied: Subject '{subject}' not found in registry.")
             return False
 
         permissions = policy.get("permissions", set())
@@ -83,9 +78,7 @@ class SecurityManager:
 
         # Check for specific action permission
         if action in permissions:
-            self.logger.info(
-                f"Access Granted: {subject} -> {action} ({resource or ''})"
-            )
+            self.logger.info(f"Access Granted: {subject} -> {action} ({resource or ''})")
             return True
 
         self.logger.warning(f"Access Denied: {subject} lacks permission '{action}'")

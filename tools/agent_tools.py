@@ -1,7 +1,9 @@
 """RoboFang Agent Tools: Interaction with agents and Moltbook registration."""
 
-from typing import Dict, Any, Literal, Optional
+from typing import Any, Dict, Literal, Optional
+
 from fastmcp import Context, FastMCP
+
 from robofang.core.orchestrator import OrchestrationClient
 
 mcp = FastMCP("RoboFang-agent")

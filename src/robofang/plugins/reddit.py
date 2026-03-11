@@ -4,6 +4,7 @@ Reddit Connector for RoboFang.
 """
 
 import logging
+
 from robofang.core.plugins import BaseConnector
 
 logger = logging.getLogger(__name__)

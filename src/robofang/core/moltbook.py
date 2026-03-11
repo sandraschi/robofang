@@ -2,6 +2,7 @@
 
 import logging
 from typing import Any, Dict, Optional
+
 import httpx
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ def _dialogic_success(message: str, data: Any = None) -> Dict[str, Any]:
     return result
 
 
-def _dialogic_error(message: str, error: str = None) -> Dict[str, Any]:
+def _dialogic_error(message: str, error: str | None = None) -> Dict[str, Any]:
     """Return dialogic error response."""
     result: Dict[str, Any] = {"success": False, "message": message}
     if error:
@@ -28,9 +29,7 @@ def _dialogic_error(message: str, error: str = None) -> Dict[str, Any]:
 class MoltbookClient:
     """Client for Moltbook REST API."""
 
-    def __init__(
-        self, api_key: Optional[str] = None, base_url: str = MOLTBOOK_BASE
-    ) -> None:
+    def __init__(self, api_key: Optional[str] = None, base_url: str = MOLTBOOK_BASE) -> None:
         self.api_key = api_key
         self.base_url = base_url
         self._client: Optional[httpx.AsyncClient] = None
@@ -50,9 +49,7 @@ class MoltbookClient:
             )
         return self._client
 
-    async def get(
-        self, path: str, params: Optional[Dict[str, str]] = None
-    ) -> Dict[str, Any]:
+    async def get(self, path: str, params: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
         """GET request to Moltbook API."""
         try:
             client = await self._get_client()
@@ -61,16 +58,12 @@ class MoltbookClient:
             return _dialogic_success("OK", resp.json())
         except httpx.HTTPStatusError as e:
             logger.exception("Moltbook HTTP error: %s", e)
-            return _dialogic_error(
-                f"Moltbook returned {e.response.status_code}", error=str(e)
-            )
+            return _dialogic_error(f"Moltbook returned {e.response.status_code}", error=str(e))
         except httpx.RequestError as e:
             logger.exception("Moltbook request error: %s", e)
             return _dialogic_error("Moltbook request failed", error=str(e))
 
-    async def post(
-        self, path: str, json_data: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    async def post(self, path: str, json_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """POST request to Moltbook API."""
         try:
             client = await self._get_client()
@@ -84,9 +77,7 @@ class MoltbookClient:
                 e,
                 exc_info=True,
             )
-            return _dialogic_error(
-                f"Moltbook returned {e.response.status_code}", error=str(e)
-            )
+            return _dialogic_error(f"Moltbook returned {e.response.status_code}", error=str(e))
         except httpx.RequestError as e:
             logger.error(
                 "Moltbook request error: %s",

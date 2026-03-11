@@ -7,7 +7,8 @@ fail. Enable "slack" in federation_map and set token/channel_id for real Slack.
 """
 
 import logging
-from typing import Dict, Any, List
+from typing import Any, Dict, List
+
 from robofang.core.connectors import BaseConnector
 
 logger = logging.getLogger(__name__)

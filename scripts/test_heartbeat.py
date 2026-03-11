@@ -5,8 +5,9 @@ from pathlib import Path
 # Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from robofang.mcp_server import get_substrate_heartbeat
 from mcp.server.fastmcp import Context
+
+from robofang.mcp_server import get_substrate_heartbeat
 
 
 async def test_heartbeat():

@@ -1,10 +1,11 @@
-import httpx
-import re
 import asyncio
-import os
-import logging
 import json
-from typing import Dict, Any, List, Optional, Callable
+import logging
+import os
+import re
+from typing import Any, Callable, Dict, List, Optional
+
+import httpx
 
 logger = logging.getLogger("robofang.reasoning")
 
@@ -68,9 +69,7 @@ class ReasoningEngine:
                 # In SOTA, we prefer Substrate-to-Substrate tool calls
                 logger.info(f"Delegating reasoning task to remote node: {remote_node}")
                 # Placeholder for direct Ollama proxy if ports are open, otherwise Substrate proxy
-                proxy_url = (
-                    f"{target_url}/api/generate"  # Defaulting to direct Ollama for now
-                )
+                proxy_url = f"{target_url}/api/generate"  # Defaulting to direct Ollama for now
                 payload = {"model": model, "prompt": prompt, "stream": False}
                 if system_prompt:
                     payload["system"] = system_prompt
@@ -117,9 +116,7 @@ class ReasoningEngine:
         """
         # Use environment variable for council members if not provided
         if council_members is None:
-            COUNCIL_MEMBERS_RAW = os.getenv(
-                "COUNCIL_MEMBERS", "llama3.2:3b,deepseek-r1:8b"
-            )
+            COUNCIL_MEMBERS_RAW = os.getenv("COUNCIL_MEMBERS", "llama3.2:3b,deepseek-r1:8b")
             council_members = [m.strip() for m in COUNCIL_MEMBERS_RAW.split(",")]
 
         logger.info(f"Council of Dozens invoked with {len(council_members)} members.")
@@ -197,9 +194,7 @@ class ReasoningEngine:
             logger.info(f"Agentic Loop: Turn {turn + 1}/{max_turns}")
 
             # 1. Reason
-            resp = await self.ask(
-                current_prompt, system_prompt=history[0]["content"], model=model
-            )
+            resp = await self.ask(current_prompt, system_prompt=history[0]["content"], model=model)
             if not resp["success"]:
                 return resp
 
@@ -233,9 +228,7 @@ class ReasoningEngine:
             tool_name = tool_match.group(1)
             tool_input = tool_match.group(2).strip()
 
-            logger.info(
-                f"Agentic Action: Executing tool '{tool_name}' with input: {tool_input}"
-            )
+            logger.info(f"Agentic Action: Executing tool '{tool_name}' with input: {tool_input}")
 
             # 3. Act
             # Use the tool_executor callback (provided by Orchestrator)
@@ -364,9 +357,7 @@ class ReasoningEngine:
             "model": model,
         }
 
-    async def refine_prompt(
-        self, prompt: str, model: str = "llama3.2:3b"
-    ) -> Dict[str, Any]:
+    async def refine_prompt(self, prompt: str, model: str = "llama3.2:3b") -> Dict[str, Any]:
         """
         Refines a raw user prompt into an industrial-grade engineering prompt.
         """
@@ -384,6 +375,4 @@ class ReasoningEngine:
 
         logger.info(f"Refining prompt: {prompt[:50]}...")
         # Use simple ask with specific system prompt
-        return await self.ask(
-            prompt, system_prompt=refinement_system_prompt, model=model
-        )
+        return await self.ask(prompt, system_prompt=refinement_system_prompt, model=model)

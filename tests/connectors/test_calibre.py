@@ -29,11 +29,7 @@ async def test_connect():
     ok = await conn.connect()
     print(f"connect() -> {ok}, active={conn.active}")
     await conn.disconnect()
-    print(
-        "PASS"
-        if ok
-        else "WARN: calibredb not found — is Calibre installed and on PATH?"
-    )
+    print("PASS" if ok else "WARN: calibredb not found — is Calibre installed and on PATH?")
 
 
 async def test_get_messages():
@@ -67,8 +63,8 @@ async def test_search():
     import asyncio as _a
 
     loop = _a.get_event_loop()
-    import subprocess
     import json as _j
+    import subprocess
 
     def _search():
         r = subprocess.run(

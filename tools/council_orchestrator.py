@@ -123,9 +123,7 @@ class CouncilOrchestrator:
         self.debate_dir.mkdir(parents=True, exist_ok=True)
 
         federation_path = self.root / "configs" / "federation_map.json"
-        self.federation_map = (
-            self._load_json(federation_path) if federation_path.exists() else {}
-        )
+        self.federation_map = self._load_json(federation_path) if federation_path.exists() else {}
 
         self.system_prompt = _resolve_system_prompt()
 
@@ -158,8 +156,7 @@ class CouncilOrchestrator:
             "task": task_description,
             "rounds": [],
             "status": "IN_PROGRESS",
-            "current_adjudicator": ADJUDICATORS[0]["name"]
-            + f" ({ADJUDICATORS[0]['model']})",
+            "current_adjudicator": ADJUDICATORS[0]["name"] + f" ({ADJUDICATORS[0]['model']})",
             "current_focus": ADJUDICATORS[0]["focus"],
         }
         with open(session_file, "w", encoding="utf-8") as f:
@@ -206,9 +203,7 @@ class CouncilOrchestrator:
         with open(session_file, "w", encoding="utf-8") as f:
             json.dump(session, f, indent=2)
 
-        logger.info(
-            f"Round {new_round['round']} recorded for {new_round['adjudicator']}"
-        )
+        logger.info(f"Round {new_round['round']} recorded for {new_round['adjudicator']}")
 
     def get_round_prompt(self, session_file: Path) -> str:
         """Build the full prompt for the current adjudicator including debate history."""
@@ -228,9 +223,7 @@ class CouncilOrchestrator:
         if session["rounds"]:
             lines.append("\n### PREVIOUS ROUNDS HISTORY:")
             for r in session["rounds"]:
-                lines.append(
-                    f"\n#### Round {r['round']} ({r['adjudicator']}):\n{r['output']}"
-                )
+                lines.append(f"\n#### Round {r['round']} ({r['adjudicator']}):\n{r['output']}")
 
         return "\n".join(lines)
 

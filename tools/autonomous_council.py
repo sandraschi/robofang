@@ -26,8 +26,8 @@ Install prerequisites:
   uv pip install python-osc
 """
 
-import asyncio
 import argparse
+import asyncio
 import json
 import logging
 import os
@@ -38,16 +38,17 @@ from typing import Optional
 # Allow running from tools/ directly
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from council_orchestrator import CouncilOrchestrator, ADJUDICATORS
-from equilibrium_synthesizer import synthesize
-from robofang.core.reasoning import ReasoningEngine
-from osc_council_bridge import query_osc_agent, parse_osc_url
 from cloud_council_bridge import (
     is_cloud_url,
     parse_cloud_url,
     query_cloud_adviser,
     tiebreaker_call,
 )
+from council_orchestrator import ADJUDICATORS, CouncilOrchestrator
+from equilibrium_synthesizer import synthesize
+from osc_council_bridge import parse_osc_url, query_osc_agent
+
+from robofang.core.reasoning import ReasoningEngine
 
 logger = logging.getLogger("RoboFang.council")
 
@@ -114,7 +115,7 @@ class AutonomousCouncil:
 
     Flow:
       1. Foreman (Instigator) opens with mission constraints.
-      2. Rounds 2–11: each adjudicator reads the full debate history and adds
+      2. Rounds 2-11: each adjudicator reads the full debate history and adds
          their domain-specific analysis via ReasoningEngine.ask().
       3. Adjudicator-in-Chief synthesises the debate into a consensus plan
          via council_synthesis() which runs a second-pass aggregation.
@@ -147,7 +148,7 @@ class AutonomousCouncil:
         session_file = self.orchestrator.start_debate(task_name, task_desc)
         round_outputs: list[str] = []
 
-        # Rounds 1–11: individual adjudicators
+        # Rounds 1-11: individual adjudicators
         for i, adj in enumerate(ADJUDICATORS[:-1]):  # all except Adjudicator-in-Chief
             adjudicator_label = self.orchestrator.step_session(session_file)
             logger.info(f"\n--- ROUND {i + 1}: {adjudicator_label} ---")
@@ -169,11 +170,10 @@ class AutonomousCouncil:
                     try:
                         cfg = parse_osc_url(model)
                         logger.info(
-                            f"  → OSC agent: {cfg['scheme']}://{cfg['host']}:{cfg['port']}/{cfg['label']}"
+                            f"  -> OSC agent: {cfg['scheme']}://{cfg['host']}:{cfg['port']}/{cfg['label']}"
                         )
                         osc_prompt = (
-                            f"[Council role: {adj['name']} | Lens: {adj['focus']}]\n\n"
-                            + prompt
+                            f"[Council role: {adj['name']} | Lens: {adj['focus']}]\n\n" + prompt
                         )
                         result = await query_osc_agent(
                             host=cfg["host"],
@@ -192,26 +192,17 @@ class AutonomousCouncil:
                     # ── Cloud SaaS adviser path ───────────────────────────────────────
                     try:
                         cfg = parse_cloud_url(model)
-                        logger.info(
-                            f"  → Cloud adviser: {cfg['provider']}/{cfg['model']}"
-                        )
+                        logger.info(f"  -> Cloud adviser: {cfg['provider']}/{cfg['model']}")
                         cloud_result = await query_cloud_adviser(
                             cloud_url=model,
                             prompt=(
-                                f"[Council role: {adj['name']} | Lens: {adj['focus']}]\n\n"
-                                + prompt
+                                f"[Council role: {adj['name']} | Lens: {adj['focus']}]\n\n" + prompt
                             ),
                             system_prompt=_system_prompt_for(adj),
                         )
-                        output = (
-                            cloud_result["response"]
-                            if cloud_result["success"]
-                            else None
-                        )
+                        output = cloud_result["response"] if cloud_result["success"] else None
                         if not cloud_result["success"]:
-                            logger.warning(
-                                f"  Cloud adviser unavailable: {cloud_result['error']}"
-                            )
+                            logger.warning(f"  Cloud adviser unavailable: {cloud_result['error']}")
                         else:
                             cost = cloud_result.get("estimated_cost_usd", 0.0)
                             logger.info(f"  Cloud cost: ${cost:.4f}")
@@ -219,8 +210,8 @@ class AutonomousCouncil:
                         logger.error(f"  Cloud routing error for {adj['name']}: {e}")
 
                 else:
-                    # ── Ollama path ──────────────────────────────────────────────────
-                    logger.info(f"  → Querying Ollama model: {model}")
+                    # -- Ollama path --------------------------------------------------
+                    logger.info(f"  -> Querying Ollama model: {model}")
                     for attempt in range(max_retries):
                         result = await self.engine.ask(
                             prompt, system_prompt=system_prompt, model=model
@@ -242,9 +233,7 @@ class AutonomousCouncil:
                     logger.error(f"  Adjudicator {adj['name']} could not respond.")
 
             logger.info(
-                f"  Output: {output[:120]}…"
-                if len(output) > 120
-                else f"  Output: {output}"
+                f"  Output: {output[:120]}…" if len(output) > 120 else f"  Output: {output}"
             )
             self.orchestrator.add_round_output(session_file, output)
             round_outputs.append(output)
@@ -267,14 +256,13 @@ class AutonomousCouncil:
                 f"TASK: {task_desc}\n\n"
                 "COUNCIL DEBATE (all 11 rounds):\n\n"
                 + "\n\n---\n\n".join(
-                    f"[{ADJUDICATORS[j]['name']}]: {out}"
-                    for j, out in enumerate(round_outputs)
+                    f"[{ADJUDICATORS[j]['name']}]: {out}" for j, out in enumerate(round_outputs)
                 )
                 + "\n\nSynthesise the above into a single, actionable Executive Plan. "
                 "Identify the top 3 risks, top 3 actions, and a one-sentence verdict."
             )
             model = _model_for(chief["name"])
-            logger.info(f"  → Final synthesis via Ollama model: {model}")
+            logger.info(f"  -> Final synthesis via Ollama model: {model}")
             result = await self.engine.ask(
                 final_prompt,
                 system_prompt=_system_prompt_for(chief),
@@ -296,8 +284,7 @@ class AutonomousCouncil:
                 tiebreaker_verdict = tb["response"]
                 cost = tb.get("cost", 0.0)
                 logger.info(
-                    f"  [TIEBREAKER] {tb['adviser']} cast a deciding vote. "
-                    f"Cost: ${cost:.4f}"
+                    f"  [TIEBREAKER] {tb['adviser']} cast a deciding vote. Cost: ${cost:.4f}"
                 )
                 logger.info(f"  [TIEBREAKER] Verdict: {tiebreaker_verdict[:120]}")
                 synthesis = (
@@ -338,9 +325,7 @@ def main():
     parser = argparse.ArgumentParser(
         description="RoboFang Autonomous Council of Dozens — Live LLM Debate"
     )
-    parser.add_argument(
-        "--task", type=str, required=True, help="Task name (short label)"
-    )
+    parser.add_argument("--task", type=str, required=True, help="Task name (short label)")
     parser.add_argument("--desc", type=str, required=True, help="Full task description")
     parser.add_argument(
         "--mock",
@@ -358,9 +343,7 @@ def main():
     async def _run():
         council = AutonomousCouncil(args.root)
         try:
-            result = await council.run_session(
-                args.task, args.desc, mock_mode=args.mock
-            )
+            result = await council.run_session(args.task, args.desc, mock_mode=args.mock)
             print("\n" + "=" * 60)
             print("COUNCIL RESULT:")
             print(f"  Session:   {result['session_file']}")

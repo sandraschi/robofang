@@ -1,29 +1,30 @@
+import asyncio
 import collections
 import logging
-import uvicorn
-import httpx
 import os
 import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Any, ClassVar, Dict, List, Optional
+
+import httpx
 import psutil
-import asyncio
+import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-
 from fastmcp import FastMCP
+from pydantic import BaseModel
 
+from robofang.core.hand_manifest import HandAgentConfig, HandDefinition
 from robofang.core.orchestrator import OrchestrationClient
+from robofang.diagnostics import router as diagnostics_router
+from robofang.mcp_server import get_help_content, register_mcp
+from robofang.messaging import reply_to as messaging_reply_to
+from robofang.messaging import set_comms_storage
 from robofang.plugins.collector_hand import CollectorHand
 from robofang.plugins.robotics_hand import RoboticsHand
-from robofang.mcp_server import get_help_content, register_mcp
 from robofang.webhooks import router as webhooks_router
-from robofang.diagnostics import router as diagnostics_router
-from robofang.messaging import reply_to as messaging_reply_to, set_comms_storage
-from robofang.core.hand_manifest import HandDefinition, HandAgentConfig
 
 # Bridge start time (epoch seconds)
 _BRIDGE_START_TIME = time.time()
@@ -41,7 +42,7 @@ _log_seq = 0  # monotonic id counter
 class _RingHandler(logging.Handler):
     """Logging handler that pushes structured entries into _log_buffer."""
 
-    LEVEL_MAP = {
+    LEVEL_MAP: ClassVar[Dict[int, str]] = {
         logging.DEBUG: "debug",
         logging.INFO: "info",
         logging.WARNING: "warn",
@@ -56,13 +57,9 @@ class _RingHandler(logging.Handler):
             _log_buffer.append(
                 {
                     "id": f"{int(record.created * 1000)}-{_log_seq}",
-                    "timestamp": time.strftime(
-                        "%Y-%m-%d %H:%M:%S", time.localtime(record.created)
-                    ),
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(record.created)),
                     "level": self.LEVEL_MAP.get(record.levelno, "info"),
-                    "source": record.name.replace("robofang.", "").replace(
-                        "ROBOFANG_", ""
-                    )
+                    "source": record.name.replace("robofang.", "").replace("ROBOFANG_", "")
                     or "core",
                     "message": self.format(record),
                     "category": _categorise(record.name),
@@ -207,9 +204,7 @@ async def auto_launch_enabled_connectors():
                 try:
                     await launch_connector(name)
                 except Exception as e:
-                    logger.error(
-                        f"Fleet Automation: Auto-launch failed for '{name}': {e}"
-                    )
+                    logger.error(f"Fleet Automation: Auto-launch failed for '{name}': {e}")
             else:
                 logger.warning(
                     f"Fleet Automation: Connector '{name}' is enabled but no REPO_MAP entry found."
@@ -238,6 +233,7 @@ REPO_MAP: Dict[str, str] = {
     "notion": "d:/Dev/repos/notion-mcp",
     # Creative Hub
     "blender": "d:/Dev/repos/blender-mcp",
+    "gimp": "d:/Dev/repos/gimp-mcp",
     "obs": "d:/Dev/repos/obs-mcp",
     "davinci-resolve": "d:/Dev/repos/davinci-resolve-mcp",
     "reaper": "d:/Dev/repos/reaper-mcp",
@@ -269,9 +265,7 @@ async def launch_connector(name: str):
     """Launch an MCP sub-server via its start.ps1 script."""
     repo_path = REPO_MAP.get(name)
     if not repo_path:
-        raise HTTPException(
-            status_code=404, detail=f"No repository mapping for connector: {name}"
-        )
+        raise HTTPException(status_code=404, detail=f"No repository mapping for connector: {name}")
 
     start_ps1 = Path(repo_path) / "start.ps1"
     if not start_ps1.exists():
@@ -285,9 +279,7 @@ async def launch_connector(name: str):
             )
             return {"success": True, "message": f"Launched {name} via {start_bat}"}
 
-        raise HTTPException(
-            status_code=404, detail=f"Launch script not found in {repo_path}"
-        )
+        raise HTTPException(status_code=404, detail=f"Launch script not found in {repo_path}")
 
     try:
         # Launch via PowerShell in a new console to prevent zombie-blocking the bridge
@@ -303,15 +295,37 @@ async def launch_connector(name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/connectors/{connector_id}/tools")
+async def get_connector_tools(connector_id: str):
+    """Proxy to connector MCP backend /tools (or equivalent). Returns tool list or 404."""
+    base = _backend_url_for_connector(connector_id)
+    if not base:
+        raise HTTPException(status_code=404, detail=f"Unknown connector: {connector_id}")
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get(f"{base}/tools")
+            if r.status_code >= 400:
+                raise HTTPException(
+                    status_code=r.status_code, detail="Tools endpoint not available"
+                )
+            return r.json()
+    except httpx.ConnectError:
+        raise HTTPException(status_code=503, detail="Connector backend unreachable")
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Connector backend timeout")
+
+
 # Enable CORS for dashboard on port 10864
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:10864",
+        "http://127.0.0.1:10864",
         "http://localhost:10870",
         "http://127.0.0.1:10870",
         "http://localhost:5173",  # Vite dev server
         "http://127.0.0.1:5173",
+        "https://www.moltbook.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -390,13 +404,9 @@ async def get_comms_settings():
             storage.get_secret("comms_telegram_token")
             and storage.get_secret("comms_telegram_chat_id")
         )
-        or (
-            os.getenv("ROBOFANG_TELEGRAM_TOKEN")
-            and os.getenv("ROBOFANG_TELEGRAM_CHAT_ID")
-        ),
+        or (os.getenv("ROBOFANG_TELEGRAM_TOKEN") and os.getenv("ROBOFANG_TELEGRAM_CHAT_ID")),
         discord_configured=bool(
-            storage.get_secret("comms_discord_webhook")
-            or os.getenv("ROBOFANG_DISCORD_WEBHOOK")
+            storage.get_secret("comms_discord_webhook") or os.getenv("ROBOFANG_DISCORD_WEBHOOK")
         ),
     )
 
@@ -467,9 +477,7 @@ async def launch_app(request: LaunchRequest):
     """Launch another MCP app via its start.ps1 script."""
     path = Path(request.repo_path)
     if not path.exists():
-        raise HTTPException(
-            status_code=404, detail=f"Path {request.repo_path} does not exist"
-        )
+        raise HTTPException(status_code=404, detail=f"Path {request.repo_path} does not exist")
 
     # Security check
     allowed_base = Path("D:/Dev/repos")
@@ -511,8 +519,7 @@ async def launch_app(request: LaunchRequest):
 async def health_check():
     """Basic health probe — also returns connector states."""
     connector_states = {
-        name: getattr(conn, "active", False)
-        for name, conn in orchestrator.connectors.items()
+        name: getattr(conn, "active", False) for name, conn in orchestrator.connectors.items()
     }
     return {
         "status": "healthy",
@@ -573,12 +580,16 @@ async def get_fleet():
             "enabled": True,
         }
 
-    # 2. Federation map: connectors section
+    # 2. Federation map: connectors section — enrich with backend_url, frontend_url
     topology = orchestrator.topology
     conn_cfg: dict = topology.get("connectors", {})
     for name, cfg in conn_cfg.items():
+        backend_url = cfg.get("mcp_backend") or MCP_BACKENDS.get(name) or ""
+        frontend_url = cfg.get("mcp_frontend") or ""
         if name in live:
             live[name]["enabled"] = cfg.get("enabled", False)
+            live[name]["backend_url"] = backend_url
+            live[name]["frontend_url"] = frontend_url
             continue
         live[name] = {
             "id": name,
@@ -588,7 +599,15 @@ async def get_fleet():
             "enabled": cfg.get("enabled", False),
             "source": "config",
             "domain": "connectors",
+            "backend_url": backend_url,
+            "frontend_url": frontend_url,
         }
+    # Backfill backend_url for live connectors not in conn_cfg
+    for name in list(live.keys()):
+        if live[name].get("backend_url") in (None, ""):
+            live[name]["backend_url"] = MCP_BACKENDS.get(name) or ""
+        if live[name].get("frontend_url") is None:
+            live[name]["frontend_url"] = conn_cfg.get(name, {}).get("mcp_frontend") or ""
 
     # 3. Federation map: domains section
     domain_agents: list = []
@@ -716,6 +735,28 @@ async def get_deliberations(limit: int = 50, since_id: Optional[int] = None):
 
 
 # ---------------------------------------------------------------------------
+# Backend URL resolution — topology (federation_map) then MCP_BACKENDS
+# ---------------------------------------------------------------------------
+
+
+def _backend_url_for_connector(connector_id: str) -> str:
+    """Resolve connector backend URL: topology (federation_map) then MCP_BACKENDS."""
+    cfg = orchestrator.topology.get("connectors", {}).get(connector_id) or {}
+    return (cfg.get("mcp_backend") or MCP_BACKENDS.get(connector_id) or "").rstrip("/")
+
+
+def _all_backend_urls() -> Dict[str, str]:
+    """All known connector ids -> backend URL (topology then MCP_BACKENDS)."""
+    conn_cfg = orchestrator.topology.get("connectors", {})
+    out = {}
+    for name in set(conn_cfg) | set(MCP_BACKENDS):
+        url = _backend_url_for_connector(name)
+        if url:
+            out[name] = url
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Home Hub proxy routes  — /home/{connector}/{path}
 # Thin reverse proxy: dashboard -> bridge (one CORS-safe origin) -> MCP backend
 # ---------------------------------------------------------------------------
@@ -723,7 +764,7 @@ async def get_deliberations(limit: int = 50, since_id: Optional[int] = None):
 
 async def _proxy(connector: str, path: str, request: Request) -> Response:
     """Generic reverse proxy to an MCP backend."""
-    base = MCP_BACKENDS.get(connector)
+    base = _backend_url_for_connector(connector)
     if not base:
         raise HTTPException(status_code=404, detail=f"Unknown connector: {connector}")
 
@@ -731,9 +772,7 @@ async def _proxy(connector: str, path: str, request: Request) -> Response:
     method = request.method
     body = await request.body()
     headers = {
-        k: v
-        for k, v in request.headers.items()
-        if k.lower() not in ("host", "content-length")
+        k: v for k, v in request.headers.items() if k.lower() not in ("host", "content-length")
     }
 
     try:
@@ -764,9 +803,7 @@ async def home_connector_root(connector: str, request: Request):
     return await _proxy(connector, "", request)
 
 
-@app.api_route(
-    "/home/{connector}/{path:path}", methods=["GET", "POST", "PUT", "DELETE"]
-)
+@app.api_route("/home/{connector}/{path:path}", methods=["GET", "POST", "PUT", "DELETE"])
 async def home_connector_path(connector: str, path: str, request: Request):
     """Proxy to MCP backend sub-path."""
     return await _proxy(connector, path, request)
@@ -774,8 +811,9 @@ async def home_connector_path(connector: str, path: str, request: Request):
 
 @app.get("/home")
 async def home_status():
-    """Return live reachability for all connectors in MCP_BACKENDS."""
+    """Return live reachability for all connectors (topology + MCP_BACKENDS)."""
     results = {}
+    backends = _all_backend_urls()
 
     async def check_one(name, url):
         try:
@@ -793,8 +831,7 @@ async def home_status():
                 "url": url,
             }
 
-    # Parallelize pings to avoid sequential delay-stacking
-    tasks = [check_one(name, base_url) for name, base_url in MCP_BACKENDS.items()]
+    tasks = [check_one(name, base_url) for name, base_url in backends.items()]
     stats = await asyncio.gather(*tasks)
 
     for name, data in stats:
@@ -844,11 +881,7 @@ async def post_journal(req: JournalPostRequest):
         result = await orchestrator.moltbook.post("/post", {"content": content})
         promoted = False
         if getattr(orchestrator, "journal_bridge", None):
-            tags_list = (
-                [t.strip() for t in req.tags.split(",") if t.strip()]
-                if req.tags
-                else []
-            )
+            tags_list = [t.strip() for t in req.tags.split(",") if t.strip()] if req.tags else []
             entry = {
                 "content": content,
                 "tags": tags_list,
@@ -874,9 +907,7 @@ async def get_journal_recent(limit: int = 10):
     try:
         if not getattr(orchestrator, "journal_bridge", None):
             return {"success": True, "entries": [], "source": "none"}
-        entries = await orchestrator.journal_bridge.get_recent_entries(
-            limit=min(limit, 100)
-        )
+        entries = await orchestrator.journal_bridge.get_recent_entries(limit=min(limit, 100))
         return {"success": True, "entries": entries, "source": "adn"}
     except Exception as e:
         logger.warning("get_journal_recent failed: %s", e)

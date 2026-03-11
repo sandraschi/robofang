@@ -1,8 +1,8 @@
 """JournalBridge: Connects legacy Moltbook concepts to the ADN memory graph (advanced-memory-mcp)."""
 
 import logging
-from typing import Dict, Any, List
 from datetime import datetime
+from typing import Any, Dict, List
 
 logger = logging.getLogger(__name__)
 
@@ -35,9 +35,7 @@ class JournalBridge:
         tags = entry.get("tags", [])
         timestamp = entry.get("timestamp", datetime.now().isoformat())
 
-        observation = f"- [journal] {content} #moltbridge " + " ".join(
-            [f"#{t}" for t in tags]
-        )
+        observation = f"- [journal] {content} #moltbridge " + " ".join([f"#{t}" for t in tags])
         title = f"journal_{timestamp[:19].replace(':', '-')}"
         tags_str = "journal,moltbridge"
         if isinstance(tags, list):
@@ -62,14 +60,8 @@ class JournalBridge:
                     "entity_type": "note",
                 },
             )
-            if (
-                result is not None
-                and isinstance(result, dict)
-                and result.get("success")
-            ):
-                logger.info(
-                    "Promoted journal entry to ADN via adn_content: %s...", content[:50]
-                )
+            if result is not None and isinstance(result, dict) and result.get("success"):
+                logger.info("Promoted journal entry to ADN via adn_content: %s...", content[:50])
                 return True
             if result is not None and isinstance(result, dict) and result.get("error"):
                 logger.warning(
@@ -92,9 +84,7 @@ class JournalBridge:
                 },
             )
             if result is not None:
-                logger.info(
-                    "Promoted journal entry to ADN via write_note: %s...", content[:50]
-                )
+                logger.info("Promoted journal entry to ADN via write_note: %s...", content[:50])
                 return True
         except Exception as e:
             logger.error("Promotion failed: %s", e)
@@ -152,9 +142,7 @@ def _parse_search_result(result: Dict[str, Any], limit: int) -> List[Dict[str, A
         if isinstance(hit, dict):
             out.append(
                 {
-                    "content": hit.get(
-                        "content", hit.get("snippet", hit.get("teaser", "")) or ""
-                    ),
+                    "content": hit.get("content", hit.get("snippet", hit.get("teaser", "")) or ""),
                     "title": hit.get("title", ""),
                     "timestamp": hit.get("updated_at") or hit.get("created_at", ""),
                 }

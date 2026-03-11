@@ -1,23 +1,24 @@
 """RoboFang Orchestrator: Internal gateway for fleet management and tool coordination."""
 
 import asyncio
-import logging
-import json
 import collections
+import json
+import logging
 import time
-from typing import Dict, Any, Optional, List
 from pathlib import Path
-from robofang.core.plugins import PluginManager
-from robofang.core.moltbook import MoltbookClient
-from robofang.core.reasoning import ReasoningEngine
-from robofang.core.skills import SkillManager
-from robofang.core.security import SecurityManager
-from robofang.core.personality import PersonalityEngine
-from robofang.core.storage import RoboFangStorage
-from robofang.core.knowledge import KnowledgeEngine
-from robofang.core.security_secrets import SecretsManager
-from robofang.core.hands import HandsManager
+from typing import Any, ClassVar, Dict, List, Optional, Set
+
 from robofang.bridges.journal_bridge import JournalBridge
+from robofang.core.hands import HandsManager
+from robofang.core.knowledge import KnowledgeEngine
+from robofang.core.moltbook import MoltbookClient
+from robofang.core.personality import PersonalityEngine
+from robofang.core.plugins import PluginManager
+from robofang.core.reasoning import ReasoningEngine
+from robofang.core.security import SecurityManager
+from robofang.core.security_secrets import SecretsManager
+from robofang.core.skills import SkillManager
+from robofang.core.storage import RoboFangStorage
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,7 @@ class OrchestrationClient:
     Handles tool routing, fleet state, and cross-server communication.
     """
 
-    SENSITIVE_TOOLS = {
+    SENSITIVE_TOOLS: ClassVar[Set[str]] = {
         "connector_email",
         "connector_discord",
         "connector_moltbook",
@@ -153,9 +154,7 @@ class OrchestrationClient:
         # Priority 2: explicit list in federation map
         elif self.topology.get("enabled_connectors"):
             enabled_list = self.topology["enabled_connectors"]
-            self.logger.info(
-                f"Connectors from federation_map enabled_connectors: {enabled_list}"
-            )
+            self.logger.info(f"Connectors from federation_map enabled_connectors: {enabled_list}")
         # Priority 3: derive from connectors.{name}.enabled == True
         elif self.topology.get("connectors"):
             enabled_list = [
@@ -168,9 +167,7 @@ class OrchestrationClient:
             )
         else:
             enabled_list = []
-            self.logger.info(
-                "No connectors configured — starting with zero connectors."
-            )
+            self.logger.info("No connectors configured — starting with zero connectors.")
 
         for conn_type in enabled_list:
             if conn_type not in discovered:
@@ -298,9 +295,7 @@ class OrchestrationClient:
 
     async def _slow_loop(self):
         """Runs at lower frequency (e.g. every 5 min): inbox check, heavy polls."""
-        self.logger.info(
-            "[ORCHESTRATOR] Slow loop started (interval=%ss).", self.SLOW_INTERVAL_S
-        )
+        self.logger.info("[ORCHESTRATOR] Slow loop started (interval=%ss).", self.SLOW_INTERVAL_S)
         while self.running:
             try:
                 await asyncio.sleep(self.SLOW_INTERVAL_S)
@@ -359,9 +354,7 @@ class OrchestrationClient:
                 final_prompt = refinement["response"]
                 self.logger.info("Prompt refined successfully.")
             else:
-                self.logger.warning(
-                    f"Prompt refinement failed: {refinement.get('error')}"
-                )
+                self.logger.warning(f"Prompt refinement failed: {refinement.get('error')}")
 
         # 2. Personality: Get the system prompt
         system_prompt = self.personality.get_system_prompt(persona)
@@ -370,26 +363,18 @@ class OrchestrationClient:
         context = ""
         if use_rag:
             if await self.security.is_authorized(subject, "knowledge:search"):
-                context = await self.knowledge.get_context(
-                    final_prompt, orchestrator=self
-                )
+                context = await self.knowledge.get_context(final_prompt, orchestrator=self)
                 self.logger.info(f"Auto-RAG: Context retrieved for {subject}")
             else:
-                self.logger.warning(
-                    f"Auto-RAG: Subject {subject} denied knowledge:search"
-                )
+                self.logger.warning(f"Auto-RAG: Subject {subject} denied knowledge:search")
 
         # 4. Augment prompt with context
         if context:
-            final_prompt = (
-                f"RELEVANT CONTEXT:\n{context}\n\nUSER REQUEST: {final_prompt}"
-            )
+            final_prompt = f"RELEVANT CONTEXT:\n{context}\n\nUSER REQUEST: {final_prompt}"
 
         # 4. Reason
         if use_council:
-            council = self.topology.get(
-                "council_members", ["llama3", "llama3.1", "phi3"]
-            )
+            council = self.topology.get("council_members", ["llama3", "llama3.1", "phi3"])
             self.logger.info(f"Using Council of Dozens: {council}")
             return await self.reasoning.council_synthesis(final_prompt, council)
 
@@ -441,9 +426,7 @@ class OrchestrationClient:
 
         # Handle Approval Gate for sensitive tools
         if approval_gate and tool_name in self.SENSITIVE_TOOLS:
-            self.logger.info(
-                f"Triggering Council Approval Gate for sensitive tool: {tool_name}"
-            )
+            self.logger.info(f"Triggering Council Approval Gate for sensitive tool: {tool_name}")
             council = list(self.topology.get("nodes", {}).keys())  # Use all node IDs
             if not council:
                 council = ["llama3"]  # Fallback to local
@@ -536,15 +519,12 @@ class OrchestrationClient:
 
         spec = enrichment["response"]
         self.logger.info("PHASE 1 (ENRICH) COMPLETE: Spec generated.")
-        self._log_reasoning(
-            "Foreman", "system", "Specification finalized. Passing to Worker."
-        )
+        self._log_reasoning("Foreman", "system", "Specification finalized. Passing to Worker.")
 
         # PHASE 2: EXECUTE (Labor)
         # Flatten tools for ReAct
         tools_list = [
-            {"name": k, "description": v["description"]}
-            for k, v in self._tool_registry.items()
+            {"name": k, "description": v["description"]} for k, v in self._tool_registry.items()
         ]
 
         # Use reason_and_act which calls execute_tool (Approval Gate integrated)
@@ -565,14 +545,10 @@ class OrchestrationClient:
 
         results = work["response"]
         self.logger.info("PHASE 2 (EXECUTE) COMPLETE: Labor delivered.")
-        self._log_reasoning(
-            "Worker", "deliberation", f"Work delivered: {results[:100]}..."
-        )
+        self._log_reasoning("Worker", "deliberation", f"Work delivered: {results[:100]}...")
 
         # PHASE 3: JUDGE (Satisficer)
-        self._log_reasoning(
-            "Satisficer", "thought", "Auditing labor against specification."
-        )
+        self._log_reasoning("Satisficer", "thought", "Auditing labor against specification.")
         audit = await self.reasoning.satisficer_judge(
             prompt=vibe,
             spec=spec,

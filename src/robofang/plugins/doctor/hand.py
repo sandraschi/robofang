@@ -1,5 +1,6 @@
 import logging
 from typing import Any
+
 from robofang.core.base_hand import Hand
 
 logger = logging.getLogger(__name__)
@@ -27,6 +28,4 @@ class DoctorHand(Hand):
             orchestrator.memory.store("doctor_diagnostics_count", count + 1)
             orchestrator.memory.store("doctor_wellness_summary", "Nominal / Optimized")
 
-        self.logger.info(
-            "Doctor Hand pulse complete. Telemetry within optimized range."
-        )
+        self.logger.info("Doctor Hand pulse complete. Telemetry within optimized range.")

@@ -1,7 +1,9 @@
 """RoboFang Routing Tools: Management of fleet topology and message routing."""
 
-from typing import Dict, Any, Literal
+from typing import Any, Dict, Literal
+
 from fastmcp import Context, FastMCP
+
 from robofang.core.orchestrator import OrchestrationClient
 
 mcp = FastMCP("RoboFang-routing")

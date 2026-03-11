@@ -1,17 +1,17 @@
-import os
 import json
 import logging
-import time
+import os
 import sys
-from typing import Dict, Any
+import time
 from pathlib import Path
+from typing import Any, Dict
 
 # Add src to path so RoboFang.core is importable when run standalone
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 try:
-    from robofang.core.bastion import LocalBastionManager
     from robofang.core.bastio import BastioGateway
+    from robofang.core.bastion import LocalBastionManager
 except ImportError:
     LocalBastionManager = None  # type: ignore
     BastioGateway = None  # type: ignore
@@ -37,9 +37,7 @@ class SandboxDispatcher:
         # Security primitives — both are optional
         self.bastion = LocalBastionManager() if LocalBastionManager else None
         self.bastio = (
-            BastioGateway(api_key=os.environ.get("BASTIO_API_KEY"))
-            if BastioGateway
-            else None
+            BastioGateway(api_key=os.environ.get("BASTIO_API_KEY")) if BastioGateway else None
         )
 
     async def prepare_task(
@@ -50,22 +48,16 @@ class SandboxDispatcher:
 
         env = {
             "BASTIO_API_KEY": os.environ.get("BASTIO_API_KEY", ""),
-            "BASTIO_BASE_URL": os.environ.get(
-                "BASTIO_BASE_URL", "https://api.bastio.com"
-            ),
+            "BASTIO_BASE_URL": os.environ.get("BASTIO_BASE_URL", "https://api.bastio.com"),
             "LOG_LEVEL": "DEBUG" if safety_mode else "INFO",
         }
 
         if safety_mode:
-            self.logger.info(
-                f"Task {task_id}: Safety mode — routing to Dark Twin Universe."
-            )
+            self.logger.info(f"Task {task_id}: Safety mode — routing to Dark Twin Universe.")
             env["DTU_PROXY_URL"] = self.dtu_url
             env["BASTIO_GATEWAY_MODE"] = "Shadow"
         else:
-            self.logger.warning(
-                f"Task {task_id}: Safety mode DISABLED — live execution."
-            )
+            self.logger.warning(f"Task {task_id}: Safety mode DISABLED — live execution.")
             env["DTU_PROXY_URL"] = ""
             env["BASTIO_GATEWAY_MODE"] = "Enforce"
 
@@ -76,9 +68,7 @@ class SandboxDispatcher:
             "data": task_data,
         }
 
-    def dispatch_task(
-        self, task_name: str, script_content: str, provider: str = "wsb"
-    ) -> str:
+    def dispatch_task(self, task_name: str, script_content: str, provider: str = "wsb") -> str:
         """Write script to sandbox exchange dir and trigger the requested provider."""
         # Simplified task_id for debugging
         task_id = f"task_{int(time.time())}"
@@ -105,9 +95,7 @@ class SandboxDispatcher:
             "start_time": time.ctime(),
             "env": env,
         }
-        (task_dir / "task.json").write_text(
-            json.dumps(manifest, indent=2), encoding="utf-8"
-        )
+        (task_dir / "task.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
         self.logger.info(f"Task '{task_name}' dispatched via {provider} → {task_dir}")
 
@@ -118,17 +106,14 @@ class SandboxDispatcher:
         elif provider == "sandboxie":
             process = self._launch_sandboxie(script_path)
         else:
-            self.logger.warning(
-                f"Unknown provider '{provider}' — task queued but not launched."
-            )
+            self.logger.warning(f"Unknown provider '{provider}' — task queued but not launched.")
 
         # Register with bastion for resource monitoring
         if process and self.bastion:
             self.bastion.register_process(process.pid)
             health = self.bastion.check_health()
             self.logger.info(
-                f"Bastion health: {health['status']} "
-                f"(CPU: {health['metrics']['system']['cpu']}%)"
+                f"Bastion health: {health['status']} (CPU: {health['metrics']['system']['cpu']}%)"
             )
 
         return task_id
@@ -194,9 +179,7 @@ class SandboxDispatcher:
         manifest_path = task_dir / "task.json"
         deadline = time.time() + timeout
 
-        self.logger.info(
-            f"Polling for results of task {task_id} (timeout={timeout}s)..."
-        )
+        self.logger.info(f"Polling for results of task {task_id} (timeout={timeout}s)...")
         while time.time() < deadline:
             if manifest_path.exists():
                 try:

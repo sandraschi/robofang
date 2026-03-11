@@ -35,6 +35,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 2:
         synthesize(Path(sys.argv[1]), sys.argv[2])
     else:
-        print(
-            "Usage: python equilibrium_synthesizer.py <session_json> <synthesis_text>"
-        )
+        print("Usage: python equilibrium_synthesizer.py <session_json> <synthesis_text>")

@@ -35,8 +35,8 @@ async def test_get_messages():
     conn = HueConnector("hue", HUE_CONFIG)
     await conn.connect()
     lights = await conn.get_messages(limit=10)
-    for l in lights:
-        print(f"  {l}")
+    for light in lights:
+        print(f"  {light}")
     await conn.disconnect()
     assert isinstance(lights, list)
     print("PASS")

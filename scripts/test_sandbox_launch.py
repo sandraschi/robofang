@@ -37,9 +37,7 @@ print(f"Current Directory: {os.getcwd()}")
             logger.info("Sandbox Execution SUCCESSFUL!")
             logger.info(f"Stdout: {result.get('stdout')}")
         else:
-            logger.error(
-                f"Sandbox Execution FAILED or Timed Out: {result.get('error')}"
-            )
+            logger.error(f"Sandbox Execution FAILED or Timed Out: {result.get('error')}")
 
     except Exception as e:
         logger.error(f"Sandbox test failed: {e}")

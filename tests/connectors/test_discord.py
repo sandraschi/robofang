@@ -53,9 +53,7 @@ async def test_send_message():
         print("SKIP: not connected")
         await conn.disconnect()
         return
-    ok = await conn.send_message(
-        "default", "[robofang test] DiscordConnector scaffold check"
-    )
+    ok = await conn.send_message("default", "[robofang test] DiscordConnector scaffold check")
     print(f"send_message() -> {ok}")
     await conn.disconnect()
     print("PASS" if ok else "WARN")

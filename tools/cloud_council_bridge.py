@@ -119,9 +119,7 @@ async def _call_openai_compat(
     payload = {"model": model, "messages": messages, "max_tokens": 800}
 
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        resp = await client.post(
-            f"{api_base}/chat/completions", json=payload, headers=headers
-        )
+        resp = await client.post(f"{api_base}/chat/completions", json=payload, headers=headers)
         resp.raise_for_status()
         data = resp.json()
         return {
@@ -210,9 +208,7 @@ async def query_cloud_adviser(
     model = cfg["model"]
 
     # Cost guard
-    estimated_cost = _estimate_cost_usd(
-        provider, model, token_estimate=len(prompt.split()) * 3
-    )
+    estimated_cost = _estimate_cost_usd(provider, model, token_estimate=len(prompt.split()) * 3)
     if estimated_cost > budget_usd:
         return {
             "success": False,
@@ -235,24 +231,18 @@ async def query_cloud_adviser(
     if not api_key and provider != "hf":
         return {
             "success": False,
-            "error": (
-                f"No API key for provider '{provider}'. Set env var {env_key_name}."
-            ),
+            "error": (f"No API key for provider '{provider}'. Set env var {env_key_name}."),
         }
 
     try:
         if provider == "hf":
             result = await _call_hf_inference(model, prompt, api_key=api_key or None)
         else:
-            result = await _call_openai_compat(
-                api_base, api_key, model, prompt, system_prompt
-            )
+            result = await _call_openai_compat(api_base, api_key, model, prompt, system_prompt)
 
         result["estimated_cost_usd"] = estimated_cost
         result["provider"] = provider
-        logger.info(
-            f"Cloud adviser response received: {len(result.get('response', ''))} chars"
-        )
+        logger.info(f"Cloud adviser response received: {len(result.get('response', ''))} chars")
         return result
 
     except httpx.HTTPStatusError as e:
@@ -285,9 +275,7 @@ def _detect_tiebreaker_needed(synthesis_text: str) -> bool:
 def _cheapest_available_adviser() -> Optional[str]:
     """Return the cheapest cloud adviser URL with an available API key."""
     policy = _REGISTRY.get("tiebreaker_policy", {})
-    order = policy.get(
-        "preferred_order", ["groq", "deepseek", "together", "hf", "openai"]
-    )
+    order = policy.get("preferred_order", ["groq", "deepseek", "together", "hf", "openai"])
     providers = _REGISTRY.get("providers", {})
 
     for prov in order:
@@ -299,9 +287,7 @@ def _cheapest_available_adviser() -> Optional[str]:
             models = cfg.get("models", {})
             if not models:
                 continue
-            cheapest_model = min(
-                models.items(), key=lambda kv: kv[1].get("cost_per_m", 99)
-            )
+            cheapest_model = min(models.items(), key=lambda kv: kv[1].get("cost_per_m", 99))
             return f"{prov}://{cheapest_model[0]}"
 
     return None

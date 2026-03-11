@@ -55,9 +55,7 @@ async def test_get_messages():
         return
     items = await conn.get_messages(limit=10)
     for item in items:
-        print(
-            f"  [{item['type']:8s}] {item['title']} ({item.get('year', '')}) — {item['section']}"
-        )
+        print(f"  [{item['type']:8s}] {item['title']} ({item.get('year', '')}) — {item['section']}")
     await conn.disconnect()
     assert isinstance(items, list)
     print(f"PASS — {len(items)} items")

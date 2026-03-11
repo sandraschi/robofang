@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { PlugZap, CheckCircle2, AlertCircle, RefreshCw, Terminal, Search, Loader2 } from 'lucide-react';
+import {
+    PlugZap, CheckCircle2, AlertCircle, RefreshCw, Terminal, Search, Loader2,
+    Wrench, ExternalLink, Play, X,
+} from 'lucide-react';
 
 const BRIDGE = 'http://localhost:10871';
 
@@ -12,6 +16,8 @@ interface ConnectorRow {
     url: string;
     source: 'live' | 'config' | 'home' | 'federation';
     domain: string;
+    backend_url?: string;
+    frontend_url?: string;
 }
 
 interface FleetSummary {
@@ -21,12 +27,16 @@ interface FleetSummary {
 }
 
 const Connectors: React.FC = () => {
+    const navigate = useNavigate();
     const [rows, setRows] = useState<ConnectorRow[]>([]);
     const [summary, setSummary] = useState<FleetSummary | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
     const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [toolsModal, setToolsModal] = useState<{ open: boolean; connectorId: string | null; tools: string[]; loading: boolean; err: string | null }>({
+        open: false, connectorId: null, tools: [], loading: false, err: null,
+    });
 
     const loadData = useCallback(async () => {
         setLoading(true);
@@ -65,7 +75,7 @@ const Connectors: React.FC = () => {
 
                 for (const c of (data.connectors ?? []) as Array<{
                     id: string; name: string; type: string;
-                    status: string; domain: string;
+                    status: string; domain: string; backend_url?: string; frontend_url?: string;
                 }>) {
                     if (!merged[c.id]) {
                         merged[c.id] = {
@@ -73,15 +83,18 @@ const Connectors: React.FC = () => {
                             name: c.name,
                             type: c.type,
                             status: c.status === 'online' ? 'online' : 'offline',
-                            url: '',
+                            url: c.backend_url ?? '',
                             source: 'federation',
                             domain: c.domain,
+                            backend_url: c.backend_url,
+                            frontend_url: c.frontend_url,
                         };
                     } else {
-                        // Enrich with fleet metadata
                         merged[c.id].name = c.name;
                         merged[c.id].type = c.type;
                         merged[c.id].domain = c.domain;
+                        merged[c.id].backend_url = c.backend_url ?? merged[c.id].backend_url;
+                        merged[c.id].frontend_url = c.frontend_url ?? merged[c.id].frontend_url;
                     }
                 }
             }
@@ -105,6 +118,54 @@ const Connectors: React.FC = () => {
         const id = setInterval(loadData, 30_000);
         return () => clearInterval(id);
     }, [loadData]);
+
+    // Fetch tools when tools modal opens for a connector
+    useEffect(() => {
+        if (!toolsModal.open || !toolsModal.connectorId || !toolsModal.loading) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const r = await fetch(`${BRIDGE}/api/connectors/${toolsModal.connectorId}/tools`);
+                if (cancelled) return;
+                if (!r.ok) {
+                    const t = await r.text();
+                    setToolsModal(prev => ({ ...prev, loading: false, tools: [], err: t || `HTTP ${r.status}` }));
+                    return;
+                }
+                const data = await r.json();
+                const list = Array.isArray(data) ? data : (data?.tools ?? data?.tool ?? []);
+                const names = list.map((t: { name?: string }) => typeof t === 'string' ? t : t?.name).filter(Boolean);
+                setToolsModal(prev => ({ ...prev, loading: false, tools: names, err: null }));
+            } catch (e) {
+                if (!cancelled) setToolsModal(prev => ({ ...prev, loading: false, tools: [], err: String(e) }));
+            }
+        })();
+        return () => { cancelled = true; };
+    }, [toolsModal.open, toolsModal.connectorId, toolsModal.loading]);
+
+    const openToolsModal = (connectorId: string) => {
+        setToolsModal({ open: true, connectorId, tools: [], loading: true, err: null });
+    };
+    const closeToolsModal = () => {
+        setToolsModal(prev => ({ ...prev, open: false, connectorId: null }));
+    };
+
+    const launchApp = async (connectorId: string) => {
+        try {
+            const r = await fetch(`${BRIDGE}/api/connector/launch/${connectorId}`, { method: 'POST' });
+            const data = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(data.detail || data.error || `HTTP ${r.status}`);
+            if (typeof window !== 'undefined' && (window as unknown as { toaster?: { success?: (s: string) => void } }).toaster?.success) {
+                (window as unknown as { toaster: { success: (s: string) => void } }).toaster.success(`Launched ${connectorId}`);
+            }
+        } catch (e) {
+            if (typeof window !== 'undefined' && (window as unknown as { toaster?: { error?: (s: string) => void } }).toaster?.error) {
+                (window as unknown as { toaster: { error: (s: string) => void } }).toaster.error(String(e));
+            } else {
+                alert(String(e));
+            }
+        }
+    };
 
     const filtered = rows.filter(r =>
         r.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -235,9 +296,36 @@ const Connectors: React.FC = () => {
                                         <span className="text-[10px] text-slate-500 uppercase tracking-wider">{row.source}</span>
                                     </td>
                                     <td className="px-8 py-4">
-                                        <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button title="Logs" className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors">
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                title="Logs"
+                                                onClick={() => navigate(`/logger?source=${encodeURIComponent(row.id)}`)}
+                                                className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors"
+                                            >
                                                 <Terminal size={16} />
+                                            </button>
+                                            <button
+                                                title="View tools"
+                                                onClick={() => openToolsModal(row.id)}
+                                                className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-amber-400 transition-colors"
+                                            >
+                                                <Wrench size={16} />
+                                            </button>
+                                            {(row.frontend_url || row.url) && (
+                                                <button
+                                                    title={row.frontend_url ? 'Open webapp' : 'Open backend'}
+                                                    onClick={() => window.open(row.frontend_url || row.url || row.backend_url, '_blank')}
+                                                    className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-emerald-400 transition-colors"
+                                                >
+                                                    <ExternalLink size={16} />
+                                                </button>
+                                            )}
+                                            <button
+                                                title="Open app (launch)"
+                                                onClick={() => launchApp(row.id)}
+                                                className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-cyan-400 transition-colors"
+                                            >
+                                                <Play size={16} />
                                             </button>
                                             <button title="Re-probe" onClick={loadData} className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-indigo-400 transition-colors">
                                                 <RefreshCw size={16} />
@@ -250,6 +338,46 @@ const Connectors: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            {/* Tools modal */}
+            {toolsModal.open && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={closeToolsModal}>
+                    <div
+                        className="bg-slate-900 border border-white/10 rounded-2xl shadow-xl max-w-lg w-full mx-4 max-h-[80vh] flex flex-col"
+                        onClick={e => e.stopPropagation()}
+                    >
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
+                            <h3 className="text-lg font-bold text-white">
+                                Tools: {toolsModal.connectorId ?? ''}
+                            </h3>
+                            <button onClick={closeToolsModal} className="p-2 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white">
+                                <X size={18} />
+                            </button>
+                        </div>
+                        <div className="px-6 py-4 overflow-auto flex-1">
+                            {toolsModal.loading && (
+                                <div className="flex items-center gap-2 text-slate-400">
+                                    <Loader2 size={16} className="animate-spin" />
+                                    <span>Loading tools...</span>
+                                </div>
+                            )}
+                            {toolsModal.err && !toolsModal.loading && (
+                                <p className="text-rose-400 text-sm">{toolsModal.err}</p>
+                            )}
+                            {!toolsModal.loading && !toolsModal.err && toolsModal.tools.length === 0 && (
+                                <p className="text-slate-500 text-sm">No tools endpoint or empty list.</p>
+                            )}
+                            {!toolsModal.loading && toolsModal.tools.length > 0 && (
+                                <ul className="space-y-1 text-sm font-mono text-slate-300">
+                                    {toolsModal.tools.map((name, i) => (
+                                        <li key={i} className="truncate">{name}</li>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Summary stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

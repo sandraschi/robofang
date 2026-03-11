@@ -4,15 +4,16 @@ RoboFang Hands System: Autonomous continuous processes & background scheduling.
 """
 
 import asyncio
+import importlib.util
 import logging
-import time
 import os
-from typing import Dict, List, Any, Optional
+import time
+from typing import Any, Dict, List, Optional, Set
+
+from robofang.core.base_hand import Hand
 from robofang.core.hand_manifest import (
     load_hand_definition,
 )
-import importlib.util
-from robofang.core.base_hand import Hand
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +27,7 @@ class HandsManager:
         self.orchestrator = orchestrator
         self.hands: Dict[str, Hand] = {}
         self._loop_task: Optional[asyncio.Task] = None
+        self._background_tasks: Set[asyncio.Task] = set()
         self.running = False
 
     def register_hand(self, hand: Hand):
@@ -108,7 +110,9 @@ class HandsManager:
                     # Check if it's time to pulse
                     if hand.next_run is None or now >= hand.next_run:
                         # We don't await here to avoid blocking other hands
-                        asyncio.create_task(hand.pulse(self.orchestrator))
+                        task = asyncio.create_task(hand.pulse(self.orchestrator))
+                        self._background_tasks.add(task)
+                        task.add_done_callback(self._background_tasks.discard)
 
             await asyncio.sleep(10)  # Check every 10 seconds
 

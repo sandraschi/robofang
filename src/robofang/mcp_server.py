@@ -92,8 +92,7 @@ async def robofang_status() -> Dict[str, Any]:
         return {"success": False, "error": "Orchestrator not initialized."}
     try:
         connector_states = {
-            name: getattr(conn, "active", False)
-            for name, conn in _orchestrator.connectors.items()
+            name: getattr(conn, "active", False) for name, conn in _orchestrator.connectors.items()
         }
         online = sum(1 for v in connector_states.values() if v)
         return {
@@ -275,11 +274,7 @@ async def robofang_agentic_workflow(goal: str, ctx: Context) -> str:
 
     async def ask(msg: str, use_council: bool = False) -> str:
         out = await robofang_ask(msg, use_council=use_council)
-        return (
-            out.get("message", str(out))
-            if out.get("success")
-            else out.get("error", str(out))
-        )
+        return out.get("message", str(out)) if out.get("success") else out.get("error", str(out))
 
     async def fleet() -> str:
         out = await robofang_fleet()
@@ -339,6 +334,7 @@ def robofang_council_workflow() -> str:
 if __name__ == "__main__":
     import os
     import sys
+
     from fastmcp import FastMCP
 
     # Setup basic logging for standalone run

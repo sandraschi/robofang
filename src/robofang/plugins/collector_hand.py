@@ -5,6 +5,7 @@ Collector Hand: Monitoring fleet health and new knowledge sources.
 
 import logging
 from typing import Any
+
 from robofang.core.base_hand import Hand
 
 logger = logging.getLogger(__name__)

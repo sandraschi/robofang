@@ -61,3 +61,24 @@ where = ["src"]
 [project.scripts]
 robofang-bridge     = "robofang.main:main"
 robofang-supervisor = "robofang.supervisor:app"
+
+[tool.ruff]
+# Target Python 3.12+
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+# Enable Pyflakes (F), Pycodestyle (E, W), Isort (I), and Ruff-specific rules (RUF)
+select = ["F", "E", "W", "I", "RUF"]
+ignore = ["E501"] # Line length handled by formatter
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore imports not at top of file in scripts
+"scripts/*.py" = ["E402"]
+"src/robofang/main.py" = ["E402"]

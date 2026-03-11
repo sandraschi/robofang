@@ -1,0 +1,91 @@
+# Robofang Fleet Manifest
+# A curated catalog of available "Hands" for selective high-agency orchestration.
+
+hands:
+  - id: blender-mcp
+    name: Blender Creative Hand
+    category: Creative
+    potassium_score: 9.2
+    description: >
+      Empower your agent with professional-grade 3D agency. From geometry generation to
+      scene orchestration, this hand allows your AI to "see" and "build" in three dimensions.
+    repo_url: https://github.com/sandraschi/blender-mcp
+    install_script: start.ps1
+    tags: ["3D", "Creative", "Blender"]
+
+  - id: gimp-mcp
+    name: GIMP Visual Hand
+    category: Creative
+    potassium_score: 8.5
+    description: >
+      Digital manipulation at its peak. This hand enables your agent to edit, transform,
+      and generate visual assets using the full power of the GIMP toolkit.
+    repo_url: https://github.com/sandraschi/gimp-mcp
+    install_script: start.ps1
+    tags: ["Image", "Creative", "Design"]
+
+  - id: rustdesk-mcp
+    name: RustDesk Remote Hand
+    category: Infrastructure
+    potassium_score: 9.8
+    description: >
+      Ubiquitous access across your substrate. Grant your agents the ability to navigate
+      and manage remote systems with zero-friction through the RustDesk protocol.
+    repo_url: https://github.com/sandraschi/rustdesk-mcp
+    install_script: start.ps1
+    tags: ["Remote", "Infrastructure", "IT"]
+
+  - id: plex-mcp
+    name: Plex Media Hand
+    category: Media
+    potassium_score: 8.9
+    description: >
+      Transform your media library into a sentient knowledge base. This hand allows agents
+      to search, play, and understand your entire movie and music collection.
+    repo_url: https://github.com/sandraschi/plex-mcp
+    install_script: start.ps1
+    tags: ["Media", "Entertainment", "Plex"]
+
+  - id: caliber-mcp
+    name: Calibre Library Hand
+    category: Media
+    potassium_score: 8.7
+    description: >
+      Bibliographic agency. Your agent becomes a master librarian, capable of extracting
+      knowledge, managing formats, and orchestrating your digital book collection.
+    repo_url: https://github.com/sandraschi/caliber-mcp
+    install_script: start.ps1
+    tags: ["Books", "Knowledge", "Calibre"]
+
+  - id: noetix-bumi-mcp
+    name: Noetix Bumi Physical Hand
+    category: Robotics
+    potassium_score: 10.0
+    description: >
+      The champion of physical agency. Bridge the gap between digital thought and 
+      robotic action with full ROS 2 integration for the Noetix Bumi humanoid.
+    repo_url: https://github.com/sandraschi/noetix-bumi-mcp
+    install_script: start.ps1
+    tags: ["Robotics", "ROS 2", "Humanoid"]
+
+  - id: daw-mcp
+    name: DAW Audio Hand
+    category: Creative
+    potassium_score: 7.8
+    description: >
+      Sonic orchestration. Allow your agents to interact with professional Digital Audio 
+      Workstations for music production and sound design.
+    repo_url: https://github.com/sandraschi/daw-mcp
+    install_script: start.ps1
+    tags: ["Audio", "Music", "Production"]
+
+  - id: svg-mcp
+    name: SVG Vector Hand
+    category: Creative
+    potassium_score: 8.2
+    description: >
+      Mathematical precision in design. This hand enables agents to generate and 
+      manipulate complex vector graphics with pixel-perfect accuracy.
+    repo_url: https://github.com/sandraschi/svg-mcp
+    install_script: start.ps1
+    tags: ["SVG", "Design", "Graphics"]

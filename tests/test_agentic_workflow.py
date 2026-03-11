@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import AsyncMock, MagicMock, patch
+
 from robofang.core.orchestrator import OrchestrationClient
 from robofang.core.reasoning import ReasoningEngine
 
@@ -51,9 +52,7 @@ class TestAgenticWorkflow(unittest.IsolatedAsyncioTestCase):
             "connector_mock_social", approval_gate=False, target="nexus", content="Ping"
         )
         self.assertTrue(result["success"])
-        self.orch.connectors["mock_social"].send_message.assert_called_once_with(
-            "nexus", "Ping"
-        )
+        self.orch.connectors["mock_social"].send_message.assert_called_once_with("nexus", "Ping")
 
     @patch("robofang.core.reasoning.ReasoningEngine.council_adjudicate")
     async def test_approval_gate_rejection(self, mock_adjudicate):
@@ -72,9 +71,7 @@ class TestAgenticWorkflow(unittest.IsolatedAsyncioTestCase):
             "description": "test",
         }
 
-        result = await self.orch.execute_tool(
-            "connector_discord", target="nexus", content="Delete"
-        )
+        result = await self.orch.execute_tool("connector_discord", target="nexus", content="Delete")
 
         self.assertFalse(result["success"])
         self.assertIn("ADJUDICIAL_REJECTION", result["error"])
@@ -98,9 +95,7 @@ class TestAgenticWorkflow(unittest.IsolatedAsyncioTestCase):
             "description": "test",
         }
 
-        result = await self.orch.execute_tool(
-            "connector_discord", target="nexus", content="Hello"
-        )
+        result = await self.orch.execute_tool("connector_discord", target="nexus", content="Hello")
 
         self.assertTrue(result["success"])
         mock_adjudicate.assert_called_once()

@@ -1,0 +1,139 @@
+RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
+   --> src\robofang\core\connectors.py:422:16
+    |
+421 |       connector_type = "hue"
+422 |       _COLOURS = {
+    |  ________________^
+423 | |         "red": [0.675, 0.322],
+424 | |         "green": [0.408, 0.517],
+425 | |         "blue": [0.167, 0.040],
+426 | |         "white": [0.313, 0.329],
+427 | |         "warm": [0.440, 0.403],
+428 | |         "cool": [0.240, 0.270],
+429 | |     }
+    | |_____^
+430 |
+431 |       def __init__(self, name: str, config: Dict[str, Any]):
+    |
+
+RUF006 Store a reference to the return value of `asyncio.create_task`
+   --> src\robofang\core\hands.py:112:25
+    |
+110 |                     if hand.next_run is None or now >= hand.next_run:
+111 |                         # We don't await here to avoid blocking other hands
+112 |                         asyncio.create_task(hand.pulse(self.orchestrator))
+    |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+113 |
+114 |             await asyncio.sleep(10)  # Check every 10 seconds
+    |
+
+RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
+  --> src\robofang\core\orchestrator.py:50:23
+   |
+48 |       """
+49 |
+50 |       SENSITIVE_TOOLS = {
+   |  _______________________^
+51 | |         "connector_email",
+52 | |         "connector_discord",
+53 | |         "connector_moltbook",
+54 | |         "skill_delete_file",  # hypothetical
+55 | |         "skill_mutate_config",  # hypothetical
+56 | |     }
+   | |_____^
+57 |
+58 |       def __init__(
+   |
+
+RUF006 Store a reference to the return value of `asyncio.create_task`
+  --> src\robofang\core\resonite_link.py:34:13
+   |
+32 |             self.ws = await websockets.connect(self.uri)
+33 |             self.running = True
+34 |             asyncio.create_task(self._listen())
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+35 |             self.logger.info(f"Connected to ResoniteLink at {self.uri}")
+36 |             return True
+   |
+
+RUF012 Mutable class attributes should be annotated with `typing.ClassVar`
+  --> src\robofang\main.py:45:17
+   |
+43 |       """Logging handler that pushes structured entries into _log_buffer."""
+44 |
+45 |       LEVEL_MAP = {
+   |  _________________^
+46 | |         logging.DEBUG: "debug",
+47 | |         logging.INFO: "info",
+48 | |         logging.WARNING: "warn",
+49 | |         logging.ERROR: "error",
+50 | |         logging.CRITICAL: "error",
+51 | |     }
+   | |_____^
+52 |
+53 |       def emit(self, record: logging.LogRecord) -> None:
+   |
+
+RUF006 Store a reference to the return value of `asyncio.create_task`
+  --> src\robofang\research\embodied_sentience.py:71:9
+   |
+70 |         # 2. Start Perception (Real System Telemetry)
+71 |         asyncio.create_task(self._pulse_system_telemetry())
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+72 |
+73 |         # 3. The Loop
+   |
+
+E741 Ambiguous variable name: `l`
+  --> tests\connectors\test_hue.py:38:9
+   |
+36 |     await conn.connect()
+37 |     lights = await conn.get_messages(limit=10)
+38 |     for l in lights:
+   |         ^
+39 |         print(f"  {l}")
+40 |     await conn.disconnect()
+   |
+
+E402 Module level import not at top of file
+  --> tests\connectors\test_mcp_bridge.py:19:1
+   |
+18 | # Load sidecar configs
+19 | import pathlib
+   | ^^^^^^^^^^^^^^
+20 |
+21 | _config_path = pathlib.Path("configs/mcp_sidecars.json")
+   |
+
+E402 Module level import not at top of file
+  --> tests\test_rag.py:17:1
+   |
+15 |     sys.path.insert(0, robofang_SRC_PATH)
+16 |
+17 | from robofang.core.robofang_rag import RoboFangRAG
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+
+RUF002 Docstring contains ambiguous `–` (EN DASH). Did you mean `-` (HYPHEN-MINUS)?
+   --> tools\autonomous_council.py:118:18
+    |
+116 |     Flow:
+117 |       1. Foreman (Instigator) opens with mission constraints.
+118 |       2. Rounds 2–11: each adjudicator reads the full debate history and adds
+    |                  ^
+119 |          their domain-specific analysis via ReasoningEngine.ask().
+120 |       3. Adjudicator-in-Chief synthesises the debate into a consensus plan
+    |
+
+RUF003 Comment contains ambiguous `–` (EN DASH). Did you mean `-` (HYPHEN-MINUS)?
+   --> tools\autonomous_council.py:151:19
+    |
+149 |         round_outputs: list[str] = []
+150 |
+151 |         # Rounds 1–11: individual adjudicators
+    |                   ^
+152 |         for i, adj in enumerate(ADJUDICATORS[:-1]):  # all except Adjudicator-in-Chief
+153 |             adjudicator_label = self.orchestrator.step_session(session_file)
+    |
+
+Found 11 errors.

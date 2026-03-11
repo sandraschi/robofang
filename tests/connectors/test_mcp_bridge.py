@@ -10,13 +10,13 @@ Run: python tests/connectors/test_mcp_bridge.py [plex|calibre|immich|blender|gim
 import asyncio
 import json
 import logging
+import pathlib
 import sys
 
 sys.path.insert(0, "src")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
 # Load sidecar configs
-import pathlib
 
 _config_path = pathlib.Path("configs/mcp_sidecars.json")
 
@@ -77,9 +77,7 @@ async def test_connect(sidecar: str = "plex"):
     await conn.disconnect()
     if not ok:
         print(f"WARN: {sidecar} sidecar not reachable.")
-        print(
-            f"  Start it manually: cd {cfg.get('start_cwd', 'D:/Dev/repos/' + sidecar)}"
-        )
+        print(f"  Start it manually: cd {cfg.get('start_cwd', 'D:/Dev/repos/' + sidecar)}")
         print(
             f"  Then: MCP_TRANSPORT=http MCP_PORT={cfg['url'].split(':')[-1].split('/')[0]} python -m <module> --http"
         )
@@ -106,7 +104,7 @@ async def test_tools_list(sidecar: str = "plex"):
     return [t["name"] for t in tools]
 
 
-async def test_call_tool(sidecar: str = "plex", tool: str = None, args: dict = None):
+async def test_call_tool(sidecar: str = "plex", tool: str | None = None, args: dict | None = None):
     print(f"\n=== test_call_tool [{sidecar}] tool={tool} ===")
     from robofang.core.connectors import MCPBridgeConnector
 
@@ -159,9 +157,7 @@ async def run_sidecar(sidecar: str):
         else:
             # Try first available tool with empty args
             if tool_names:
-                print(
-                    f"\nSmoke tool '{tool}' not found — trying '{tool_names[0]}' instead"
-                )
+                print(f"\nSmoke tool '{tool}' not found — trying '{tool_names[0]}' instead")
                 await test_call_tool(sidecar, tool_names[0], {})
 
 

@@ -1,7 +1,7 @@
 """Run all connector tests sequentially.
 
 Usage:
-  cd D:\dev\repos\robofang
+  cd D:\\dev\repos\robofang
   python tests/connectors/run_all.py
 
 Each test handles its own SKIP logic when credentials/hardware are absent.

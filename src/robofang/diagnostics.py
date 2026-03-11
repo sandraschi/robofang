@@ -7,9 +7,10 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Dict, List
+
 from fastapi import APIRouter
 from pydantic import BaseModel
-from typing import List, Dict
 
 from robofang.supervisor import supervisor
 
@@ -64,9 +65,7 @@ async def get_heartbeat():
     latency_ms = (time.perf_counter() - t0) * 1000.0
     nodes = supervisor.fleet_nodes
     fleet_count = (
-        len(nodes)
-        if isinstance(nodes, list)
-        else (len(nodes) if isinstance(nodes, dict) else 0)
+        len(nodes) if isinstance(nodes, list) else (len(nodes) if isinstance(nodes, dict) else 0)
     )
     council_active = pulse.get("council_active", False)
     return {

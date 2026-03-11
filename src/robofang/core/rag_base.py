@@ -28,9 +28,7 @@ class BaseVectorStore:
         self.embedding_model = TextEmbedding(model_name=embedding_model_name)
         self.table_name = table_name
 
-    def add_documents(
-        self, documents: list[dict[str, Any]], overwrite: bool = True
-    ) -> None:
+    def add_documents(self, documents: list[dict[str, Any]], overwrite: bool = True) -> None:
         """
         Embed and index documents.
         documents: List of dicts with 'id', 'content', 'metadata'. Optional 'source'.
@@ -75,7 +73,7 @@ class BaseVectorStore:
             return []
 
         tbl = self.db.open_table(self.table_name)
-        query_embedding = list(self.embedding_model.embed([query]))[0]
+        query_embedding = next(iter(self.embedding_model.embed([query])))
         search_req = tbl.search(query_embedding).limit(limit)
         if where:
             search_req = search_req.where(where)

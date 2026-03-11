@@ -1,9 +1,10 @@
 """RoboFang Plugin System: Modular connector discovery and loading."""
 
 import importlib
-import pkgutil
 import logging
-from typing import Dict, Type, Optional
+import pkgutil
+from typing import Dict, Optional, Type
+
 from robofang.core.connectors import BaseConnector
 
 logger = logging.getLogger(__name__)
@@ -104,9 +105,7 @@ class PluginManager:
                         attr.__name__.lower().replace("connector", ""),
                     )
                     self.connectors[connector_type] = f"{module_path}.{attr_name}"
-                    logger.info(
-                        f"Discovered plugin connector: {connector_type} from {module_path}"
-                    )
+                    logger.info(f"Discovered plugin connector: {connector_type} from {module_path}")
         except Exception as e:
             logger.error(f"Failed to scan plugin {module_path}: {e}")
 
@@ -126,9 +125,7 @@ class PluginManager:
             self.connectors[connector_type] = connector_class
             return connector_class
         except Exception as e:
-            logger.error(
-                f"Failed to load connector {connector_type} from {target}: {e}"
-            )
+            logger.error(f"Failed to load connector {connector_type} from {target}: {e}")
             return None
 
     @classmethod
