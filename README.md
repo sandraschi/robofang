@@ -1,10 +1,6 @@
 # Robofang: The Sovereign Substrate 🍌
 
 <p align="center">
-  <img src="assets/whimsical-clobber.png" alt="Robofang Core Philosophy: Agents Need Hands" width="800">
-</p>
-
-<p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Heritage-blue?style=for-the-badge&logo=github" alt="OpenClaw Heritage">
   <img src="https://img.shields.io/badge/OpenFang-Agency-red?style=for-the-badge&logo=target" alt="OpenFang Agency">
   <img src="https://img.shields.io/github/actions/workflow/status/sandraschi/robofang/ci.yml?branch=main&style=for-the-badge&logo=github&label=CI" alt="CI Status">
