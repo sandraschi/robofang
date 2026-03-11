@@ -18,9 +18,9 @@
 
 ## Expectation vs Reality
 
-| **THE PLAN** | **THE REALITY** |
+| **THE EXPECTATION** | **THE REALITY** |
 | :---: | :---: |
-| ![OUR PLAN](assets/our_plan.png) | ![SAD REALITY](assets/sad_reality.png) |
+| ![EXPECTATION](assets/whimsical-clobber.png) | ![REALITY](assets/sad_reality.png) |
 
 > [!TIP]
 > ### 🍌 Agentic Banana: Low-Hanging Agency
@@ -43,6 +43,12 @@ Robofang orchestrates agency across three distinct, hierarchical levels of "Hand
 1.  **Digital Hands (The Fleet)**: Using the Model Context Protocol (MCP), Robofang commands a fleet of specialized servers. These are the "second level hands" that handle the heavy lifting of digital life—from sophisticated email management and Discord orchestration to controlling your smart home via Hue and Home Assistant.
 2.  **Virtual Hands (The Simulation)**: Agents must be able to create and simulate. Robofang integrates a full virtualization pipeline, connecting the agent to tools like Blender, GIMP, and Unity3D. This allows the agent to build environments, manage avatars, and test physical logic in high-fidelity simulations before taking action in the real world.
 3.  **Physical Hands (The Reality)**: This is the ultimate goal. Through a sophisticated ROS/OSC bridge, Robofang connects to physical robotics hardware. Whether it's learning the ropes with a Yahboom Raspbot or performing complex tasks with the Noetix Bumi humanoid, our agents are learning to touch reality.
+
+<p align="center">
+  <img src="assets/bumi_step2.png" alt="The Robofang Bros: Benny and Bumi" width="600">
+  <br>
+  <em>The Robofang Bros: Harmonious co-operation between Benny and Bumi.</em>
+</p>
 
 ## The Smorgasbord of Features
 
