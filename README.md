@@ -1,4 +1,4 @@
-<h1 align="center">robofang</h1>
+<h1 align="center">robofang [ALPHA]</h1>
 
 <p align="center">
   <img src="https://img.shields.io/badge/OpenClaw-Heritage-blue?style=for-the-badge&logo=github" alt="OpenClaw Heritage">
@@ -13,15 +13,20 @@
 
 In reality, Robofang is a nice little repo with a few good ideas, mostly collected from 25 other repos and integrated into a single, cohesive framework. While contemporary AI development is largely focused on expanding the latent space of large language models—effectively creating increasingly sophisticated, yet passive, universal oracles—Robofang operates on a different, uncompromising premise: **Agents Need Hands** (a concept pioneered by Austrian genius viber [steipete](https://steipete.com/)).
 
-But hands alone are merely interfaces. To achieve true autonomy, intelligence must be situated within a purposeful container. In our opinion, **Agents Need Bots.** Robofang is the orchestration layer where cognitive architecture meets physical and virtual capability, transforming AI from a predictive spectator into a sovereign actor capable of touch, creation, and intervention across the digital, virtual, and physical substrate.
+But hands are not a monolith. Dexterity requires a spectrum of capability, from atomic tool use to complex physical interaction. Robofang orchestrates agency through four distinct types of "Hands":
+
+1.  **SimpleHands (Atomic Capability)**: The baseline. SimpleHands allow an agent to execute direct code snippets, interact with terminal environments, and perform one-off file modifications. This is the dexterity of the raw script.
+2.  **FlowHands (Process Orchestration)**: Agency through time. FlowHands enable the agent to navigate complex, multi-step workflows, manage state across long-running loops, and autonomously correct its own trajectory based on system telemetry.
+3.  **AppHands (Digital Integration)**: Agency through ecosystem. Powered by the Model Context Protocol (MCP), AppHands extend the agent’s reach into your entire digital footprint—Email, Discord, Slack, Home Assistant, and the vast fleet of specialized MCP servers.
+4.  **RoboHands (Physical/Virtual Reality)**: The ultimate frontier. RoboHands bridge the digital-physical divide, translating cognitive intent into high-fidelity simulations (Blender/Unity) and real-world robotics hardware via ROS and OSC bridges.
+
+To achieve true autonomy, intelligence must be situated within a purposeful container. In our opinion, **Agents Need Bots.** Robofang is the orchestration layer where cognitive architecture meets physical and virtual capability, transforming AI from a predictive spectator into a sovereign actor capable of touch, creation, and intervention across the digital, virtual, and physical substrate.
 
 ## Expectation vs Reality
 
 | **THE EXPECTATION** | **THE REALITY** |
 | :---: | :---: |
 | ![EXPECTATION](assets/whimsical-clobber.png) | ![REALITY](assets/sad_reality.png) |
-
-
 
 ## The Vision: Beyond the Chatbox
 
@@ -32,14 +37,6 @@ But hands alone are merely interfaces. To achieve true autonomy, intelligence mu
 For too long, our interaction with AI has been confined to a text-based "chatbox." We ask questions, and we get answers. But true utility—true intelligence—requires the ability to interact with the world. Whether that world is digital, virtual, or physical, an agent without the means to effect change is merely a spectator. 
 
 Robofang provides the foundation where agency is materialized. It represents the transition from AI as a service to AI as an actor. **Agents need hands! But not just "inbox weeder" hands!** We don't just want to automate your email sorting; we want to give our agents the dexterity to navigate your digital life, the creativity to build in virtual spaces, and the physicality to interact with your physical home.
-
-## The Three Levels of Agency
-
-Robofang orchestrates agency across three distinct, hierarchical levels of "Hands":
-
-1.  **Digital Hands (The Fleet)**: Using the Model Context Protocol (MCP), Robofang commands a fleet of specialized servers. These are the "second level hands" that handle the heavy lifting of digital life—from sophisticated email management and Discord orchestration to controlling your smart home via Hue and Home Assistant.
-2.  **Virtual Hands (The Simulation)**: Agents must be able to create and simulate. Robofang integrates a full virtualization pipeline, connecting the agent to tools like Blender, GIMP, and Unity3D. This allows the agent to build environments, manage avatars, and test physical logic in high-fidelity simulations before taking action in the real world.
-3.  **Physical Hands (The Reality)**: This is the ultimate goal. Through a sophisticated ROS/OSC bridge, Robofang connects to physical robotics hardware. Whether it's learning the ropes with a Yahboom Raspbot or performing complex tasks with the Noetix Bumi humanoid, our agents are learning to touch reality.
 
 ## The Great Architecture Debate
 

@@ -112,7 +112,7 @@ else {
 
 # -- 3. Start dashboard --------------------------------------------------------
 Write-Host "[3/3] Starting dashboard dev server ..." -ForegroundColor Yellow
-$DashDir = Join-Path $RepoRoot "dashboard"
+$DashDir = Join-Path $RepoRoot "robofang-hub"
 if (-not (Test-Path $DashDir)) {
     Write-Host "    Dashboard directory not found: $DashDir" -ForegroundColor Red
     exit 1
