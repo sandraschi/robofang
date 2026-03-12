@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Download, CheckCircle2, XCircle, Loader2,
-    ChevronRight, ShieldCheck, Box
+    ChevronRight, ShieldCheck, Box, Terminal, Info
 } from 'lucide-react';
 import { getFleetMarket, installFleetNode, getFleetInstallerStatus } from '../api/fleet';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface MarketNode {
     id: string;
@@ -71,7 +75,7 @@ const Installer: React.FC = () => {
         hidden: { opacity: 0 },
         show: {
             opacity: 1,
-            transition: { staggerChildren: 0.1 }
+            transition: { staggerChildren: 0.05 }
         }
     };
 
@@ -80,48 +84,59 @@ const Installer: React.FC = () => {
         show: { y: 0, opacity: 1 }
     };
 
+    const isAnyInstalling = Object.values(statuses).some(s => s.status === 'installing');
+
     return (
-        <div className="space-y-10 max-w-7xl mx-auto pb-20">
+        <div className="space-y-10 max-w-7xl mx-auto pb-32">
             <header className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
-                    <div className="px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-[10px] font-bold text-indigo-400 uppercase tracking-widest">
+                    <Badge variant="glass" className="bg-indigo-500/10 border-indigo-500/20 text-[9px] font-bold text-indigo-400 uppercase tracking-widest px-3 py-1">
                         System Provisioning
-                    </div>
+                    </Badge>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <h1 className="text-5xl font-heading font-bold tracking-tight text-white mb-2">
+                        <h1 className="text-5xl font-bold tracking-tighter text-white mb-3">
                             Fleet <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-cyan-400 to-emerald-400">Installer</span>
                         </h1>
-                        <p className="text-slate-400 text-lg max-w-2xl font-medium">
-                            Orchestrate the deployment of associated MCP servers and webapps across your local substrate.
+                        <p className="text-slate-400 text-lg max-w-2xl font-medium leading-relaxed">
+                            Orchestrate the deployment of associated MCP servers and webapps across your local substrate. Automated repository cloning and dependency resolution.
                         </p>
                     </div>
-                    {selected.size > 0 && (
-                        <motion.button
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            onClick={handleInstall}
-                            className="flex items-center gap-3 px-8 py-4 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-lg shadow-indigo-600/20"
-                        >
-                            <Download size={20} />
-                            Install {selected.size} Node{selected.size > 1 ? 's' : ''}
-                        </motion.button>
-                    )}
+                    <AnimatePresence>
+                        {selected.size > 0 && (
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0, x: 20 }}
+                                animate={{ scale: 1, opacity: 1, x: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, x: 20 }}
+                            >
+                                <Button
+                                    onClick={handleInstall}
+                                    className="h-14 px-8 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition-all shadow-xl shadow-indigo-600/30 gap-3 text-sm uppercase tracking-widest"
+                                >
+                                    <Download size={20} />
+                                    Install {selected.size} Node{selected.size > 1 ? 's' : ''}
+                                </Button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </header>
 
             {loading ? (
-                <div className="flex flex-col items-center justify-center py-32 gap-4">
-                    <Loader2 className="text-indigo-500 animate-spin" size={40} />
-                    <p className="text-slate-500 font-mono text-xs uppercase tracking-[0.3em]">Querying Registry...</p>
+                <div className="flex flex-col items-center justify-center py-40 gap-6">
+                    <div className="relative w-20 h-20">
+                         <div className="absolute inset-0 rounded-full border-4 border-indigo-500/10" />
+                         <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-500 animate-spin" />
+                    </div>
+                    <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.4em] animate-pulse">Querying Central Registry</p>
                 </div>
             ) : (
                 <motion.div
                     variants={container}
                     initial="hidden"
                     animate="show"
-                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
                 >
                     {market.map(node => {
                         const status = statuses[node.id];
@@ -135,38 +150,45 @@ const Installer: React.FC = () => {
                                 key={node.id}
                                 variants={item}
                                 onClick={() => !isInstalling && !isCompleted && toggleSelect(node.id)}
-                                className={`group relative p-6 rounded-3xl border transition-all cursor-pointer overflow-hidden ${isSelected
-                                    ? 'bg-indigo-500/10 border-indigo-500/50 shadow-lg shadow-indigo-500/10'
-                                    : 'bg-[#16162a] border-white/5 hover:border-white/10'
-                                    } ${isCompleted ? 'opacity-60 cursor-default' : ''}`}
+                                className="h-full"
                             >
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className={`p-3 rounded-2xl border ${isSelected ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400' : 'bg-white/5 border-white/10 text-slate-400 group-hover:text-white'
-                                        }`}>
-                                        <Box size={24} />
-                                    </div>
-                                    <div className="flex flex-col items-end gap-2">
-                                        {isInstalling && <Loader2 size={16} className="text-indigo-400 animate-spin" />}
-                                        {isCompleted && <CheckCircle2 size={16} className="text-emerald-400" />}
-                                        {isFailed && <XCircle size={16} className="text-red-400" />}
-                                        <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">{node.category}</span>
-                                    </div>
-                                </div>
+                                <Card className={`group relative h-full flex flex-col bg-slate-950/40 border-slate-800 transition-all duration-300 cursor-pointer overflow-hidden ${isSelected ? 'border-indigo-500/50 ring-1 ring-indigo-500/20 shadow-xl shadow-indigo-500/10' : 'hover:border-slate-700'} ${isCompleted ? 'opacity-50 cursor-default' : ''}`}>
+                                    <CardHeader className="p-6 pb-4 space-y-4">
+                                        <div className="flex justify-between items-start">
+                                            <div className={`p-3 rounded-2xl border transition-all duration-300 ${isSelected ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-400' : 'bg-slate-900 border-white/5 text-slate-500 group-hover:text-white'}`}>
+                                                <Box size={24} />
+                                            </div>
+                                            <div className="flex flex-col items-end gap-2">
+                                                {isInstalling && <Loader2 size={16} className="text-indigo-400 animate-spin" />}
+                                                {isCompleted && <CheckCircle2 size={16} className="text-emerald-400" />}
+                                                {isFailed && <XCircle size={16} className="text-red-400" />}
+                                                <Badge variant="glass" className="bg-slate-900/60 border-white/5 text-[9px] font-black uppercase tracking-widest px-2 h-5">
+                                                    {node.category}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-lg font-bold text-white tracking-tight">{node.name}</CardTitle>
+                                            <CardDescription className="text-xs text-slate-400 leading-relaxed mt-2 font-medium line-clamp-2">
+                                                {node.description}
+                                            </CardDescription>
+                                        </div>
+                                    </CardHeader>
 
-                                <h3 className="text-lg font-bold text-white mb-2">{node.name}</h3>
-                                <p className="text-xs text-slate-400 leading-relaxed mb-6 line-clamp-2">{node.description}</p>
+                                    <CardContent className="px-6 flex-1 flex flex-col justify-end pt-0">
+                                         <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.1em]">
+                                            <span className="text-slate-600 font-mono">Substrate Port: {node.port}</span>
+                                            <div className="flex items-center gap-2 text-indigo-400 opacity-0 group-hover:opacity-100 transition-all translate-x-1 group-hover:translate-x-0">
+                                                <span className="tracking-widest">SELECT</span>
+                                                <ChevronRight size={12} />
+                                            </div>
+                                        </div>
+                                    </CardContent>
 
-                                <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest mt-auto">
-                                    <span className="text-slate-600 font-mono">Port {node.port}</span>
-                                    <div className="flex items-center gap-2 text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <span>Select for Install</span>
-                                        <ChevronRight size={12} />
-                                    </div>
-                                </div>
-
-                                {isInstalling && (
-                                    <div className="absolute bottom-0 left-0 h-1 bg-indigo-500 animate-pulse w-full" />
-                                )}
+                                    {isInstalling && (
+                                        <div className="absolute bottom-0 left-0 h-1 bg-indigo-500 animate-pulse w-full shadow-[0_-4px_10px_rgba(99,102,241,0.5)]" />
+                                    )}
+                                </Card>
                             </motion.div>
                         );
                     })}
@@ -174,35 +196,56 @@ const Installer: React.FC = () => {
             )}
 
             {/* Active Installation Log Console */}
-            {Object.values(statuses).some(s => s.status === 'installing') && (
-                <motion.div
-                    initial={{ y: 50, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="fixed bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-4 z-50"
-                >
-                    <div className="bg-[#0a0a16]/80 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-xl">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-3">
-                                <ShieldCheck className="text-indigo-400" size={18} />
-                                <h4 className="text-xs font-bold text-white uppercase tracking-widest">Installation Control Sequence</h4>
-                            </div>
-                            <span className="text-[9px] font-mono text-slate-600">ROBOFANG_SYS_V3</span>
-                        </div>
-                        <div className="h-32 overflow-y-auto font-mono text-[10px] text-slate-400 space-y-1 custom-scrollbar">
-                            {Object.entries(statuses)
-                                .filter(([, s]) => s.status === 'installing')
-                                .flatMap(([id, s]) => s.logs.map(l => ({ id, msg: l })))
-                                .map((log, i) => (
-                                    <div key={i} className="flex gap-4">
-                                        <span className="text-indigo-500 shrink-0">[{log.id}]</span>
-                                        <span>{log.msg}</span>
+            <AnimatePresence>
+                {isAnyInstalling && (
+                    <motion.div
+                        initial={{ y: 100, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        exit={{ y: 100, opacity: 0 }}
+                        className="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-4xl px-6 z-50"
+                    >
+                        <Card className="bg-slate-950/80 border-slate-700/50 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] backdrop-blur-2xl rounded-[2.5rem] overflow-hidden">
+                            <CardHeader className="px-8 py-5 border-b border-white/[0.04] bg-white/[0.01]">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400">
+                                            <Terminal size={14} />
+                                        </div>
+                                        <CardTitle className="text-[10px] font-black text-white uppercase tracking-[0.3em]">Deploy Control Sequence</CardTitle>
                                     </div>
-                                ))
-                            }
-                        </div>
-                    </div>
-                </motion.div>
-            )}
+                                    <Badge variant="glass" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20 font-mono text-[9px] font-bold tracking-tighter">
+                                        SUBSTRATE_V3_INIT
+                                    </Badge>
+                                </div>
+                            </CardHeader>
+                            <CardContent className="p-0">
+                                <ScrollArea className="h-40 px-8 py-6">
+                                    <div className="font-mono text-[11px] text-slate-400 space-y-2 leading-relaxed">
+                                        {Object.entries(statuses)
+                                            .filter(([, s]) => s.status === 'installing')
+                                            .flatMap(([id, s]) => s.logs.map(l => ({ id, msg: l })))
+                                            .map((log, i) => (
+                                                <div key={i} className="flex gap-4 group">
+                                                    <span className="text-indigo-500/60 font-black shrink-0 tracking-tighter group-hover:text-indigo-400">[{log.id.toUpperCase()}]</span>
+                                                    <span className="text-slate-300">{log.msg}</span>
+                                                </div>
+                                            ))
+                                        }
+                                        <div className="flex gap-4 animate-pulse">
+                                            <span className="text-indigo-500/40 font-black shrink-0 tracking-tighter">[SYSTEM]</span>
+                                            <span className="text-slate-500 italic">Awaiting buffer stream...</span>
+                                        </div>
+                                    </div>
+                                </ScrollArea>
+                            </CardContent>
+                            <CardFooter className="px-8 py-4 bg-white/[0.01] border-t border-white/[0.04] flex items-center gap-2">
+                                <Info size={12} className="text-slate-600" />
+                                <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Secure installation active. Do not interrupt substrate link.</span>
+                            </CardFooter>
+                        </Card>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

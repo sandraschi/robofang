@@ -7,6 +7,10 @@ import {
 import { fleetApi } from '../api/fleet';
 import type { FleetData, FleetConnector, FleetAgent } from '../api/fleet';
 import FleetSpace from '../components/FleetSpace';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const DOMAIN_META: Record<string, { label: string; icon: React.ReactNode; color: string }> = {
     connectors: { label: 'Live Connectors', icon: <Radio size={15} />, color: 'indigo' },
@@ -25,40 +29,40 @@ function domainColor(domain: string) {
 }
 
 const MetricCard: React.FC<{ icon: React.ReactNode; label: string; value: string; color: string }> = ({ icon, label, value, color }) => {
-    const colors: Record<string, string> = {
+    const colorClasses: Record<string, string> = {
         emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
         indigo: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20',
         purple: 'text-purple-400 bg-purple-500/10 border-purple-500/20'
     };
     return (
-        <div className={`page-card flex items-center gap-6 p-6 border ${colors[color] || colors.indigo}`}>
+        <Card className={`flex items-center gap-6 p-6 border ${colorClasses[color] || colorClasses.indigo} bg-slate-950/40`}>
             <div className="opacity-80">{icon}</div>
             <div>
-                <div className="text-3xl font-heading font-bold text-white mb-1">{value}</div>
+                <div className="text-3xl font-bold text-white mb-1 tracking-tighter">{value}</div>
                 <div className="text-[10px] font-bold uppercase tracking-widest opacity-60">{label}</div>
             </div>
-        </div>
+        </Card>
     );
 };
 
 const StatusBadge: React.FC<{ status: FleetConnector['status'] }> = ({ status }) => {
     if (status === 'online') return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.6)]" />
+        <Badge variant="glass" className="bg-emerald-500/15 text-emerald-400 border-emerald-500/25 px-2 py-0.5 h-auto text-[9px] uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_rgba(52,211,153,0.6)] mr-1.5" />
             Online
-        </span>
+        </Badge>
     );
     if (status === 'discovered') return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-indigo-500/15 text-indigo-400 border border-indigo-500/25">
-            <Bot size={9} />
+        <Badge variant="glass" className="bg-indigo-500/15 text-indigo-400 border-indigo-500/25 px-2 py-0.5 h-auto text-[9px] uppercase tracking-widest">
+            <Bot size={9} className="mr-1.5" />
             Discovered
-        </span>
+        </Badge>
     );
     return (
-        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-widest bg-slate-500/15 text-slate-400 border border-slate-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-600" />
+        <Badge variant="glass" className="bg-slate-500/15 text-slate-400 border-slate-500/20 px-2 py-0.5 h-auto text-[9px] uppercase tracking-widest">
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-600 mr-1.5" />
             Offline
-        </span>
+        </Badge>
     );
 };
 
@@ -79,42 +83,44 @@ const ConnectorCard: React.FC<{ item: FleetConnector | FleetAgent }> = ({ item }
     return (
         <motion.div
             layout
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            whileHover={{ y: -2 }}
-            className="group bg-[#16162a] border border-white/10 hover:border-white/20 rounded-2xl p-4 flex flex-col gap-3 cursor-pointer transition-colors"
+            whileHover={{ y: -4 }}
+            className="h-full"
         >
-            <div className="flex items-start justify-between gap-2">
-                <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-colors ${colorMap[color] ?? colorMap.slate}`}>
-                    {isAgent ? <Bot size={18} /> : <Cpu size={18} />}
+            <Card className="group bg-slate-950/40 border-slate-800 hover:border-slate-700 transition-all duration-300 h-full p-4 flex flex-col gap-3 cursor-pointer">
+                <div className="flex items-start justify-between gap-2">
+                    <div className={`w-10 h-10 rounded-xl border flex items-center justify-center shrink-0 transition-colors ${colorMap[color] ?? colorMap.slate}`}>
+                        {isAgent ? <Bot size={18} /> : <Cpu size={18} />}
+                    </div>
+                    <StatusBadge status={item.status} />
                 </div>
-                <StatusBadge status={item.status} />
-            </div>
 
-            <div>
-                <div className="text-sm font-bold text-slate-100 group-hover:text-white transition-colors leading-tight">
-                    {item.name}
+                <div>
+                    <div className="text-sm font-bold text-slate-100 group-hover:text-white transition-colors leading-tight truncate">
+                        {item.name}
+                    </div>
+                    <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-1 tracking-tighter">
+                        {item.type}
+                    </div>
                 </div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold mt-0.5">
-                    {item.type}
-                </div>
-            </div>
 
-            {isAgent && (item as FleetAgent).capabilities.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-auto">
-                    {(item as FleetAgent).capabilities.slice(0, 3).map((cap) => (
-                        <span key={cap} className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/[0.05] text-slate-400 border border-white/[0.06]">
-                            {cap}
-                        </span>
-                    ))}
-                    {(item as FleetAgent).capabilities.length > 3 && (
-                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded bg-white/[0.05] text-slate-500 border border-white/[0.06]">
-                            +{(item as FleetAgent).capabilities.length - 3}
-                        </span>
-                    )}
-                </div>
-            )}
+                {isAgent && (item as FleetAgent).capabilities.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-auto pt-2">
+                        {(item as FleetAgent).capabilities.slice(0, 3).map((cap) => (
+                            <Badge key={cap} variant="outline" className="text-[8px] font-bold px-1.5 py-0 h-4 border-white/[0.06] text-slate-500 bg-white/[0.02]">
+                                {cap}
+                            </Badge>
+                        ))}
+                        {(item as FleetAgent).capabilities.length > 3 && (
+                            <span className="text-[9px] font-semibold text-slate-600 pl-1">
+                                +{(item as FleetAgent).capabilities.length - 3}
+                            </span>
+                        )}
+                    </div>
+                )}
+            </Card>
         </motion.div>
     );
 };
@@ -124,18 +130,18 @@ const DomainSection: React.FC<{ domain: string; items: (FleetConnector | FleetAg
     const online = items.filter(i => i.status === 'online').length;
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-4">
             <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 text-slate-300 font-bold text-sm">
                     <span className="text-slate-400">{meta.icon}</span>
-                    {meta.label}
+                    <span className="tracking-tight">{meta.label}</span>
                 </div>
                 <div className="flex-1 h-px bg-white/[0.06]" />
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    {online > 0 ? `${online} online · ` : ''}{items.length} total
-                </span>
+                <Badge variant="glass" className="bg-slate-900/40 border-white/5 text-[9px] font-bold text-slate-500 uppercase tracking-widest h-5">
+                    {online > 0 && <span className="text-emerald-500 mr-1">{online} OK ·</span>} {items.length} total
+                </Badge>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 <AnimatePresence>
                     {items.map((item) => (
                         <ConnectorCard key={item.id} item={item} />
@@ -199,33 +205,35 @@ const Fleet: React.FC = () => {
     )];
 
     return (
-        <div className="space-y-10 max-w-7xl mx-auto">
+        <div className="space-y-10 max-w-7xl mx-auto pb-20">
             <header className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
-                    <div className="px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] font-bold text-purple-400 uppercase tracking-widest">
+                    <Badge variant="glass" className="bg-purple-500/10 border-purple-500/20 text-[9px] font-bold text-purple-400 uppercase tracking-widest px-3 py-1">
                         Swarm Topology
-                    </div>
+                    </Badge>
                 </div>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                     <div>
-                        <h1 className="text-5xl font-heading font-bold tracking-tight text-white mb-2">
+                        <h1 className="text-5xl font-bold tracking-tighter text-white mb-3">
                             Fleet <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400">Discovery</span>
                         </h1>
-                        <p className="text-slate-400 text-lg max-w-2xl font-medium">
-                            Monitor and manage {allItems.length}+ MCP nodes across the decentralized federation.
+                        <p className="text-slate-400 text-lg max-w-2xl font-medium leading-relaxed">
+                            Monitor and manage {allItems.length}+ MCP nodes across the decentralized federation. Substrate sync status nominal.
                         </p>
                     </div>
                     <div className="flex items-center gap-3">
-                        <button
+                        <Button
+                            variant="glass"
+                            size="icon"
                             onClick={fetch}
                             disabled={loading}
-                            className="p-3 bg-white/[0.05] border border-white/10 rounded-2xl text-slate-300 hover:text-white hover:bg-white/10 transition-all active:scale-95 disabled:opacity-50"
+                            className="h-12 w-12 rounded-2xl bg-white/[0.03] border-white/10 text-slate-300 hover:text-white"
                         >
                             <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
-                        </button>
-                        <button className="p-3 bg-white/[0.05] border border-white/10 rounded-2xl text-slate-300 hover:text-white hover:bg-white/10 transition-all">
+                        </Button>
+                        <Button variant="glass" size="icon" className="h-12 w-12 rounded-2xl bg-white/[0.03] border-white/10 text-slate-300 hover:text-white">
                             <Settings2 size={20} />
-                        </button>
+                        </Button>
                     </div>
                 </div>
             </header>
@@ -234,58 +242,62 @@ const Fleet: React.FC = () => {
 
             {data && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <MetricCard icon={<Cpu size={20} />} label="Online Connectors" value={data.summary.connectors_online.toString()} color="emerald" />
-                    <MetricCard icon={<Radio size={20} />} label="Total Swarm Size" value={data.summary.connectors_total.toString()} color="indigo" />
-                    <MetricCard icon={<Bot size={20} />} label="Agents Discovered" value={data.summary.agents_discovered.toString()} color="purple" />
+                    <MetricCard icon={<Cpu size={24} />} label="Online Connectors" value={data.summary.connectors_online.toString()} color="emerald" />
+                    <MetricCard icon={<Radio size={24} />} label="Total Swarm Size" value={data.summary.connectors_total.toString()} color="indigo" />
+                    <MetricCard icon={<Bot size={24} />} label="Agents Discovered" value={data.summary.agents_discovered.toString()} color="purple" />
                 </div>
             )}
 
-            <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-white/[0.02] border border-white/5 p-4 rounded-3xl">
+            <div className="flex flex-col md:flex-row gap-4 items-center justify-between bg-slate-950/40 border border-slate-800 p-4 rounded-3xl backdrop-blur-sm">
                 <div className="relative w-full md:w-96 group">
                     <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 group-focus-within:text-purple-400 transition-colors" />
-                    <input
+                    <Input
                         type="text"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
                         placeholder="Search swarm nodes..."
-                        className="w-full bg-[#0a0a16] border border-white/10 rounded-2xl pl-12 pr-4 py-3 text-sm text-white placeholder-slate-600 focus:ring-0 focus:border-purple-500/50 transition-all"
+                        className="bg-slate-900/50 border-slate-800 rounded-2xl pl-12 h-12 text-sm focus-visible:ring-purple-500/30 transition-all font-medium"
                     />
                 </div>
-                <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 no-scrollbar max-w-full">
                     {tabs.map(tab => (
-                        <button
+                        <Button
                             key={tab}
+                            variant={activeTab === tab ? "default" : "glass"}
+                            size="sm"
                             onClick={() => setActiveTab(tab)}
-                            className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap ${activeTab === tab
-                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/20'
-                                : 'bg-white/[0.05] text-slate-400 hover:bg-white/10 hover:text-white border border-white/5'
-                                }`}
+                            className={`rounded-xl text-[10px] font-bold uppercase tracking-widest px-4 h-9 ${activeTab === tab 
+                                ? 'bg-purple-600 text-white shadow-lg shadow-purple-600/30' 
+                                : 'bg-slate-900/40 border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white'}`}
                         >
                             {tab}
-                        </button>
+                        </Button>
                     ))}
                 </div>
             </div>
 
             {loading && !data && (
-                <div className="flex flex-col items-center justify-center py-32 gap-4">
-                    <div className="w-16 h-16 rounded-3xl border-2 border-purple-500/20 border-t-purple-500 animate-spin" />
-                    <p className="text-slate-400 font-mono text-xs uppercase tracking-[0.3em] animate-pulse">Syncing Swarm Topology...</p>
+                <div className="flex flex-col items-center justify-center py-32 gap-6">
+                    <div className="relative w-24 h-24">
+                        <div className="absolute inset-0 rounded-full border-4 border-purple-500/10" />
+                        <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-purple-500 animate-spin" />
+                    </div>
+                    <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.4em] animate-pulse">Syncing Swarm Topology</p>
                 </div>
             )}
 
             {error && (
-                <div className="page-card border-red-500/20 bg-red-500/5 flex items-center gap-4 text-red-400 p-8">
-                    <AlertTriangle size={24} />
+                <Card className="border-red-500/20 bg-red-500/5 flex items-center gap-4 text-red-400 p-8 rounded-3xl">
+                    <AlertTriangle size={32} className="shrink-0" />
                     <div>
-                        <h3 className="text-lg font-bold">Federation Sync Failure</h3>
-                        <p className="text-sm opacity-80">{error}</p>
+                        <h3 className="text-xl font-bold tracking-tight">Federation Sync Failure</h3>
+                        <p className="text-sm opacity-80 mt-1 font-medium">{error}</p>
                     </div>
-                </div>
+                </Card>
             )}
 
             {!loading && filtered.length > 0 && (
-                <div className="space-y-12">
+                <div className="grid gap-16">
                     {activeTab === 'all'
                         ? activeDomains.map(domain => (
                             <DomainSection key={domain} domain={domain} items={grouped[domain]} />

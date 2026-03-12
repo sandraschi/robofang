@@ -18,7 +18,9 @@ import {
   Activity,
   Waves
 } from "lucide-react";
-import GlassCard from "../components/ui/GlassCard";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // ── Shared Constants ──────────────────────────────────────────────────────────
 const BRIDGE = "http://localhost:10871";
@@ -55,67 +57,84 @@ interface ConnectorCardProps {
   onRefresh: () => void;
   children: React.ReactNode;
   port: number;
-  accentClass: string;
+  accentColor: string; // e.g., "orange", "red", "amber", "emerald"
 }
 
 function ConnectorCard({
-  title, subtitle, icon, online, loading, error, onRefresh, children, port, accentClass
+  title, subtitle, icon, online, loading, error, onRefresh, children, port, accentColor
 }: ConnectorCardProps) {
+  const accentClasses: Record<string, string> = {
+    orange: "border-orange-500/20 text-orange-400 bg-orange-500/5",
+    red: "border-red-500/20 text-red-400 bg-red-500/5",
+    amber: "border-amber-500/20 text-amber-400 bg-amber-500/5",
+    emerald: "border-emerald-500/20 text-emerald-400 bg-emerald-500/5",
+    violet: "border-violet-500/20 text-violet-400 bg-violet-500/5",
+  };
+
+  const accentClass = accentClasses[accentColor] || accentClasses.violet;
+
   return (
-    <GlassCard className={`flex flex-col h-full bg-slate-900/40 border-slate-700/50 hover:border-${accentClass}-500/30 transition-all duration-500 group overflow-hidden min-h-[460px]`}>
+    <Card className="flex flex-col h-full bg-slate-950/40 border-slate-800 hover:border-slate-700 transition-all duration-500 group overflow-hidden min-h-[460px]">
       {/* Header */}
-      <div className={`flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] bg-${accentClass}-500/5`}>
-        <div className={`text-${accentClass}-400 group-hover:scale-110 transition-transform duration-500`}>
-          {icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-slate-100">{title}</div>
-          {subtitle && (
-            <div className="text-[10px] text-slate-400 truncate uppercase tracking-widest mt-0.5 font-medium">
-              {subtitle}
-            </div>
-          )}
+      <CardHeader className={`flex flex-row items-center justify-between p-5 border-b border-white/[0.06] ${accentClass} space-y-0`}>
+        <div className="flex items-center gap-4">
+          <div className="group-hover:scale-110 transition-transform duration-500">
+            {icon}
+          </div>
+          <div className="flex flex-col">
+            <CardTitle className="text-sm font-bold text-white tracking-tight">{title}</CardTitle>
+            {subtitle && (
+              <span className="text-[10px] text-slate-400 truncate uppercase tracking-widest mt-0.5 font-medium">
+                {subtitle}
+              </span>
+            )}
+          </div>
         </div>
         
         <div className="flex items-center gap-2">
           {!online && !loading && (
-             <button
+             <Button
+                variant="glass"
+                size="sm"
                 onClick={() => launchConnector(title.toLowerCase().replace(" ", "-"))}
-                className={`px-2 py-0.5 rounded-lg bg-${accentClass}-500/10 hover:bg-${accentClass}-500/20 text-[9px] font-bold text-${accentClass}-400 border border-${accentClass}-500/20 transition-all uppercase tracking-tighter`}
+                className="h-6 px-2 text-[9px] font-bold uppercase tracking-tighter"
               >
                 Launch
-              </button>
+              </Button>
           )}
-          <div 
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider transition-all duration-300 ${
-              online 
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                : "bg-red-500/10 text-red-400 border-red-500/20"
-            }`}
-          >
-            <div className={`w-1 h-1 rounded-full ${online ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
-            {online ? "online" : `OFFLINE :${port}`}
-          </div>
+          {online ? (
+            <Badge variant="glass" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-1.5 py-0 h-4 text-[9px] uppercase tracking-tighter">
+              <div className="w-1 h-1 rounded-full bg-emerald-400 mr-1 animate-pulse" />
+              online
+            </Badge>
+          ) : (
+            <Badge variant="glass" className="bg-red-500/10 text-red-400 border-red-500/20 px-1.5 py-0 h-4 text-[9px] uppercase tracking-tighter">
+              <div className="w-1 h-1 rounded-full bg-red-400 mr-1" />
+              OFFLINE :{port}
+            </Badge>
+          )}
           
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onRefresh}
             title="Refresh Creative Library"
-            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-500 hover:text-slate-200 transition-all active:scale-90"
+            className="h-8 w-8 text-slate-500 hover:text-slate-200"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : 'hover:rotate-180 transition-transform duration-500'} />
-          </button>
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </Button>
         </div>
-      </div>
+      </CardHeader>
 
       {/* Content Area */}
-      <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
+      <CardContent className="flex-1 p-5 overflow-y-auto custom-scrollbar">
         <AnimatePresence mode="wait">
           {loading ? (
              <div className="space-y-4 animate-pulse">
                 {[1, 2, 3, 4, 5].map((i) => (
                     <div 
                         key={i} 
-                        className="skeleton-bar" 
+                        className="h-2 bg-white/5 rounded w-[var(--w)]" 
                         style={{ "--w": `${65 + (i % 4) * 8}%` } as React.CSSProperties} 
                     />
                 ))}
@@ -141,8 +160,8 @@ function ConnectorCard({
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-    </GlassCard>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -173,18 +192,18 @@ function BlenderCard() {
 
   return (
     <ConnectorCard
-      title="Blender" subtitle={scene?.name || "3D Workspace"} icon={<Box size={18} />} accentClass="orange"
+      title="Blender" subtitle={scene?.name || "3D Workspace"} icon={<Box size={18} />} accentColor="orange"
       online={online} loading={loading} error={error} onRefresh={fetch} port={10849}
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-2">
-            <div className="bg-slate-800/40 rounded-lg p-2 border border-white/5">
+            <div className="bg-slate-900/40 rounded-lg p-2 border border-white/5 font-mono">
                 <div className="text-[9px] text-slate-500 uppercase tracking-tighter mb-0.5">Objects</div>
-                <div className="text-sm font-bold text-slate-200 font-mono">{scene?.objects ?? objects.length}</div>
+                <div className="text-sm font-bold text-slate-200">{scene?.objects ?? objects.length}</div>
             </div>
-            <div className="bg-slate-800/40 rounded-lg p-2 border border-white/5">
+            <div className="bg-slate-900/40 rounded-lg p-2 border border-white/5 font-mono">
                 <div className="text-[9px] text-slate-500 uppercase tracking-tighter mb-0.5">Engine</div>
-                <div className="text-[10px] font-bold text-orange-400/80 uppercase font-mono">{scene?.render_engine || "Cycles"}</div>
+                <div className="text-[10px] font-bold text-orange-400/80 uppercase">{scene?.render_engine || "Cycles"}</div>
             </div>
         </div>
 
@@ -198,17 +217,18 @@ function BlenderCard() {
             {objects.length === 0 && <div className="text-center py-10 text-[10px] text-slate-700 italic">No scene graph found.</div>}
         </div>
 
-        <button
+        <Button
+            variant="glass"
             onClick={async () => {
                 setRenderStatus("rendering...");
-                try { await creativePost("blender", "render/frame"); setRenderStatus("success ✓"); }
+                try { await creativePost("blender", "render/frame"); setRenderStatus("success \u2713"); }
                 catch { setRenderStatus("failed"); }
                 setTimeout(() => setRenderStatus(null), 3000);
             }}
-            className="w-full py-2 rounded-xl bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border border-orange-500/20 text-[11px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+            className="w-full bg-orange-500/10 hover:bg-orange-500/20 text-orange-400 border-orange-500/20 text-[11px] font-bold uppercase tracking-widest gap-2"
         >
             <Play size={12} fill="currentColor" /> Render Frame
-        </button>
+        </Button>
         {renderStatus && <div className="text-[10px] text-center text-orange-500 animate-pulse">{renderStatus}</div>}
       </div>
     </ConnectorCard>
@@ -241,16 +261,16 @@ function OBSCard() {
 
   return (
     <ConnectorCard
-      title="OBS Studio" subtitle={status?.scene_name || "Encoder"} icon={<Video size={18} />} accentClass="red"
+      title="OBS Studio" subtitle={status?.scene_name || "Encoder"} icon={<Video size={18} />} accentColor="red"
       online={online} loading={loading} error={error} onRefresh={fetch} port={10819}
     >
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-2">
-            <div className={`rounded-xl p-2 border flex items-center justify-between ${status?.streaming ? 'bg-red-500/10 border-red-500/30' : 'bg-slate-800/40 border-white/5'}`}>
+            <div className={`rounded-xl p-2 border flex items-center justify-between ${status?.streaming ? 'bg-red-500/10 border-red-500/30' : 'bg-slate-900/40 border-white/5'}`}>
                 <div className="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Stream</div>
                 <div className={`w-2 h-2 rounded-full ${status?.streaming ? 'bg-red-500 animate-pulse' : 'bg-slate-700'}`} />
             </div>
-            <div className={`rounded-xl p-2 border flex items-center justify-between ${status?.recording ? 'bg-rose-500/10 border-rose-500/30' : 'bg-slate-800/40 border-white/5'}`}>
+            <div className={`rounded-xl p-2 border flex items-center justify-between ${status?.recording ? 'bg-rose-500/10 border-rose-500/30' : 'bg-slate-900/40 border-white/5'}`}>
                 <div className="text-[9px] text-slate-500 uppercase font-bold tracking-tighter">Record</div>
                 <div className={`w-2 h-2 rounded-full ${status?.recording ? 'bg-rose-500 animate-pulse' : 'bg-slate-700'}`} />
             </div>
@@ -276,8 +296,8 @@ function OBSCard() {
         </div>
 
         <div className="flex gap-2">
-            <button className="flex-1 py-1.5 rounded-xl bg-slate-800/40 border border-white/5 text-[10px] font-bold uppercase text-slate-400 hover:bg-white/5 transition-all">Start Stream</button>
-            <button className="flex-1 py-1.5 rounded-xl bg-slate-800/40 border border-white/5 text-[10px] font-bold uppercase text-slate-400 hover:bg-white/5 transition-all">Start Record</button>
+            <Button variant="outline" className="flex-1 h-7 text-[10px] font-bold uppercase text-slate-400">Start Stream</Button>
+            <Button variant="outline" className="flex-1 h-7 text-[10px] font-bold uppercase text-slate-400">Start Record</Button>
         </div>
       </div>
     </ConnectorCard>
@@ -310,11 +330,11 @@ function DaVinciCard() {
 
   return (
     <ConnectorCard
-      title="DaVinci" subtitle={project?.name || "Suite"} icon={<Film size={18} />} accentClass="amber"
+      title="DaVinci" subtitle={project?.name || "Suite"} icon={<Film size={18} />} accentColor="amber"
       online={online} loading={loading} error={error} onRefresh={fetch} port={10843}
     >
       <div className="space-y-4">
-        <div className="bg-slate-800/40 rounded-xl p-3 border border-white/5">
+        <div className="bg-slate-900/40 rounded-xl p-3 border border-white/5">
             <div className="flex items-center justify-between mb-2">
                 <div className="text-[9px] text-slate-500 uppercase tracking-tighter">Active project</div>
                 <div className="text-[9px] text-amber-500 font-bold uppercase">{project?.fps || "24"} FPS</div>
@@ -329,16 +349,16 @@ function DaVinciCard() {
                     <div key={i} className="flex items-center gap-3 p-2 rounded-lg bg-white/[0.02] border border-white/[0.03] hover:border-amber-500/20 transition-all group/tl">
                         <Activity size={10} className="text-amber-500/50 group-hover/tl:text-amber-500 transition-colors" />
                         <span className="text-[11px] text-slate-300 truncate uppercase tracking-tight">{t.name}</span>
-                        <span className="ml-auto text-[9px] text-slate-600 font-mono">{t.duration || "—"}</span>
+                        <span className="ml-auto text-[9px] text-slate-600 font-mono">{t.duration || "\u2014"}</span>
                     </div>
                 ))}
                 {timelines.length === 0 && <div className="text-center py-6 text-[10px] text-slate-700 italic">No timeline handles.</div>}
             </div>
         </div>
 
-        <button className="w-full py-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-[11px] font-bold uppercase tracking-widest transition-all">
+        <Button variant="glass" className="w-full bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border-amber-500/20 text-[11px] font-bold uppercase tracking-widest">
             Quick Export Render
-        </button>
+        </Button>
       </div>
     </ConnectorCard>
   );
@@ -370,20 +390,20 @@ function ReaperCard() {
 
   return (
     <ConnectorCard
-      title="Reaper" subtitle="Digital Audio Workstation" icon={<Music size={18} />} accentClass="emerald"
+      title="Reaper" subtitle="Digital Audio Workstation" icon={<Music size={18} />} accentColor="emerald"
       online={online} loading={loading} error={error} onRefresh={fetch} port={10797}
     >
         <div className="space-y-4">
-            <div className="bg-slate-800/40 rounded-xl p-3 border border-white/5">
+            <div className="bg-slate-900/40 rounded-xl p-3 border border-white/5">
                 <div className="flex items-center justify-between mb-1">
-                    <div className="text-[9px] text-slate-500 uppercase tracking-tighter">BPM / Tempo</div>
+                    <div className="text-[9px] text-slate-500 uppercase tracking-tighter font-mono">BPM / Tempo</div>
                     <div className="text-[10px] text-emerald-400 font-mono font-bold">{status?.tempo || "120.00"}</div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className={`p-1.5 rounded-lg border transition-all ${status?.playing ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-slate-900 border-white/5'}`}>
+                    <div className={`p-1.5 rounded-lg border transition-all ${status?.playing ? 'bg-emerald-500/20 border-emerald-500/30' : 'bg-slate-950 border-white/5'}`}>
                         <Play size={14} className={status?.playing ? 'text-emerald-400 fill-emerald-400' : 'text-slate-700'} />
                     </div>
-                    <div className={`p-1.5 rounded-lg border transition-all ${status?.recording ? 'bg-red-500/20 border-red-500/30' : 'bg-slate-900 border-white/5'}`}>
+                    <div className={`p-1.5 rounded-lg border transition-all ${status?.recording ? 'bg-red-500/20 border-red-500/30' : 'bg-slate-950 border-white/5'}`}>
                         <Circle size={14} className={status?.recording ? 'text-red-400 fill-red-400' : 'text-slate-700'} />
                     </div>
                     <div className="flex-1 text-right text-[10px] font-mono text-slate-600 tracking-tighter">
@@ -427,10 +447,10 @@ export default function CreativeHub() {
             <div className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400">
               <Palette size={20} />
             </div>
-            <h1 className="text-3xl font-black text-slate-100 tracking-tight">CreativeHub</h1>
+          <h1 className="text-3xl font-black text-slate-100 tracking-tight uppercase italic">CreativeHub</h1>
           </div>
           <p className="text-slate-400 text-sm max-w-xl font-medium">
-             Wave 2 Production Grid. High-fidelity automation for 3D modeling, broadcast encoding, video synthesis, and digital audio workflows.
+             Phase 2 Production Topology. Low-latency orchestration for 3D modeling, broadcast encoding, and high-fidelity media synthesis.
           </p>
         </motion.div>
 
@@ -439,10 +459,10 @@ export default function CreativeHub() {
           animate={{ opacity: 1, scale: 1 }}
           className="flex gap-2"
         >
-          {["Production", "Active", "4K Ready"].map(tag => (
-            <span key={tag} className="px-3 py-1 rounded-lg bg-slate-800/40 border border-white/5 text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+          {["STABLE_BUILD", "IO_COHERENT", "ENCRYPTED"].map(tag => (
+            <Badge key={tag} variant="glass" className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
               {tag}
-            </span>
+            </Badge>
           ))}
         </motion.div>
       </header>
@@ -454,17 +474,17 @@ export default function CreativeHub() {
         <ReaperCard />
         
         {/* Placeholder / Coming Soon */}
-        <div className="h-full min-h-[460px] p-8 rounded-3xl bg-slate-900/40 border-2 border-dashed border-slate-800 flex flex-col items-center justify-center text-center group hover:border-violet-500/20 transition-all duration-700">
+        <Card className="h-full min-h-[460px] p-8 bg-slate-950/40 border-2 border-dashed border-slate-800 flex flex-col items-center justify-center text-center group hover:border-violet-500/20 transition-all duration-700">
             <Zap size={32} className="text-slate-800 mb-4 group-hover:text-violet-500/40 transition-all duration-700" />
             <div className="text-xs font-bold text-slate-700 uppercase tracking-[0.3em] mb-2">Resolume Arena</div>
             <div className="text-[10px] text-slate-800 uppercase tracking-tighter italic">Shader pipeline integration pending...</div>
-        </div>
+        </Card>
 
-        <GlassCard className="flex flex-col items-center justify-center h-full min-h-[460px] bg-violet-600/5 border-dashed border-violet-500/20 text-violet-500/30 group hover:border-violet-500/40 transition-all duration-1000">
+        <Card className="flex flex-col items-center justify-center h-full min-h-[460px] bg-slate-950/40 border-dashed border-violet-500/20 text-violet-500/30 group hover:border-violet-500/40 transition-all duration-1000">
           <Layers size={32} className="opacity-20 mb-4 group-hover:rotate-12 transition-transform duration-700" />
-          <div className="text-xs font-bold uppercase tracking-[0.2em]">Cortex expansion</div>
-          <div className="text-[10px] mt-1 italic tracking-tighter">Unified production registry scaling...</div>
-        </GlassCard>
+          <div className="text-xs font-bold uppercase tracking-[0.2em]">Component Expansion</div>
+          <div className="text-[10px] mt-1 italic tracking-tighter">Orchestration scale-out pending Phase 2 deployment.</div>
+        </Card>
       </div>
     </div>
   );

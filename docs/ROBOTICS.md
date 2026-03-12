@@ -11,13 +11,28 @@ The name "Robofang" is an intentional provocation. It signifies that our agents 
 We do not believe in a one-size-fits-all approach to robotics. Instead, we follow a tiered strategy that allows for both accessible learning and high-end industrial-grade performance.
 
 ### 1. The Primary Champion: Noetix Bumi
-Our current focus and most anticipated platform is the **Noetix Bumi**. Priced at approximately $1,500, it represents a remarkable breakthrough in affordable humanoid robotics. For the Robofang vision, it is the perfect "champion."
+Priced at approximately $1,500, the **Noetix Bumi** is the cornerstone of our physical agency strategy. In the 2026 SOTA landscape, it represents the most accessible "full-stack" humanoid for agentic orchestration.
 
 <p align="center">
   <img src="../assets/bumi_step2.png" alt="Noetix Bumi - THE NEXT STEP" width="500">
 </p>
 
-Unlike other consumer-grade humanoids, the Noetix Bumi features a truly open development stack based on Android and ROS (Robot Operating System). This openness is critical for us; it allows our agents to map their intentions directly into the humanoid form factor without being hampered by proprietary barriers. The Bumi is where our "Physical Hands" find their most expressive and capable outlet.
+#### Technical Specifications (Advanced AI Edition)
+- **Dimensions**: 94 cm (3.1 ft) Height | 12 kg (26.5 lbs) Weight.
+- **Chassis**: High-strength plastic and aluminum alloy with lightweight composite reinforcement.
+- **Actuation**: ≥ 21 Degrees of Freedom (DOF), supporting walking, running, and autonomous recovery.
+- **Primary Compute**: Rockchip RK3576 (System Control).
+- **AI Neural Substrate**: NVIDIA Orin Nano Super (Vision & Reasoning).
+- **Power**: 48V / 3.5Ah+ Intelligent Battery (1-2 Hours operational life).
+- **Perception**: Camera-based depth vision + "JoyInside" Voice Interaction v2.0.
+
+#### The Robofang Advantage: Open Substrate
+Unlike proprietary consumer bots, the Noetix Bumi Advanced AI Edition provides the open interfaces required for our **Embodied Sentience** loop. Robofang targets this platform specifically because it allows for:
+1. **Low-Level Motor Control**: Direct actuation via ROS 2 nodes.
+2. **Vision Ingest**: Real-time camera streams processed by the Orin Nano Super.
+3. **Android/ROS Hybridity**: Leveraging Java/Kotlin for UI and C++/Python for heavy-duty motion control.
+
+The Bumi is where our "Physical Hands" find their most expressive and capable outlet.
 
 ### 2. The Learning Foundation: Yahboom (Raspbot v2)
 Every major journey begins with a first step, and for many Robofang users, that step is the **Yahboom Raspbot v2**. Starting at just $100, this platform is an incredible accessible entry point into the world of agentic robotics.

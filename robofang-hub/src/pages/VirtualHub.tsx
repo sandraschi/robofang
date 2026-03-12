@@ -16,7 +16,9 @@ import {
     Info,
     Monitor
 } from "lucide-react";
-import GlassCard from "../components/ui/GlassCard";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 const BRIDGE = "http://localhost:10871";
 
@@ -45,16 +47,16 @@ interface ConnectorCardProps {
 }
 
 const ConnectorCard: React.FC<ConnectorCardProps> = ({
-    title, icon, accentClass, online, loading, error, onRefresh, children, port
+    title, subtitle, icon, accentClass, online, loading, error, onRefresh, children, port
 }) => (
-    <GlassCard className={`flex flex-col h-full bg-slate-900/40 border-slate-700/50 hover:border-${accentClass}-500/30 transition-all duration-500 group overflow-hidden`}>
-        <div className={`flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-${accentClass}-500/5`}>
+    <Card className="flex flex-col h-full bg-slate-950/40 border-slate-800 hover:border-slate-700 transition-all duration-500 group overflow-hidden">
+        <CardHeader className="flex flex-row items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-slate-900/20 space-y-0">
             <div className="flex items-center gap-3">
                 <div className={`text-${accentClass}-400 group-hover:scale-110 transition-transform duration-500`}>
                     {icon}
                 </div>
                 <div>
-                    <div className="text-sm font-bold text-slate-100">{title}</div>
+                    <CardTitle className="text-sm font-bold text-slate-100">{title}</CardTitle>
                     <div className="flex items-center gap-1.5 mt-0.5">
                         <div className={`w-1.5 h-1.5 rounded-full ${online ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
                         <span className={`text-[9px] font-bold uppercase tracking-widest ${online ? "text-emerald-400" : "text-red-400"}`}>
@@ -64,21 +66,23 @@ const ConnectorCard: React.FC<ConnectorCardProps> = ({
                 </div>
             </div>
             <div className="flex items-center gap-2">
-                {port && <span className="text-[9px] font-mono text-slate-600">:{port}</span>}
-                <button
+                {port && <span className="text-[9px] font-mono text-slate-600 tracking-tighter">:{port}</span>}
+                <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={onRefresh}
                     disabled={loading}
                     title="Refresh Substrate"
-                    className="p-1.5 rounded-lg hover:bg-white/10 text-slate-500 hover:text-slate-200 transition-all active:scale-90"
+                    className="h-8 w-8 text-slate-500 hover:text-white transition-all"
                 >
                     <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-                </button>
+                </Button>
             </div>
-        </div>
-        <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
+        </CardHeader>
+        <CardContent className="flex-1 p-5 overflow-y-auto custom-scrollbar">
             <AnimatePresence mode="wait">
                 {error ? (
-                    <div className="text-[10px] text-red-400 bg-red-500/5 p-3 rounded-xl border border-red-500/10 italic">
+                    <div className="text-[10px] text-red-400 bg-red-500/5 p-3 rounded-xl border border-red-500/10 italic font-mono uppercase tracking-tight">
                         {error}
                     </div>
                 ) : (
@@ -90,8 +94,8 @@ const ConnectorCard: React.FC<ConnectorCardProps> = ({
                     </motion.div>
                 )}
             </AnimatePresence>
-        </div>
-    </GlassCard>
+        </CardContent>
+    </Card>
 );
 
 // ---------------------------------------------------------------------------
@@ -99,7 +103,7 @@ const ConnectorCard: React.FC<ConnectorCardProps> = ({
 // ---------------------------------------------------------------------------
 function PipelineVisualization() {
     return (
-        <GlassCard className="p-8 mb-10 overflow-hidden relative bg-slate-900/40 border-slate-700/50">
+        <Card className="p-8 mb-10 overflow-hidden relative bg-slate-900/40 border-slate-800">
             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                 <Workflow size={120} />
             </div>
@@ -132,12 +136,12 @@ function PipelineVisualization() {
             </div>
 
             <div className="mt-8 flex justify-center">
-                <div className="px-4 py-1.5 bg-indigo-500/5 border border-indigo-500/10 rounded-full text-[10px] text-slate-400 flex items-center gap-2 font-bold uppercase tracking-wider">
+                <Badge variant="glass" className="bg-indigo-500/5 border border-indigo-500/10 text-slate-400 flex items-center gap-2 font-bold uppercase tracking-wider px-4 py-1.5 h-auto">
                     <CloudLightning size={14} className="text-amber-500 animate-pulse" />
                     <span>Splat Ingestion: WorldLabs Integration Active</span>
-                </div>
+                </Badge>
             </div>
-        </GlassCard>
+        </Card>
     );
 }
 
@@ -164,14 +168,14 @@ function StatusStrip() {
     }, []);
 
     return (
-        <div className="hidden md:flex items-center gap-3 flex-wrap">
+        <div className="hidden md:flex items-center gap-2 flex-wrap">
             {WAVE5_CONNECTORS.map(({ key, label }) => (
-                <div key={key} className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800/40 border border-white/5">
+                <Badge key={key} variant="glass" className="flex items-center gap-1.5 px-3 py-1 bg-slate-900/40 border-white/5">
                     <div className={`w-1.5 h-1.5 rounded-full ${statuses[key] ? "bg-emerald-500 animate-pulse" : "bg-slate-600"}`} />
                     <span className={`text-[10px] font-black uppercase tracking-widest ${statuses[key] ? "text-emerald-400" : "text-slate-500"}`}>
                         {label}
                     </span>
-                </div>
+                </Badge>
             ))}
         </div>
     );
@@ -212,7 +216,7 @@ const VirtualHub: React.FC = () => {
                         <div className="p-2 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-400">
                              <Monitor size={20} />
                         </div>
-                        <h1 className="text-3xl font-black text-slate-100 tracking-tight">VirtualHub</h1>
+                        <h1 className="text-3xl font-black text-slate-100 tracking-tighter">VirtualHub</h1>
                     </div>
                     <p className="text-slate-400 text-sm max-w-xl font-medium">
                         Wave 5 Spatial Pipeline control. Avatar creation, Gaussian splatting ingestion, and social VR social deployment logic.
@@ -238,14 +242,14 @@ const VirtualHub: React.FC = () => {
                 >
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5">
+                            <div className="bg-slate-900/60 p-3 rounded-xl border border-white/5 font-mono">
                                 <div className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-tighter">Players</div>
-                                <div className="text-lg font-black text-blue-400 font-mono tracking-tighter">
+                                <div className="text-lg font-black text-blue-400 tracking-tighter">
                                     {(vrStatus as any)?.player_count ?? "—"}
                                 </div>
                             </div>
-                            <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5">
-                                <div className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-tighter">Substrate</div>
+                            <div className="bg-slate-900/60 p-3 rounded-xl border border-white/5">
+                                <div className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-tighter uppercase">Substrate</div>
                                 <div className="text-xs font-bold text-slate-300 truncate mt-1">
                                     {(vrStatus as any)?.world_name || "Unknown"}
                                 </div>
@@ -257,12 +261,13 @@ const VirtualHub: React.FC = () => {
                                 <div className="text-xs font-mono text-slate-300 font-bold">{((vrStatus as any)||{}).avatar_name}</div>
                             </div>
                         )}
-                        <button 
-                            title="Force OSC Sync"
-                            className="w-full py-2.5 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-[10px] font-bold uppercase tracking-widest transition-all"
+                        <Button 
+                            variant="glass"
+                            size="sm"
+                            className="w-full py-5 text-blue-400 border-blue-500/20 text-[10px] font-bold uppercase tracking-widest"
                         >
                             Force OSC Sync
-                        </button>
+                        </Button>
                     </div>
                 </ConnectorCard>
 
@@ -272,7 +277,7 @@ const VirtualHub: React.FC = () => {
                     subtitle="Computational Engine"
                     icon={<Workflow size={18} />}
                     accentClass="purple"
-                    online={true} // Mock for now or actual integration if needed
+                    online={true} 
                     loading={false}
                     error={null}
                     onRefresh={() => {}}
@@ -280,18 +285,18 @@ const VirtualHub: React.FC = () => {
                 >
                     <div className="space-y-4">
                         <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5">
+                            <div className="bg-slate-900/60 p-3 rounded-xl border border-white/5">
                                 <div className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-tighter">Session</div>
-                                <div className="text-xs font-bold text-purple-400 truncate mt-1 font-mono">SANDRA_DEV_LAB</div>
+                                <div className="text-xs font-bold text-purple-400 truncate mt-1 font-mono uppercase tracking-tighter">SANDRA_DEV_LAB</div>
                             </div>
-                            <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5">
+                            <div className="bg-slate-900/60 p-3 rounded-xl border border-white/5 font-mono">
                                 <div className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-tighter">Uptime</div>
-                                <div className="text-xs font-bold text-slate-300 font-mono mt-1">04:12:33</div>
+                                <div className="text-xs font-bold text-slate-300 mt-1 uppercase">04:12:33</div>
                             </div>
                         </div>
                         <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl flex items-center justify-between">
                             <span className="text-[10px] text-purple-300 font-black uppercase tracking-widest">Logic Flux</span>
-                            <span className="text-xs font-mono text-emerald-400 font-bold">STABLE</span>
+                            <Badge variant="glass" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-mono font-bold tracking-widest">STABLE</Badge>
                         </div>
                         <div className="text-[10px] text-slate-500 px-1 leading-relaxed italic font-medium">
                             Node verified on Alsergrund local cluster. Spatial sync operational.
@@ -315,18 +320,18 @@ const VirtualHub: React.FC = () => {
                             <div className="text-[10px] text-slate-500 uppercase font-black tracking-widest">Ingestion History</div>
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between text-[11px] font-bold">
-                                    <span className="text-slate-300">alsergrund_01</span>
-                                    <span className="text-emerald-500 font-mono tracking-tighter">COMPILED</span>
+                                    <span className="text-slate-300 underline decoration-slate-800 underline-offset-4">alsergrund_01</span>
+                                    <Badge variant="glass" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 font-mono tracking-tighter">COMPILED</Badge>
                                 </div>
                                 <div className="flex items-center justify-between text-[11px] font-bold opacity-50">
                                     <span className="text-slate-300">vienna_district_9</span>
-                                    <span className="text-slate-500 font-mono tracking-tighter">ENQUEUED</span>
+                                    <Badge variant="glass" className="bg-slate-500/10 text-slate-500 border-white/5 font-mono tracking-tighter">ENQUEUED</Badge>
                                 </div>
                             </div>
                         </div>
                         <div className="flex items-center gap-3 p-3 bg-white/[0.02] rounded-xl border border-white/[0.04] group hover:border-indigo-500/30 transition-all cursor-pointer">
                             <Terminal size={14} className="text-indigo-400" />
-                            <span className="text-[10px] text-slate-400 font-mono truncate">splat_convert --target-vram-24g</span>
+                            <span className="text-[10px] text-slate-400 font-mono truncate tracking-tight">splat_convert --target-vram-24g</span>
                         </div>
                     </div>
                 </ConnectorCard>
@@ -344,13 +349,13 @@ const VirtualHub: React.FC = () => {
                     port={10834}
                 >
                     <div className="flex flex-col items-center justify-center h-40 text-slate-600 gap-4">
-                        <div className="p-4 rounded-full bg-white/[0.02] border border-white/[0.05]">
-                             <CloudLightning size={32} className="opacity-20 translate-y-1" />
+                        <div className="p-4 rounded-full bg-slate-900/40 border border-white/[0.05]">
+                             <CloudLightning size={32} className="opacity-10 translate-y-1" />
                         </div>
                         <span className="text-[10px] font-black tracking-widest uppercase opacity-40">Awaiting Substrate Connect</span>
-                         <button className="px-6 py-2 rounded-xl bg-white/[0.02] border border-white/10 text-[9px] font-bold uppercase tracking-widest hover:text-cyan-400 hover:border-cyan-500/30 transition-all">
+                         <Button variant="glass" size="sm" className="px-6 text-[9px] font-bold uppercase tracking-widest hover:text-cyan-400">
                             Initialize Bridge
-                         </button>
+                         </Button>
                     </div>
                 </ConnectorCard>
 
@@ -379,30 +384,30 @@ const VirtualHub: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-2 mt-4 px-1">
                             <Info size={12} className="text-slate-600" />
-                            <span className="text-[10px] text-slate-600 font-medium">Auto-sync with Blender pipeline enabled.</span>
+                            <span className="text-[10px] text-slate-600 font-medium tracking-tight">Auto-sync with Blender pipeline enabled.</span>
                         </div>
                     </div>
                 </ConnectorCard>
 
-                 {/* Custom Component for Identity Shield */}
-                 <GlassCard className="flex flex-col h-full bg-slate-900/40 border-slate-700/50 p-6 space-y-6">
+                 {/* Identity Shield */}
+                 <Card className="flex flex-col h-full bg-slate-950/40 border-slate-800 p-6 space-y-6">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
                              <Monitor size={20} />
                         </div>
-                        <div className="text-sm font-bold text-slate-100 italic uppercase tracking-tighter">Identity Shield</div>
+                        <CardTitle className="text-sm font-bold text-slate-100 italic uppercase tracking-tighter">Identity Shield</CardTitle>
                     </div>
                     
                     <div className="flex-1 flex flex-col justify-center space-y-4">
-                        <div className="text-xs text-slate-400 leading-relaxed font-medium text-center">
+                        <div className="text-xs text-slate-400 leading-relaxed font-medium text-center px-2">
                             Virtual assets are cryptographically signed. Sovereign identity maintained across VRChat/Resonite nodes.
                         </div>
-                        <div className="p-4 rounded-2xl bg-cyan-500/5 border border-cyan-500/10 flex flex-col items-center gap-2">
-                             <div className="text-2xl font-black text-cyan-400 font-mono tracking-tighter">100%</div>
-                             <div className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em]">Integrity Verified</div>
+                        <div className="p-6 rounded-2xl bg-cyan-500/5 border border-cyan-500/10 flex flex-col items-center gap-2">
+                             <div className="text-3xl font-black text-cyan-400 font-mono tracking-tighter">100%</div>
+                             <div className="text-[9px] text-slate-500 font-black uppercase tracking-[0.2em] pt-1">Integrity Verified</div>
                         </div>
                     </div>
-                </GlassCard>
+                </Card>
             </div>
         </div>
     );

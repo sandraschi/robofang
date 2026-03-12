@@ -6,14 +6,18 @@ interface GlassCardProps {
   title?: string;
   className?: string;
   delay?: number;
+  onClick?: () => void;
+  onMouseEnter?: () => void;
 }
 
-const GlassCard: React.FC<GlassCardProps> = ({ children, title, className = '', delay = 0 }) => {
+const GlassCard: React.FC<GlassCardProps> = ({ children, title, className = '', delay = 0, onClick, onMouseEnter }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay }}
+      onClick={onClick}
+      onMouseEnter={onMouseEnter}
       className={`glass-panel p-6 ${className}`}
     >
       {title && (

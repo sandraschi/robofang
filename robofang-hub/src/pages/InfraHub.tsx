@@ -11,7 +11,9 @@ import {
   MonitorDot,
   ChevronRight
 } from "lucide-react";
-import GlassCard from "../components/ui/GlassCard";
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // ── Shared Constants ──────────────────────────────────────────────────────────
 const BRIDGE = "http://localhost:10871";
@@ -21,8 +23,6 @@ async function infraGet(connector: string, path: string) {
   const r = await axios.get(`${BRIDGE}/home/${connector}/${path}`, { timeout: 10000 });
   return r.data;
 }
-
-// infraPost removed if unused
 
 async function launchConnector(connector: string) {
   try {
@@ -46,8 +46,8 @@ function PctBar({ value, color = "indigo" }: { value: number; color?: string }) 
     violet: "bg-violet-500",
     teal: "bg-teal-500",
   };
-  const bar = colorMap[color] ?? "bg-indigo-500";
-  const dangerColor = pct > 85 ? "bg-red-500" : pct > 70 ? "bg-amber-500" : bar;
+  const barColor = colorMap[color] ?? "bg-indigo-500";
+  const dangerColor = pct > 85 ? "bg-red-500" : pct > 70 ? "bg-amber-500" : barColor;
   
   return (
     <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
@@ -77,45 +77,50 @@ function ConnectorCard({
   title, subtitle, icon, online, loading, error, onRefresh, children, port,
 }: ConnectorCardProps) {
   return (
-    <GlassCard className="flex flex-col h-full bg-slate-900/40 border-slate-700/50 hover:border-indigo-500/30 transition-all duration-500 group overflow-hidden">
+    <Card className="flex flex-col h-full bg-slate-950/40 border-slate-800 hover:border-slate-700 transition-all duration-500 group overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-white/[0.06] bg-slate-800/20">
-        <div className="text-slate-400 group-hover:text-indigo-400 transition-all duration-500 scale-110">
-          {icon}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-bold text-slate-100">{title}</div>
-          {subtitle && (
-            <div className="text-[10px] text-slate-400 truncate uppercase tracking-widest mt-0.5 font-medium">
-              {subtitle}
-            </div>
-          )}
+      <CardHeader className="flex flex-row items-center justify-between p-5 border-b border-white/[0.06] bg-slate-900/20 space-y-0">
+        <div className="flex items-center gap-4">
+          <div className="text-slate-400 group-hover:text-indigo-400 transition-all duration-500 scale-110">
+            {icon}
+          </div>
+          <div className="flex flex-col">
+            <CardTitle className="text-sm font-bold text-white tracking-tight">{title}</CardTitle>
+            {subtitle && (
+              <span className="text-[10px] text-slate-400 truncate uppercase tracking-widest mt-0.5 font-medium">
+                {subtitle}
+              </span>
+            )}
+          </div>
         </div>
         
         <div className="flex items-center gap-2">
-          <div 
-            className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[9px] font-bold uppercase tracking-wider transition-all duration-300 ${
-              online 
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" 
-                : "bg-red-500/10 text-red-400 border-red-500/20"
-            }`}
-          >
-            <div className={`w-1 h-1 rounded-full ${online ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
-            {online ? "online" : `OFFLINE :${port}`}
-          </div>
+          {online ? (
+            <Badge variant="glass" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-1.5 py-0 h-4 text-[9px] uppercase tracking-tighter">
+              <div className="w-1 h-1 rounded-full bg-emerald-400 mr-1 animate-pulse" />
+              online
+            </Badge>
+          ) : (
+            <Badge variant="glass" className="bg-red-500/10 text-red-400 border-red-500/20 px-1.5 py-0 h-4 text-[9px] uppercase tracking-tighter">
+              <div className="w-1 h-1 rounded-full bg-red-400 mr-1" />
+              OFFLINE :{port}
+            </Badge>
+          )}
           
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onRefresh}
             title="Refresh Signal"
-            className="p-1.5 rounded-lg hover:bg-white/10 text-slate-500 hover:text-slate-200 transition-all active:scale-90"
+            className="h-8 w-8 text-slate-500 hover:text-white transition-all"
           >
-            <RefreshCw size={14} className={loading ? 'animate-spin' : 'hover:rotate-180 transition-transform duration-500'} />
-          </button>
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          </Button>
         </div>
-      </div>
+      </CardHeader>
 
       {/* Content Area */}
-      <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
+      <CardContent className="flex-1 p-5 overflow-y-auto custom-scrollbar">
         <AnimatePresence mode="wait">
           {loading ? (
             <motion.div 
@@ -146,38 +151,42 @@ function ConnectorCard({
                 <div className="text-xs font-bold text-red-400 capitalize mb-1">Connector Error</div>
                 <div className="text-[10px] text-slate-500 leading-relaxed max-w-[200px]">{error}</div>
               </div>
-              <button 
+              <Button 
+                variant="glass"
+                size="sm"
                 onClick={() => launchConnector(title.toLowerCase().replace(" ", "-"))}
-                className="mt-2 px-4 py-1.5 rounded-lg bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 text-[10px] font-bold uppercase tracking-wider border border-indigo-500/30 transition-all"
+                className="mt-2 text-[10px] font-bold uppercase tracking-wider"
               >
                 Launch Connector
-              </button>
+              </Button>
             </motion.div>
           ) : (
             <motion.div 
               key="content"
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
+              className="space-y-4 h-full"
             >
               {children}
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </CardContent>
 
       {/* Footer Info (Optional) */}
       {!online && !loading && !error && (
-        <div className="px-5 py-3 bg-slate-800/10 border-t border-white/[0.03]">
-          <button 
+        <CardFooter className="px-5 py-3 bg-slate-900/20 border-t border-white/[0.03]">
+          <Button 
+            variant="glass"
+            size="sm"
             onClick={() => launchConnector(title.toLowerCase().replace(" ", "-"))}
-            className="w-full py-2 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-widest transition-all"
+            className="w-full text-indigo-400 text-[10px] font-bold uppercase tracking-widest transition-all"
           >
             Reconnect to Pipeline
-          </button>
-        </div>
+          </Button>
+        </CardFooter>
       )}
-    </GlassCard>
+    </Card>
   );
 }
 
@@ -212,13 +221,13 @@ function VirtualizationCard() {
       onRefresh={fetch} port={10700}
     >
       <div className="grid grid-cols-2 gap-2 mb-4">
-        <div className="bg-slate-800/40 rounded-xl p-3 border border-white/5">
+        <div className="bg-slate-900/60 rounded-xl p-3 border border-white/5 font-mono">
           <div className="text-[10px] text-slate-500 uppercase tracking-tighter mb-1">Active VMs</div>
-          <div className="text-xl font-bold text-emerald-400 font-mono">{running}</div>
+          <div className="text-xl font-bold text-emerald-400">{running}</div>
         </div>
-        <div className="bg-slate-800/40 rounded-xl p-3 border border-white/5">
+        <div className="bg-slate-900/60 rounded-xl p-3 border border-white/5 font-mono">
           <div className="text-[10px] text-slate-500 uppercase tracking-tighter mb-1">Halted</div>
-          <div className="text-xl font-bold text-slate-400 font-mono">{vms.length - running}</div>
+          <div className="text-xl font-bold text-slate-400">{vms.length - running}</div>
         </div>
       </div>
 
@@ -273,9 +282,9 @@ function DockerCard() {
     >
       <div className="flex items-center justify-between mb-4 px-1">
         <div className="text-xs font-bold text-slate-200">Container Fleet</div>
-        <div className="text-[10px] text-slate-400 font-mono bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">
+        <Badge variant="glass" className="bg-blue-500/10 text-blue-400 border-blue-500/20 font-mono">
           {running} UP
-        </div>
+        </Badge>
       </div>
 
       <div className="space-y-4">
@@ -283,26 +292,26 @@ function DockerCard() {
           {containers.slice(0, 5).map(c => (
             <div key={c.id} className="space-y-1">
               <div className="flex justify-between items-center text-[10px]">
-                <span className="text-slate-300 font-medium truncate max-w-[140px]">{c.name.replace("/", "")}</span>
-                <span className={`font-mono ${c.state === "running" ? "text-emerald-400" : "text-slate-500"}`}>
+                <span className="text-slate-300 font-medium truncate max-w-[140px] uppercase tracking-tight">{c.name.replace("/", "")}</span>
+                <span className={`font-mono font-bold ${c.state === "running" ? "text-emerald-400" : "text-slate-500"}`}>
                   {c.state}
                 </span>
               </div>
               <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                <div className={`h-full ${c.state === "running" ? "bg-blue-500 w-full" : "bg-slate-700 w-0"}`} />
+                <div className={`h-full transition-all duration-1000 ${c.state === "running" ? "bg-blue-500 w-full" : "bg-slate-700 w-0"}`} />
               </div>
             </div>
           ))}
           {containers.length > 5 && (
-            <div className="text-[10px] text-slate-500 text-center pt-2">
+            <div className="text-[10px] text-slate-500 text-center pt-2 italic">
               + {containers.length - 5} more containers
             </div>
           )}
         </div>
         
-        <button className="w-full py-2 rounded-lg bg-slate-800/40 border border-white/5 hover:border-blue-500/30 text-slate-400 hover:text-blue-400 text-[10px] font-bold uppercase tracking-widest transition-all">
+        <Button variant="outline" className="w-full text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-white">
           Manage Infrastructure
-        </button>
+        </Button>
       </div>
     </ConnectorCard>
   );
@@ -348,7 +357,7 @@ function MonitoringCard() {
             <div className="space-y-1.5">
               <div className="flex justify-between text-[10px] uppercase font-bold tracking-tighter">
                 <span className="text-slate-500">CPU Load</span>
-                <span className="text-indigo-400">{metrics.cpu_percent.toFixed(1)}%</span>
+                <span className="text-indigo-400 font-mono">{metrics.cpu_percent.toFixed(1)}%</span>
               </div>
               <PctBar value={metrics.cpu_percent} color="indigo" />
             </div>
@@ -356,7 +365,7 @@ function MonitoringCard() {
             <div className="space-y-1.5">
               <div className="flex justify-between text-[10px] uppercase font-bold tracking-tighter">
                 <span className="text-slate-500">Memory Usage</span>
-                <span className="text-sky-400">{metrics.memory_percent.toFixed(1)}%</span>
+                <span className="text-sky-400 font-mono">{metrics.memory_percent.toFixed(1)}%</span>
               </div>
               <PctBar value={metrics.memory_percent} color="sky" />
             </div>
@@ -364,7 +373,7 @@ function MonitoringCard() {
             <div className="space-y-1.5">
               <div className="flex justify-between text-[10px] uppercase font-bold tracking-tighter">
                 <span className="text-slate-500">Disk I/O</span>
-                <span className="text-teal-400">{metrics.disk_percent.toFixed(1)}%</span>
+                <span className="text-teal-400 font-mono">{metrics.disk_percent.toFixed(1)}%</span>
               </div>
               <PctBar value={metrics.disk_percent} color="teal" />
             </div>
@@ -375,11 +384,11 @@ function MonitoringCard() {
               <div className="space-y-1.5">
                 <div className="flex justify-between text-[10px] uppercase font-bold tracking-tighter">
                   <span className="text-slate-500">RTX 4090 Core</span>
-                  <span className="text-violet-400">{metrics.gpu_percent.toFixed(1)}%</span>
+                  <span className="text-violet-400 font-mono">{metrics.gpu_percent.toFixed(1)}%</span>
                 </div>
                 <PctBar value={metrics.gpu_percent} color="violet" />
               </div>
-              <div className="flex justify-between items-center bg-slate-800/20 p-2 rounded-lg border border-white/5">
+              <div className="flex justify-between items-center bg-slate-900/40 p-2 rounded-lg border border-white/5">
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Thermal Status</span>
                 <span className={`text-xs font-mono font-bold ${(metrics.gpu_temp_c ?? 0) > 75 ? "text-red-400" : "text-emerald-400"}`}>
                   {metrics.gpu_temp_c ?? "—"}°C
@@ -408,7 +417,7 @@ export default function InfraHub() {
             <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
               <MonitorDot size={20} />
             </div>
-            <h1 className="text-3xl font-black text-slate-100 tracking-tight">InfraHub</h1>
+            <h1 className="text-3xl font-black text-slate-100 tracking-tight tracking-tighter">InfraHub</h1>
           </div>
           <p className="text-slate-400 text-sm max-w-xl font-medium">
             Core infrastructure control plane. Managing virtualization layers, container runtime, and node telemetry.
@@ -421,9 +430,9 @@ export default function InfraHub() {
           className="flex gap-2"
         >
           {["Docker", "Hyper-V", "ESXi", "Kubernetes"].map(tag => (
-            <span key={tag} className="px-3 py-1 rounded-lg bg-slate-800/40 border border-white/5 text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+            <Badge key={tag} variant="glass" className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">
               {tag}
-            </span>
+            </Badge>
           ))}
         </motion.div>
       </header>
@@ -434,11 +443,11 @@ export default function InfraHub() {
         <MonitoringCard />
         
         {/* Placeholder for future expansion */}
-        <GlassCard className="flex flex-col items-center justify-center h-full min-h-[420px] bg-slate-900/10 border-dashed border-slate-700/50 text-slate-600 group hover:border-slate-600 transition-all duration-500">
-          <Layers size={32} className="opacity-20 mb-4 group-hover:scale-110 transition-transform duration-500" />
+        <Card className="flex flex-col items-center justify-center h-full min-h-[420px] bg-slate-950/20 border-2 border-dashed border-slate-800 text-slate-600 group hover:border-slate-700 transition-all duration-500 hover:bg-slate-900/20">
+          <Layers size={32} className="opacity-10 mb-4 group-hover:scale-110 transition-transform duration-500" />
           <div className="text-xs font-bold uppercase tracking-[0.2em] opacity-40">Expansion Slot</div>
-          <div className="text-[10px] opacity-30 mt-1 italic tracking-tighter">Awaiting new connector modules...</div>
-        </GlassCard>
+          <div className="text-[10px] opacity-30 mt-1 italic tracking-widest uppercase">Awaiting connector...</div>
+        </Card>
       </div>
     </div>
   );

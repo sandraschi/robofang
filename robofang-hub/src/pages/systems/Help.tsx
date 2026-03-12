@@ -4,6 +4,7 @@ import {
   ChevronRight, Code
 } from "lucide-react";
 import GlassCard from '../../components/ui/GlassCard';
+import { Link } from 'react-router-dom';
 
 const Help: React.FC = () => {
   const sections = [
@@ -11,27 +12,27 @@ const Help: React.FC = () => {
       title: 'Getting Started',
       icon: Book,
       links: [
-        { label: 'Substrate Installation', href: '#' },
-        { label: 'Core Handshake Protocol', href: '#' },
-        { label: 'Council Integration', href: '#' },
+        { label: 'Substrate Installation', href: '/docs/CLI_TOOLBELT' },
+        { label: 'Core Handshake Protocol', href: '/docs/PROTOCOLS' },
+        { label: 'Council Integration', href: '/docs/API_REFERENCE' },
       ]
     },
     {
       title: 'API Documentation',
       icon: Code,
       links: [
-        { label: 'Rest API Reference', href: '#' },
-        { label: 'WebSocket Streams', href: '#' },
-        { label: 'MCP Sampling Schema', href: '#' },
+        { label: 'Rest API Reference', href: '/docs/API_REFERENCE' },
+        { label: 'WebSocket Streams', href: '/docs/WEBSOCKETS' },
+        { label: 'MCP Sampling Schema', href: '/mcp-docs' },
       ]
     },
     {
       title: 'Dev Resources',
       icon: Terminal,
       links: [
-        { label: 'CLI Toolbelt', href: '#' },
-        { label: 'Hardware Scaffolding', href: '#' },
-        { label: 'Simulation Environments', href: '#' },
+        { label: 'CLI Toolbelt', href: '/docs/CLI_TOOLBELT' },
+        { label: 'Hardware Scaffolding', href: '/docs/HARDWARE' },
+        { label: 'Simulation Environments', href: '/docs/SIMULATION' },
       ]
     }
   ];
@@ -87,14 +88,14 @@ const Help: React.FC = () => {
             </div>
             <div className="space-y-2">
               {section.links.map((link) => (
-                <a 
+                <Link 
                   key={link.label}
-                  href={link.href}
+                  to={link.href}
                   className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 group transition-colors"
                 >
                   <span className="text-[11px] font-bold text-zinc-400 group-hover:text-white transition-colors uppercase">{link.label}</span>
                   <ExternalLink size={12} className="text-zinc-700 group-hover:text-blue-400 transition-colors" />
-                </a>
+                </Link>
               ))}
             </div>
           </GlassCard>
