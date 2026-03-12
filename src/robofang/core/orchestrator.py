@@ -19,6 +19,8 @@ from robofang.core.security import SecurityManager
 from robofang.core.security_secrets import SecretsManager
 from robofang.core.skills import SkillManager
 from robofang.core.storage import RoboFangStorage
+from robofang.core.installer import HandInstaller
+from robofang.core.lifecycle import LifecycleManager
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +82,13 @@ class OrchestrationClient:
         self.knowledge = KnowledgeEngine(storage=self.storage)
         self.memory = _OrchestratorMemory(storage=self.storage)
         self.hands = HandsManager(self)
+        
+        # New Core Logic Extensions (RoboFang Evolution)
+        self.installer = HandInstaller(
+            manifest_path=_PKG_ROOT / "fleet_manifest.yaml",
+            hands_base_dir=_PKG_ROOT / "hands"
+        )
+        self.lifecycle = LifecycleManager(self)
 
         # Load bundled and specialized hands
         plugins_dir = _PKG_ROOT / "src" / "robofang" / "plugins"
@@ -212,6 +221,7 @@ class OrchestrationClient:
         self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         self.slow_task = asyncio.create_task(self._slow_loop())
         await self.hands.start()
+        await self.lifecycle.start()
 
     async def stop(self):
         self.logger.info("Stopping Orchestrator...")
@@ -234,6 +244,7 @@ class OrchestrationClient:
         await self.moltbook.close()
         await self.reasoning.close()
         await self.hands.stop()
+        await self.lifecycle.stop()
 
     async def _heartbeat_loop(self):
         """Main proactive loop for agent self-reflection and fleet pulse."""
@@ -279,6 +290,9 @@ class OrchestrationClient:
                         self.logger.info("Pulse reflection posted to Moltbook.")
                     except Exception as e:
                         self.logger.warning(f"Pulse reflection skipped: {e}")
+
+                # 4. Lifecycle Slumber Check
+                await self.lifecycle.check_slumber()
 
                 await asyncio.sleep(30)  # Reconnect / pulse every 30s
 
@@ -328,6 +342,15 @@ class OrchestrationClient:
     async def get_moltbook_feed(self) -> Dict[str, Any]:
         """Fetch the Moltbook feed."""
         return await self.moltbook.get("/feed")
+
+    async def onboard_hand(self, hand_id: str) -> Dict[str, Any]:
+        """Install a new Hand from the fleet manifest."""
+        result = self.installer.install(hand_id)
+        if result["success"]:
+            # Reload hands to discover the new one
+            hands_dir = _PKG_ROOT / "hands" / hand_id
+            self.hands.load_hands_from_dir(str(hands_dir.parent))
+        return result
 
     async def ask(
         self,
@@ -483,6 +506,15 @@ class OrchestrationClient:
         except Exception as e:
             self.logger.error(f"Tool execution failed ({tool_name}): {e}")
             return {"success": False, "error": str(e)}
+        finally:
+            # Record usage for lifecycle management
+            # Try to map tool name back to a hand ID if possible
+            if tool_name.startswith("connector_"):
+                hand_id = tool_name.replace("connector_", "")
+                self.lifecycle.record_usage(hand_id)
+            elif tool_name.startswith("skill_"):
+                # Skills might be associated with specific hands or global
+                pass
 
         return {"success": False, "error": "Unknown tool type."}
 
