@@ -84,6 +84,9 @@ cd robofang-hub; npm install; npm run build; cd ..
   <img src="assets/architecture.png" alt="Robofang 3-Level Architecture" width="800">
 </p>
 
+> [!TIP]
+> **See it in action**: We recommend checking out the `robofang-hub` dashboard at `localhost:10870` after startup to see real-time fleet discovery in motion.
+
 The Council pattern — Foreman (architect) → Labor (executor) → Satisficer (auditor) — maps directly onto Karl Friston's sensorimotor loop: perceive, predict, act, update. Not as a metaphor. As an engineering constraint. The Satisficer exists because unchecked ReAct loops hallucinate. The Forensic Trace exists because you should be able to see exactly why your agent did what it did.
 
 ---
@@ -110,6 +113,17 @@ In the Robofang architecture, **the Human is the Master of Puppets.** The agent 
 
 ---
 
+### Current Roadmap
+
+- [x] **Core Substrate**: FastMCP 3.x integration and Council pattern.
+- [x] **Fleet Discovery**: Automated MCP server mapping and health monitoring.
+- [x] **Virtual Embodiment**: Resonite + OSC 30Hz joint control.
+- [/] **Physical Hands**: ROS 2 bridging for Yahboom and Noetix Bumi.
+- [ ] **Sovereign Voice**: Local ElevenLabs-style TTS/STT via RTX 4090.
+- [ ] **Multi-Agent Memory**: ADN graph persistence across reset cycles.
+
+---
+
 ## Documentation
 
 - [**Installation Guide**](docs/INSTALLATION.md): Environment setup and first-hand onboarding
@@ -124,9 +138,17 @@ In the Robofang architecture, **the Human is the Master of Puppets.** The agent 
 
 <p align="center">
   <a href="https://discord.gg/robofang">
-    <img src="https://img.shields.io/badge/Discord-Join%20the%20Community-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Robofang Discord">
+    <img src="https://img.shields.io/badge/Discord-Join%20the%20Grid-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Robofang Discord">
   </a>
 </p>
+
+### Why Star? ⭐
+
+If you believe that the era of "Cloud Oracle" AI is a dead end—and that true intelligence requires **dexterity, sovereignty, and local hardware**—join the grid. 
+
+Robofang is built for the developers who want to own their substrate. Every star helps us signal to the hardware community that there is a demand for open, agentic robotics.
+
+---
 
 ---
 

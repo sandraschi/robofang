@@ -89,3 +89,67 @@ hands:
     repo_url: https://github.com/sandraschi/svg-mcp
     install_script: start.ps1
     tags: ["SVG", "Design", "Graphics"]
+
+  - id: robotics-mcp
+    name: Robotics Hand
+    category: Robotics
+    description: ROS 2 and robot control (Yahboom, Unitree, Dreame, etc.).
+    repo_url: https://github.com/sandraschi/robotics-mcp
+    install_script: start.ps1
+    tags: ["Robotics", "ROS 2"]
+
+  - id: vrchat-mcp
+    name: VRChat Hand
+    category: Creative
+    description: VRChat world and avatar control via MCP.
+    repo_url: https://github.com/sandraschi/vrchat-mcp
+    install_script: start.ps1
+    tags: ["VRChat", "Social", "Avatar"]
+
+  - id: avatar-mcp
+    name: Avatar / Resonite Hand
+    category: Creative
+    description: Avatar and Resonite integration (OSC, parameters).
+    repo_url: https://github.com/sandraschi/avatar-mcp
+    install_script: start.ps1
+    tags: ["Resonite", "Avatar", "OSC"]
+
+  - id: virtualization-mcp
+    name: Virtualization Hand
+    category: Infrastructure
+    description: VirtualBox and VM management via MCP.
+    repo_url: https://github.com/sandraschi/virtualization-mcp
+    install_script: start.ps1
+    tags: ["VirtualBox", "VM", "Infrastructure"]
+
+  - id: advanced-memory-mcp
+    name: Advanced Memory Hand
+    category: Knowledge
+    description: RAG and knowledge graph for persistent context.
+    repo_url: https://github.com/sandraschi/advanced-memory-mcp
+    install_script: start.ps1
+    tags: ["RAG", "Knowledge", "Memory"]
+
+  - id: osc-mcp
+    name: OSC Hand
+    category: Creative
+    description: Open Sound Control for audio/visual tools.
+    repo_url: https://github.com/sandraschi/osc-mcp
+    install_script: start.ps1
+    tags: ["OSC", "Audio", "MIDI"]
+
+  - id: ring-mcp
+    name: Ring Doorbell Hand
+    category: Home
+    description: Ring doorbell and camera control.
+    repo_url: https://github.com/sandraschi/ring-mcp
+    install_script: start.ps1
+    tags: ["Ring", "Home", "Camera"]
+
+  - id: tapo-camera-mcp
+    name: Tapo Camera Hand
+    category: Home
+    description: TP-Link Tapo camera and device control.
+    repo_url: https://github.com/sandraschi/tapo-camera-mcp
+    install_script: start.ps1
+    tags: ["Tapo", "Camera", "Home"]

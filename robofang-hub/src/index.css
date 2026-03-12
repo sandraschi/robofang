@@ -53,10 +53,19 @@
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
   background-color: var(--bg-color);
   color: var(--text-primary);
   overflow-x: hidden;
   height: 100vh;
+}
+
+/* Minimum readable text: base 14px, no smaller than 12px for UI copy */
+html { font-size: 16px; }
+body { font-size: 0.875rem; }
+/* Override Tailwind arbitrary tiny sizes so labels/buttons stay readable */
+[class*="text-[10px]"], [class*="text-[9px]"], [class*="text-[11px]"] {
+  font-size: 0.75rem !important; /* 12px min */
 }
 
 #root {

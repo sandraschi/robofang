@@ -13,24 +13,24 @@ const Onboarding: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
 
   const steps = [
-    { id: 'welcome', title: 'Intelligence Genesis', icon: Rocket, summary: 'Initiate your RoboFang substrate.' },
-    { id: 'nodes', title: 'Fleet Registration', icon: Cpu, summary: 'Connect MCP servers and webapps.' },
-    { id: 'comms', title: 'Neural Links', icon: MessageSquare, summary: 'Configure Discord and Telegram bridges.' },
-    { id: 'finish', title: 'Substrate Ready', icon: Shield, summary: 'Finalize your deployment.' },
+    { id: 'welcome', title: 'Get started', icon: Rocket, summary: 'Set up RoboFang.' },
+    { id: 'nodes', title: 'Fleet', icon: Cpu, summary: 'Connect MCP servers and webapps.' },
+    { id: 'comms', title: 'Comms', icon: MessageSquare, summary: 'Discord and Telegram (optional).' },
+    { id: 'finish', title: 'Done', icon: Shield, summary: "You're all set." },
   ];
 
   return (
     <div className="p-8 max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700">
       <header className="text-center space-y-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[10px] font-black uppercase tracking-widest">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-black uppercase tracking-widest">
           <Zap size={12} />
-          <span>System Initialization</span>
+          <span>Setup</span>
         </div>
         <h1 className="text-5xl font-black text-white tracking-tighter">
           RoboFang <span className="text-amber-500">Onboarding</span>
         </h1>
         <p className="text-zinc-400 text-sm max-w-xl mx-auto font-medium leading-relaxed">
-          Configure your SOTA substrate, connect your fleet components, and establish secure communication channels for autonomous orchestration.
+          Connect your MCP servers, optional Discord/Telegram, and you're ready to go.
         </p>
       </header>
 
@@ -55,7 +55,7 @@ const Onboarding: React.FC = () => {
               {idx < activeStep ? <CheckCircle2 size={24} /> : <step.icon size={24} />}
             </div>
             <div className="absolute -bottom-8 whitespace-nowrap">
-              <span className="text-[10px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+              <span className="text-xs font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
                 {step.title}
               </span>
             </div>
@@ -115,162 +115,254 @@ const WelcomeStep = ({ onNext }: { onNext: () => void }) => (
     <div className="absolute -top-24 -right-24 w-64 h-64 bg-amber-500/5 blur-3xl rounded-full" />
     
     <div className="space-y-6 relative">
-      <h2 className="text-3xl font-black text-white tracking-tight">Intelligence Genesis Initiated.</h2>
+      <h2 className="text-3xl font-black text-white tracking-tight">Get started</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-4 text-zinc-400 text-sm leading-relaxed">
           <p>
-            Welcome to RoboFang, the next-generation orchestrator for agentic intelligence and robotics fleets. 
-            This onboarding wizard will guide you through the process of establishing your local mesh network.
+            Welcome to RoboFang. This wizard walks you through connecting MCP servers and optional Discord/Telegram. Everything runs locally; nothing is sent to the cloud unless you add external services.
           </p>
           <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-3">
-            <h4 className="text-[10px] font-black text-amber-400 uppercase tracking-[0.2em]">Architecture Principles</h4>
+            <h4 className="text-xs font-black text-amber-400 uppercase tracking-[0.2em]">How it works</h4>
             <ul className="space-y-2">
               <li className="flex items-center gap-2">
                 <Shield size={12} className="text-emerald-400" />
-                <span>Sovereign Security: Data remains within your control.</span>
+                <span>Local first: data stays on your machine.</span>
               </li>
               <li className="flex items-center gap-2">
                 <Cpu size={12} className="text-blue-400" />
-                <span>Modular Hands: Extend capabilities via MCP plug-ins.</span>
+                <span>MCP servers add tools (Blender, Plex, etc.).</span>
               </li>
               <li className="flex items-center gap-2">
                 <Globe size={12} className="text-purple-400" />
-                <span>Global Fleet: Access any node through a unified gateway.</span>
+                <span>One dashboard to see and control your fleet.</span>
               </li>
             </ul>
           </div>
+          <div className="pt-4">
+            <button 
+              onClick={onNext}
+              className="group flex items-center justify-center gap-3 w-full md:w-auto min-w-[200px] px-10 py-4 rounded-2xl bg-amber-500 text-black font-black text-sm uppercase tracking-wide hover:bg-amber-400 transition-all active:scale-[0.98] shadow-[0_0_30px_rgba(245,158,11,0.4)] ring-2 ring-amber-400/50"
+            >
+              Start
+              <ChevronRight size={20} className="transition-transform group-hover:translate-x-1" />
+            </button>
+          </div>
         </div>
-        <div className="relative aspect-video rounded-2xl border border-white/10 bg-black/60 overflow-hidden flex items-center justify-center italic text-zinc-600 text-[10px] uppercase font-bold">
-          [GENESIS_VISUALIZATION_PLACEHOLDER]
+        <div className="relative aspect-video rounded-2xl border border-white/10 bg-black/60 overflow-hidden flex items-center justify-center text-zinc-600 text-xs">
+          Optional: add a screenshot or diagram here
         </div>
-      </div>
-      
-      <div className="pt-6 flex justify-end">
-        <button 
-          onClick={onNext}
-          className="group flex items-center gap-3 px-8 py-4 rounded-2xl bg-amber-500 text-black font-black text-xs uppercase tracking-[0.2em] hover:bg-amber-400 transition-all active:scale-95 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
-        >
-          Initialize Mesh
-          <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
-        </button>
       </div>
     </div>
   </GlassCard>
 );
 
-const NodeRegistrationStep = ({ onNext, setIsSubmitting, setSuccess }: any) => {
-  const [formData, setFormData] = useState({
-    category: 'nodes',
-    id: '',
-    name: '',
-    url: '',
-    type: 'server'
-  });
+interface CatalogHand {
+  id: string;
+  name: string;
+  category: string;
+  description: string;
+  repo_url: string;
+}
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+interface InstallResult {
+  hand_id: string;
+  success: boolean;
+  message?: string;
+}
+
+const NodeRegistrationStep = ({ onNext, setIsSubmitting, setSuccess }: any) => {
+  const [hands, setHands] = useState<CatalogHand[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [installing, setInstalling] = useState(false);
+  const [lastResults, setLastResults] = useState<InstallResult[]>([]);
+  const [launching, setLaunching] = useState<string | null>(null);
+
+  const fetchCatalog = React.useCallback(() => {
+    setLoadError(false);
+    setLoading(true);
+    fetch('/api/fleet/catalog')
+      .then((r) => {
+        if (!r.ok) throw new Error('Bridge returned ' + r.status);
+        return r.json();
+      })
+      .then((data) => {
+        if (data.success && Array.isArray(data.hands)) {
+          setHands(data.hands.filter((h: CatalogHand) => h.repo_url));
+        } else {
+          setLoadError(true);
+        }
+      })
+      .catch(() => setLoadError(true))
+      .finally(() => setLoading(false));
+  }, []);
+
+  React.useEffect(() => {
+    fetchCatalog();
+  }, [fetchCatalog]);
+
+  const toggle = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = () => setSelected(new Set(hands.map((h) => h.id)));
+  const clearAll = () => setSelected(new Set());
+
+  const handleInstall = async () => {
+    if (selected.size === 0) return;
+    setInstalling(true);
     try {
-      const response = await fetch('/api/fleet/register', {
+      const toInstall = hands.filter((h) => selected.has(h.id)).map((h) => ({
+        id: h.id,
+        name: h.name,
+        category: h.category,
+        description: h.description,
+        repo_url: h.repo_url,
+      }));
+      const response = await fetch('/api/fleet/onboard-from-github', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category: formData.category,
-          id: formData.id,
-          config: {
-            name: formData.name,
-            url: formData.url,
-            type: formData.type,
-            enabled: true
-          }
-        }),
+        body: JSON.stringify({ items: toInstall }),
       });
       const data = await response.json();
-      if (data.success) {
-        setSuccess(`Registered ${formData.name} successfully.`);
-        // Don't auto-proceed, let them add more or move on
+      if (data.success && data.results?.length) {
+        setLastResults(data.results);
+        const ok = data.results.filter((r: { success: boolean }) => r.success).length;
+        setSuccess(`Installed ${ok} of ${selected.size} from GitHub.`);
+        setSelected(new Set());
       }
     } catch (err) {
       console.error(err);
     } finally {
-      setIsSubmitting(false);
+      setInstalling(false);
     }
   };
 
+  const launchWebapp = async (handId: string) => {
+    setLaunching(handId);
+    try {
+      const r = await fetch(`/api/fleet/launch-hand/${encodeURIComponent(handId)}`, { method: 'POST' });
+      const data = await r.json();
+      if (data.success) setSuccess(`Launched webapp: ${handId}`);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLaunching(null);
+    }
+  };
+
+  const byCategory = hands.reduce<Record<string, CatalogHand[]>>((acc, h) => {
+    const c = h.category || 'Other';
+    if (!acc[c]) acc[c] = [];
+    acc[c].push(h);
+    return acc;
+  }, {});
+
   return (
     <GlassCard className="p-10 space-y-8">
-      <header className="flex items-center justify-between">
+      <header className="flex items-center justify-between flex-wrap gap-4">
         <div className="space-y-1">
-          <h2 className="text-2xl font-black text-white tracking-tight italic">Fleet Expansion</h2>
-          <p className="text-zinc-500 text-xs font-medium">Connect external MCP servers or RoboFang-compatible webapps.</p>
+          <h2 className="text-2xl font-black text-white tracking-tight">Add to fleet</h2>
+          <p className="text-zinc-500 text-xs font-medium">Select MCP servers to install from GitHub (clone + setup). You can add more later from Fleet.</p>
         </div>
-        <div className="flex items-center gap-2 text-amber-400/50">
-          <HelpCircle size={16} />
-          <span className="text-[10px] font-bold uppercase tracking-widest hover:text-amber-400 cursor-help transition-colors">Documentation</span>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={selectAll} className="text-xs font-bold text-amber-400 hover:underline uppercase tracking-widest">Select all</button>
+          <span className="text-zinc-600">|</span>
+          <button type="button" onClick={clearAll} className="text-xs font-bold text-zinc-500 hover:underline uppercase tracking-widest">Clear</button>
         </div>
       </header>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05]">
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Component Category</label>
-          <select 
-            value={formData.category}
-            onChange={(e) => setFormData({...formData, category: e.target.value})}
-            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white appearance-none outline-none focus:border-amber-500/50"
+      {loading ? (
+        <div className="py-12 text-center text-zinc-500 text-sm">Loading catalog…</div>
+      ) : loadError || hands.length === 0 ? (
+        <div className="py-12 px-6 text-center space-y-4">
+          <p className="text-sm text-zinc-400">
+            {loadError
+              ? 'Cannot reach the RoboFang bridge. Start the bridge first (e.g. from the repo run the bridge on port 10871), then click Retry.'
+              : 'No catalog entries. The bridge may not have loaded the fleet manifest.'}
+          </p>
+          <button
+            type="button"
+            onClick={fetchCatalog}
+            className="px-4 py-2 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-bold hover:bg-amber-500/30 transition-colors"
           >
-            <option value="nodes">Fleet Node (Webapp/Agent)</option>
-            <option value="connectors">Connector (MCP Server)</option>
-          </select>
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Internal ID</label>
-          <input 
-            type="text" 
-            placeholder="e.g. creative-studio-01"
-            value={formData.id}
-            onChange={(e) => setFormData({...formData, id: e.target.value})}
-            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-amber-500/50"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Display Name</label>
-          <input 
-            type="text" 
-            placeholder="e.g. Creative Hub"
-            value={formData.name}
-            onChange={(e) => setFormData({...formData, name: e.target.value})}
-            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-amber-500/50"
-          />
-        </div>
-        <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Endpoint URL</label>
-          <input 
-            type="text" 
-            placeholder="http://localhost:10720"
-            value={formData.url}
-            onChange={(e) => setFormData({...formData, url: e.target.value})}
-            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-sm text-white outline-none focus:border-amber-500/50 font-mono"
-          />
-        </div>
-        <div className="md:col-span-2 pt-4 flex gap-4">
-          <button 
-            type="submit"
-            className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-black text-[10px] uppercase tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-2"
-          >
-            <Plus size={16} />
-            Add to Topography
+            Retry
           </button>
         </div>
-      </form>
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(byCategory).sort(([a], [b]) => a.localeCompare(b)).map(([category, items]) => (
+            <div key={category}>
+              <h3 className="text-xs font-black text-zinc-500 uppercase tracking-widest mb-3">{category}</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {items.map((h) => (
+                  <label
+                    key={h.id}
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
+                      selected.has(h.id) ? 'bg-amber-500/10 border-amber-500/30' : 'bg-white/[0.02] border-white/[0.06] hover:border-white/10'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(h.id)}
+                      onChange={() => toggle(h.id)}
+                      className="mt-1 rounded border-white/20 bg-black/40 text-amber-500 focus:ring-amber-500/50"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="text-sm font-bold text-white block">{h.name}</span>
+                      {h.description && <span className="text-xs text-zinc-500 line-clamp-2">{h.description}</span>}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
+          <div className="pt-4 flex flex-wrap items-center gap-4">
+            <button
+              type="button"
+              onClick={handleInstall}
+              disabled={selected.size === 0 || installing}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 text-black font-black text-sm uppercase tracking-wide hover:bg-amber-400 disabled:opacity-50 disabled:pointer-events-none transition-all"
+            >
+              <Plus size={18} />
+              {installing ? 'Installing…' : `Install ${selected.size} selected`}
+            </button>
+          </div>
 
-      <div className="pt-6 border-t border-white/5 flex justify-between items-center">
-        <div className="flex items-center gap-2 p-2 px-3 rounded-lg bg-emerald-500/5 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold">
-          <CheckCircle2 size={12} />
-          <span>Nodes persist in federation_map.json</span>
+          {lastResults.length > 0 && (
+            <div className="pt-6 border-t border-white/10 space-y-3">
+              <h3 className="text-sm font-bold text-white">Recently installed</h3>
+              <div className="flex flex-wrap gap-2">
+                {lastResults.filter((r) => r.success).map((r) => (
+                  <div key={r.hand_id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
+                    <span className="text-sm text-white">{r.hand_id}</span>
+                    <button
+                      type="button"
+                      onClick={() => launchWebapp(r.hand_id)}
+                      disabled={launching === r.hand_id}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500/20 text-amber-400 text-sm font-bold hover:bg-amber-500/30 disabled:opacity-50"
+                    >
+                      <Globe size={14} />
+                      {launching === r.hand_id ? '…' : 'Webapp'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
-        <button 
+      )}
+
+      <div className="pt-6 border-t border-white/5 flex justify-end">
+        <button
           onClick={onNext}
-          className="flex items-center gap-2 text-[10px] font-black text-white uppercase tracking-widest hover:text-amber-400 transition-colors"
+          className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-widest hover:text-amber-400 transition-colors"
         >
           Skip / Continue
           <ChevronRight size={14} />
@@ -296,7 +388,7 @@ const CommsSetupStep = ({ onNext, setSuccess }: any) => {
       });
       const data = await response.json();
       if (data.success) {
-        setSuccess('Communication bridges established.');
+        setSuccess('Comms saved.');
         onNext();
       }
     } catch (err) {
@@ -306,7 +398,7 @@ const CommsSetupStep = ({ onNext, setSuccess }: any) => {
 
   return (
     <GlassCard className="p-10 space-y-8">
-      <h2 className="text-2xl font-black text-white tracking-tight italic">Neural Links (Comms)</h2>
+      <h2 className="text-2xl font-black text-white tracking-tight">Discord & Telegram</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div className="p-6 rounded-2xl bg-sky-500/5 border border-sky-500/20 space-y-4">
@@ -315,7 +407,7 @@ const CommsSetupStep = ({ onNext, setSuccess }: any) => {
               <h4 className="text-sm font-black text-white uppercase tracking-widest">Telegram Bridge</h4>
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Bot Token</label>
+              <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Bot Token</label>
               <input 
                 type="password" 
                 placeholder="BOT_TOKEN"
@@ -332,7 +424,7 @@ const CommsSetupStep = ({ onNext, setSuccess }: any) => {
             </div>
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Bot Token</label>
+                <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Bot Token</label>
                 <input 
                   type="password" 
                   placeholder="BOT_TOKEN"
@@ -342,7 +434,7 @@ const CommsSetupStep = ({ onNext, setSuccess }: any) => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-1">Primary Channel ID</label>
+                <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Primary Channel ID</label>
                 <input 
                   type="text" 
                   placeholder="CHANNEL_ID"
@@ -356,16 +448,16 @@ const CommsSetupStep = ({ onNext, setSuccess }: any) => {
         </div>
         <div className="space-y-6">
           <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05] space-y-4">
-            <h4 className="text-sm font-black text-white uppercase tracking-widest">Guide: Remote Ops</h4>
+            <h4 className="text-sm font-black text-white uppercase tracking-widest">Optional</h4>
             <p className="text-zinc-500 text-xs leading-relaxed">
-              Establishing stable communication bridges allows the RoboFang Sovereign to notify you of critical alerts and receive commands remotely via encrypted chat sessions.
+              Connect Telegram or Discord so RoboFang can send you alerts and accept commands from chat.
             </p>
             <div className="flex flex-col gap-2">
-              <a href="#" className="text-[10px] font-bold text-amber-400 hover:underline flex items-center gap-2 mt-2">
+              <a href="#" className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-2 mt-2">
                 <ExternalLink size={12} />
                 Get Telegram Bot Token
               </a>
-              <a href="#" className="text-[10px] font-bold text-amber-400 hover:underline flex items-center gap-2">
+              <a href="#" className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-2">
                 <ExternalLink size={12} />
                 Discord Developer Portal
               </a>
@@ -376,15 +468,15 @@ const CommsSetupStep = ({ onNext, setSuccess }: any) => {
       <div className="flex justify-end gap-4 pt-4">
         <button 
           onClick={onNext}
-          className="px-6 py-3 rounded-xl border border-white/10 text-zinc-500 font-black text-[10px] uppercase tracking-widest hover:text-white"
+          className="px-6 py-3 rounded-xl border border-white/10 text-zinc-500 font-black text-xs uppercase tracking-widest hover:text-white"
         >
           Skip
         </button>
         <button 
           onClick={handleSave}
-          className="px-8 py-3 rounded-xl bg-amber-500 text-black font-black text-[10px] uppercase tracking-widest hover:bg-amber-400 transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]"
+          className="px-8 py-3 rounded-xl bg-amber-500 text-black font-black text-xs uppercase tracking-widest hover:bg-amber-400 transition-all shadow-[0_4px_20px_rgba(245,158,11,0.3)]"
         >
-          Synchronize Bridges
+          Save
         </button>
       </div>
     </GlassCard>
@@ -402,24 +494,23 @@ const FinishStep = () => (
       <CheckCircle2 size={64} />
     </motion.div>
     <div className="space-y-4">
-      <h2 className="text-4xl font-black text-white tracking-tighter uppercase italic">Substrate Ready.</h2>
+      <h2 className="text-4xl font-black text-white tracking-tighter">You're all set</h2>
       <p className="text-zinc-500 text-sm max-w-md mx-auto">
-        Your RoboFang substrate is now fully configured and synchronized. 
-        The system is operational and awaiting instructions.
+        Setup is complete. Use the dashboard and fleet pages to run and monitor your MCP servers.
       </p>
     </div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-6">
       <a href="/" className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
         <Terminal size={20} className="mb-2 text-amber-400 mx-auto" />
-        <span className="text-[10px] font-black text-white uppercase tracking-widest">Dashboard</span>
+        <span className="text-xs font-black text-white uppercase tracking-widest">Dashboard</span>
       </a>
       <a href="/fleet" className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
         <Cpu size={20} className="mb-2 text-zinc-400 group-hover:text-amber-400 mx-auto" />
-        <span className="text-[10px] font-black text-white uppercase tracking-widest">Fleet Hub</span>
+        <span className="text-xs font-black text-white uppercase tracking-widest">Fleet Hub</span>
       </a>
       <a href="/chat" className="p-4 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group">
         <MessageSquare size={20} className="mb-2 text-zinc-400 group-hover:text-amber-400 mx-auto" />
-        <span className="text-[10px] font-black text-white uppercase tracking-widest">Neural Chat</span>
+        <span className="text-xs font-black text-white uppercase tracking-widest">Chat</span>
       </a>
     </div>
   </GlassCard>
