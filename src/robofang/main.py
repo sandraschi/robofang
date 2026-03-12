@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional
 
 import httpx
+import markdown
 import psutil
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -963,6 +964,62 @@ async def update_routing_rule(channel: str, agent: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class FleetRegisterRequest(BaseModel):
+    category: str  # 'nodes' or 'connectors'
+    id: str
+    config: Dict[str, Any]
+
+
+@app.post("/api/fleet/register")
+async def register_fleet_node(req: FleetRegisterRequest):
+    """Dynamically register a new node or connector in the fleet."""
+    try:
+        updates = {req.category: {req.id: req.config}}
+        if req.category == "connectors":
+            # Ensure it's enabled by default if not specified
+            if "enabled" not in req.config:
+                req.config["enabled"] = True
+        
+        ok = orchestrator.update_topology(updates)
+        return {"success": ok, "message": f"Successfully registered {req.id} in {req.category}"}
+    except Exception as e:
+        logger.error(f"Failed to register fleet node: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+class CommsSettingsRequest(BaseModel):
+    telegram_token: Optional[str] = None
+    discord_token: Optional[str] = None
+    discord_channel: Optional[str] = None
+
+
+@app.post("/api/settings/comms")
+async def update_comms_settings(req: CommsSettingsRequest):
+    """Update telegram and discord connector settings in the topology."""
+    try:
+        updates = {"connectors": {}}
+        if req.telegram_token:
+            updates["connectors"]["telegram"] = {
+                "token": req.telegram_token,
+                "enabled": True
+            }
+        
+        if req.discord_token:
+            updates["connectors"]["discord"] = {
+                "token": req.discord_token,
+                "channel_id": req.discord_channel,
+                "enabled": True
+            }
+        
+        if updates["connectors"]:
+            ok = orchestrator.update_topology(updates)
+            return {"success": ok}
+        return {"success": True, "message": "No updates provided"}
+    except Exception as e:
+        logger.error(f"Failed to update comms settings: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/skills")
 async def list_skills():
     try:
@@ -1173,6 +1230,44 @@ async def pause_hand(hand_id: str):
         raise HTTPException(status_code=404, detail=f"Hand {hand_id} not found")
     orchestrator.hands.hands[hand_id].pause()
     return {"success": True, "message": f"Hand {hand_id} paused"}
+
+
+
+@app.get("/api/docs")
+async def list_docs():
+    """List available documentation files from the docs/ directory."""
+    docs_dir = Path("D:/Dev/repos/robofang/docs")
+    if not docs_dir.exists():
+        return {"success": False, "error": "Docs directory not found"}
+    
+    docs = []
+    for f in docs_dir.glob("*.md"):
+        docs.append({
+            "slug": f.stem,
+            "title": f.stem.replace("_", " ").replace("-", " ").title(),
+            "path": str(f)
+        })
+    return {"success": True, "docs": docs}
+
+
+@app.get("/api/docs/{slug}")
+async def get_doc(slug: str):
+    """Fetch and return the content of a specific documentation file."""
+    doc_path = Path(f"D:/Dev/repos/robofang/docs/{slug}.md")
+    if not doc_path.exists():
+        raise HTTPException(status_code=404, detail=f"Documentation not found: {slug}")
+    
+    try:
+        content = doc_path.read_text(encoding="utf-8")
+        return {
+            "success": True,
+            "slug": slug,
+            "title": slug.replace("_", " ").replace("-", " ").title(),
+            "content": content
+        }
+    except Exception as e:
+        logger.error(f"Failed to read doc {slug}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 def main():

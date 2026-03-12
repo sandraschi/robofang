@@ -607,11 +607,34 @@ class OrchestrationClient:
         if "routing" not in self.topology:
             self.topology["routing"] = {}
         self.topology["routing"][channel] = agent
+        return self._save_topology()
+
+    def _save_topology(self) -> bool:
+        """Persists the current in-memory topology to federation_map.json."""
         try:
             with open(self.fleet_config_path, "w", encoding="utf-8") as f:
                 json.dump(self.topology, f, indent=4)
-            self.logger.info(f"Routing updated: {channel} -> {agent}")
+            self.logger.info(f"Topology persisted to {self.fleet_config_path}")
             return True
         except Exception as e:
-            self.logger.error(f"Failed to persist routing update: {e}")
+            self.logger.error(f"Failed to persist topology: {e}")
             return False
+
+    def update_topology(self, updates: Dict[str, Any]) -> bool:
+        """Merges updates into the topology and persists to disk.
+        
+        Supports updating 'nodes', 'connectors', 'domains', etc.
+        """
+        for key, value in updates.items():
+            if isinstance(value, dict) and key in self.topology and isinstance(self.topology[key], dict):
+                self.topology[key].update(value)
+            else:
+                self.topology[key] = value
+        
+        success = self._save_topology()
+        if success:
+            # Re-initialize connectors to handle any new ones
+            self._init_connectors()
+            # Re-build tool bridge
+            self._build_tool_bridge()
+        return success

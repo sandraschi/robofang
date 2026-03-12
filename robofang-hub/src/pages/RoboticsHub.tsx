@@ -7,9 +7,13 @@ import {
     Shield, ShieldCheck, Move, Settings, Battery,
     AlertTriangle, Box, ChevronRight,
     Gamepad2, Info, Share2, Bot,
-    Wind
+    Wind, AlertCircle
 } from 'lucide-react';
-import GlassCard from '../components/ui/GlassCard';
+
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 const BRIDGE = 'http://localhost:10871';
 
@@ -20,12 +24,24 @@ async function roboticsGet(connector: string, path = '') {
     return r.data;
 }
 
+async function launchConnector(connector: string) {
+    try {
+        await axios.post(`${BRIDGE}/api/connector/launch/${connector}`);
+        return true;
+    } catch (e) {
+        console.error("Launch failed:", e);
+        return false;
+    }
+}
+
 // ── Components ────────────────────────────────────────────────────────────────
 interface RoboticsCardProps {
     title: string;
+    subtitle?: string;
     icon: React.ReactNode;
     online: boolean | null;
     loading: boolean;
+    error: string | null;
     onRefresh: () => void;
     children: React.ReactNode;
     accentClass: string;
@@ -33,7 +49,7 @@ interface RoboticsCardProps {
 }
 
 const RoboticsCard: React.FC<RoboticsCardProps> = ({
-    title, icon, online, loading, onRefresh, children, accentClass, connectorId
+    title, subtitle, icon, online, loading, error, onRefresh, children, accentClass, connectorId
 }) => {
     const [verifying, setVerifying] = useState(false);
     const [tools, setTools] = useState<number | null>(null);
@@ -50,54 +66,78 @@ const RoboticsCard: React.FC<RoboticsCardProps> = ({
         }
     };
 
-    const handleLaunch = async () => {
-        try {
-            await axios.post(`${BRIDGE}/api/connector/launch/${connectorId}`);
-        } catch (e) {
-            console.error("Launch failed", e);
-        }
-    };
-
     return (
-        <GlassCard className={`flex flex-col h-full bg-slate-900/40 border-slate-700/50 hover:border-${accentClass}-500/30 transition-all duration-500 group overflow-hidden`}>
-            <div className={`flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-${accentClass}-500/5`}>
-                <div className="flex items-center gap-3">
-                    <div className={`text-${accentClass}-400 group-hover:scale-110 transition-transform duration-500`}>
-                        {icon}
-                    </div>
-                    <div>
-                        <div className="text-sm font-bold text-slate-100">{title}</div>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                            <div className={`w-1.5 h-1.5 rounded-full ${online ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
-                            <span className={`text-[10px] font-bold uppercase tracking-widest ${online ? "text-emerald-400" : "text-red-400"}`}>
-                                {online ? "Online" : "Offline"}
-                            </span>
-                        </div>
-                    </div>
+        <Card className={`flex flex-col h-full bg-slate-900/40 border-slate-700/50 hover:border-${accentClass}-500/30 transition-all duration-500 group overflow-hidden min-h-[460px] glass-panel`}>
+            <CardHeader className={`flex flex-row items-center gap-3 px-5 py-4 border-b border-white/[0.06] space-y-0 bg-${accentClass}-500/5`}>
+                <div className={`text-${accentClass}-400 group-hover:scale-110 transition-transform duration-500`}>
+                    {icon}
                 </div>
-                <button
-                    onClick={onRefresh}
-                    disabled={loading}
-                    title="Refresh Metrics"
-                    className="p-1.5 rounded-lg hover:bg-white/10 text-slate-500 hover:text-slate-200 transition-all active:scale-90"
-                >
-                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-                </button>
-            </div>
-            <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
+                <div className="flex-1 min-w-0">
+                    <CardTitle className="text-sm font-bold text-slate-100">{title}</CardTitle>
+                    {subtitle && (
+                        <div className="text-[10px] text-slate-400 truncate uppercase tracking-widest mt-0.5 font-medium">
+                            {subtitle}
+                        </div>
+                    )}
+                </div>
+                
+                <div className="flex items-center gap-2">
+                    {!online && !loading && (
+                        <Button
+                            variant="glass"
+                            size="sm"
+                            onClick={() => launchConnector(connectorId)}
+                            className={`h-6 px-2 text-[9px] border-${accentClass}-500/20 text-${accentClass}-400 uppercase tracking-tighter`}
+                        >
+                            Launch
+                        </Button>
+                    )}
+                    <Badge 
+                        variant="glass"
+                        className={`px-2 py-0 h-5 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-wider ${
+                            online ? "text-emerald-400" : "text-red-400"
+                        }`}
+                    >
+                        <div className={`w-1 h-1 rounded-full ${online ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
+                        {online ? "online" : `OFFLINE`}
+                    </Badge>
+                    
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onRefresh}
+                        className="h-7 w-7 text-slate-500 hover:text-slate-200"
+                    >
+                        <RefreshCw size={14} className={loading ? 'animate-spin' : 'hover:rotate-180 transition-transform duration-500'} />
+                    </Button>
+                </div>
+            </CardHeader>
+
+            <CardContent className="flex-1 p-5 overflow-y-auto custom-scrollbar">
                 <AnimatePresence mode="wait">
                     {loading ? (
                         <div className="space-y-4 animate-pulse">
-                            {[1, 2, 3, 4].map(i => (
+                            {[1, 2, 3, 4, 5].map((i) => (
                                 <div 
                                     key={i} 
                                     className="skeleton-bar" 
-                                    style={{ "--w": `${70 + (i % 3) * 10}%` } as React.CSSProperties} 
+                                    style={{ "--w": `${65 + (i % 4) * 8}%` } as React.CSSProperties} 
                                 />
                             ))}
                         </div>
+                    ) : error ? (
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="flex flex-col items-center justify-center h-full text-center p-4 space-y-3"
+                        >
+                            <div className="p-3 rounded-full bg-red-500/10 border border-red-500/20 text-red-400">
+                                <AlertCircle size={24} />
+                            </div>
+                            <div className="text-[10px] text-slate-500 leading-relaxed max-w-[200px]">{error}</div>
+                        </motion.div>
                     ) : (
-                        <motion.div
+                        <motion.div 
                             initial={{ opacity: 0, y: 5 }}
                             animate={{ opacity: 1, y: 0 }}
                             className="h-full"
@@ -106,34 +146,27 @@ const RoboticsCard: React.FC<RoboticsCardProps> = ({
                         </motion.div>
                     )}
                 </AnimatePresence>
-            </div>
-            
-            {/* Fleet Actions */}
+            </CardContent>
+
             <div className="px-5 py-3 bg-white/[0.02] border-t border-white/[0.06] flex items-center justify-between">
                 <div className="flex gap-2">
-                    {!online && (
-                        <button 
-                            onClick={handleLaunch}
-                            className={`px-3 py-1 rounded-lg bg-${accentClass}-500/10 hover:bg-${accentClass}-500/20 text-[10px] font-bold text-${accentClass}-400 border border-${accentClass}-500/20 transition-all uppercase tracking-tighter`}
-                        >
-                            Launch Webapp
-                        </button>
-                    )}
-                    <button 
+                    <Button 
+                        variant="glass"
+                        size="sm"
                         onClick={handleVerify}
                         disabled={verifying}
-                        className="px-3 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 text-[10px] font-bold text-slate-400 border border-white/5 transition-all uppercase tracking-tighter flex items-center gap-1.5"
+                        className="h-6 px-3 text-[9px] font-bold uppercase tracking-tighter flex items-center gap-1.5"
                     >
                         {verifying ? <RefreshCw size={10} className="animate-spin" /> : <ShieldCheck size={10} />}
                         {tools !== null ? `${tools} Tools` : 'Verify Fleet'}
-                    </button>
+                    </Button>
                 </div>
                 
-                <div className="text-[10px] font-mono text-slate-600">
+                <div className="text-[9px] font-mono text-slate-600 uppercase">
                     ID: {connectorId}
                 </div>
             </div>
-        </GlassCard>
+        </Card>
     );
 };
 
@@ -254,9 +287,9 @@ const RoboticsHub: React.FC = () => {
 
                 <div className="flex gap-2">
                     {['Active Shield', 'Low Latency', 'RTX-Ready'].map(tag => (
-                        <span key={tag} className="px-3 py-1 rounded-lg bg-slate-800/40 border border-white/5 text-[9px] font-bold text-slate-500 uppercase tracking-widest">
+                        <Badge key={tag} variant="glass" className="px-3 py-1 opacity-60">
                             {tag}
-                        </span>
+                        </Badge>
                     ))}
                 </div>
             </header>
@@ -270,6 +303,7 @@ const RoboticsHub: React.FC = () => {
                     accentClass="orange"
                     online={unitreeOnline}
                     loading={unitreeLoading}
+                    error={null}
                     onRefresh={refreshUnitree}
                 >
                     <div className="space-y-4">
@@ -313,6 +347,7 @@ const RoboticsHub: React.FC = () => {
                     accentClass="purple"
                     online={oscOnline}
                     loading={oscLoading}
+                    error={null}
                     onRefresh={refreshOSC}
                 >
                     <div className="space-y-4 h-full flex flex-col">
@@ -338,6 +373,7 @@ const RoboticsHub: React.FC = () => {
                     accentClass="emerald"
                     online={handsOnline}
                     loading={handsLoading}
+                    error={null}
                     onRefresh={refreshHands}
                 >
                     <div className="space-y-4">
@@ -367,6 +403,7 @@ const RoboticsHub: React.FC = () => {
                     accentClass="cyan"
                     online={yahboomOnline}
                     loading={yahboomLoading}
+                    error={null}
                     onRefresh={refreshYahboom}
                 >
                     <div className="space-y-4">
@@ -374,13 +411,13 @@ const RoboticsHub: React.FC = () => {
                             <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5">
                                 <div className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-tighter">Battery</div>
                                 <div className="flex items-center gap-2 text-sm font-bold text-cyan-400 font-mono">
-                                    <Battery size={14} /> {yahboomData?.battery || '0'}%
+                                    <Battery size={14} /> {(yahboomData as {battery?: number})?.battery || '0'}%
                                 </div>
                             </div>
                             <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5">
                                 <div className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-tighter">Temp</div>
                                 <div className="flex items-center gap-2 text-sm font-bold text-orange-400 font-mono">
-                                    <Activity size={14} /> {yahboomData?.temp || '0'}°C
+                                    <Activity size={14} /> {(yahboomData as {temp?: number})?.temp || '0'}°C
                                 </div>
                             </div>
                         </div>
@@ -412,6 +449,7 @@ const RoboticsHub: React.FC = () => {
                     accentClass="emerald"
                     online={dreameOnline}
                     loading={dreameLoading}
+                    error={null}
                     onRefresh={refreshDreame}
                 >
                     <div className="space-y-4">
@@ -419,13 +457,13 @@ const RoboticsHub: React.FC = () => {
                             <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5">
                                 <div className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-tighter">Battery</div>
                                 <div className="flex items-center gap-2 text-sm font-bold text-emerald-400 font-mono">
-                                    <Battery size={14} /> {dreameData?.battery || '0'}%
+                                    <Battery size={14} /> {(dreameData as {battery?: number})?.battery || '0'}%
                                 </div>
                             </div>
                             <div className="bg-slate-800/40 p-3 rounded-xl border border-white/5">
                                 <div className="text-[10px] text-slate-500 uppercase font-bold mb-1 tracking-tighter">Status</div>
                                 <div className="flex items-center gap-2 text-sm font-bold text-emerald-400 font-mono">
-                                    <Activity size={14} /> {dreameData?.state || 'Idle'}
+                                    <Activity size={14} /> {(dreameData as {state?: string})?.state || 'Idle'}
                                 </div>
                             </div>
                         </div>
@@ -453,6 +491,7 @@ const RoboticsHub: React.FC = () => {
                     accentClass="blue"
                     online={true}
                     loading={false}
+                    error={null}
                     onRefresh={() => { }}
                 >
                     <div className="space-y-4">
@@ -472,7 +511,7 @@ const RoboticsHub: React.FC = () => {
                 </RoboticsCard>
 
                 {/* Fleet Shield */}
-                <GlassCard className="flex flex-col h-full bg-slate-900/40 border-slate-700/50 p-6 space-y-6">
+                <Card className="flex flex-col h-full bg-slate-900/40 border-slate-700/50 p-6 space-y-6 glass-panel">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
                              <Shield size={20} />
@@ -493,11 +532,11 @@ const RoboticsHub: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                         <button className="w-full py-2 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold uppercase tracking-widest transition-all">
+                         <Button variant="glass" className="w-full h-9 text-[10px] font-bold uppercase tracking-widest">
                             Rotate Auth Keys
-                        </button>
+                        </Button>
                     </div>
-                </GlassCard>
+                </Card>
 
                 {/* OSC Feedback Loop */}
                 <RoboticsCard
@@ -507,6 +546,7 @@ const RoboticsHub: React.FC = () => {
                     accentClass="rose"
                     online={true}
                     loading={false}
+                    error={null}
                     onRefresh={() => { }}
                 >
                     <div className="space-y-3">
@@ -527,9 +567,9 @@ const RoboticsHub: React.FC = () => {
                                 </div>
                             </div>
                         </div>
-                        <button className="w-full py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-[10px] font-bold uppercase tracking-widest transition-all">
+                        <Button variant="glass" className="w-full h-9 text-[10px] font-bold uppercase tracking-widest">
                             Calibrate Loop
-                        </button>
+                        </Button>
                     </div>
                 </RoboticsCard>
 
@@ -541,21 +581,22 @@ const RoboticsHub: React.FC = () => {
                     accentClass="slate"
                     online={true}
                     loading={false}
+                    error={null}
                     onRefresh={() => { }}
                 >
                     <div className="space-y-3">
-                         <button className="w-full p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-all flex items-center gap-3 group">
+                         <Button variant="glass" className="w-full p-2.5 h-auto justify-start flex items-center gap-3 group text-left">
                             <Zap size={14} className="text-amber-500 group-hover:animate-bounce" />
                             <span className="text-[11px] text-slate-300 font-bold uppercase tracking-tight">Recalibrate Joints</span>
-                        </button>
-                        <button className="w-full p-2.5 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:bg-white/[0.05] transition-all flex items-center gap-3 group">
+                        </Button>
+                        <Button variant="glass" className="w-full p-2.5 h-auto justify-start flex items-center gap-3 group text-left">
                             <Box size={14} className="text-blue-500" />
                             <span className="text-[11px] text-slate-300 font-bold uppercase tracking-tight">Zero Alignment</span>
-                        </button>
-                        <button className="w-full p-3 rounded-xl bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 transition-all flex items-center justify-center gap-3 group mt-4">
-                            <AlertTriangle size={16} className="text-red-500 group-hover:rotate-12 transition-transform" />
-                            <span className="text-xs text-red-400 font-black uppercase tracking-[0.2em]">Emergency E-Stop</span>
-                        </button>
+                        </Button>
+                        <Button variant="destructive" className="w-full h-11 flex items-center justify-center gap-3 group mt-4">
+                            <AlertTriangle size={16} className="text-white group-hover:rotate-12 transition-transform" />
+                            <span className="text-xs text-white font-black uppercase tracking-[0.2em]">Emergency E-Stop</span>
+                        </Button>
                     </div>
                 </RoboticsCard>
             </div>

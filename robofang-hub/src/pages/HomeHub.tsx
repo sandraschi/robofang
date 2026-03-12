@@ -5,7 +5,9 @@ import {
   Zap, Shield,
   BookOpen, Camera, CloudSun, Bell, Activity
 } from 'lucide-react';
-import GlassCard from '../components/ui/GlassCard';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // ── Shared Helper Components ──────────────────────────────────────────────────
 
@@ -16,13 +18,13 @@ interface StatPillProps {
 }
 
 const StatPill: React.FC<StatPillProps> = ({ label, value, icon }) => (
-  <div className="bg-white/5 border border-white/5 rounded-xl px-3 py-2 flex items-center gap-2.5">
-    {icon && <span className="text-text-secondary shrink-0">{icon}</span>}
+  <Card className="bg-slate-900/40 border-slate-800/50 p-3 flex items-center gap-3">
+    {icon && <div className="p-2 rounded-lg bg-white/5 text-slate-400 shrink-0">{icon}</div>}
     <div>
-      <div className="text-[10px] font-bold text-text-secondary uppercase tracking-widest leading-none mb-1">{label}</div>
+      <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">{label}</div>
       <div className="text-sm font-bold text-white leading-tight">{value}</div>
     </div>
-  </div>
+  </Card>
 );
 
 const Skeleton: React.FC<{ rows?: number }> = ({ rows = 3 }) => (
@@ -50,58 +52,60 @@ interface ConnectorCardProps {
 const ConnectorCard: React.FC<ConnectorCardProps> = ({
   title, icon, colorClass, glowClass, online, loading, error, onRefresh, children
 }) => (
-  <GlassCard className={`flex flex-col h-full group hover:border-white/20 transition-all duration-500 overflow-hidden ${!online && online !== null ? 'opacity-70 blur-[1px]' : ''}`}>
+  <Card className={`flex flex-col h-full group hover:border-slate-700 transition-all duration-500 overflow-hidden bg-slate-950/40 ${!online && online !== null ? 'opacity-80 blur-[0.5px]' : ''}`}>
     {/* Header */}
-    <div className="flex items-center justify-between p-5 border-b border-white/5 bg-white/[0.02]">
+    <CardHeader className="flex flex-row items-center justify-between p-5 border-b border-white/5 bg-white/[0.02] space-y-0">
       <div className="flex items-center gap-4">
         <div className={`w-10 h-10 rounded-xl ${colorClass} flex items-center justify-center shadow-lg ${glowClass} transition-transform group-hover:scale-110 duration-500 group-hover:rotate-3`}>
           {icon}
         </div>
         <div>
-          <div className="text-sm font-bold text-white tracking-tight">{title}</div>
-          <div className="flex items-center gap-2 mt-0.5">
+          <CardTitle className="text-sm font-bold text-white tracking-tight">{title}</CardTitle>
+          <div className="flex items-center gap-2 mt-1">
             {online === null ? (
-              <div className="flex items-center gap-1.5 animate-pulse">
-                <div className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                <span className="text-[9px] text-slate-500 uppercase tracking-tighter font-bold">Initializing</span>
-              </div>
+              <Badge variant="glass" className="bg-slate-500/10 text-slate-500 border-slate-500/20 px-1.5 py-0 h-4 text-[9px] uppercase tracking-tighter">
+                <div className="w-1 h-1 rounded-full bg-slate-500 mr-1 animate-pulse" />
+                Initializing
+              </Badge>
             ) : online ? (
-              <>
-                <div className="w-1.5 h-1.5 rounded-full bg-accent-success animate-pulse shadow-[0_0_8px_var(--accent-success)]" />
-                <span className="text-[9px] font-bold text-accent-success uppercase tracking-tighter">Coherent</span>
-              </>
+              <Badge variant="glass" className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-1.5 py-0 h-4 text-[9px] uppercase tracking-tighter">
+                <div className="w-1 h-1 rounded-full bg-emerald-400 mr-1 animate-pulse shadow-[0_0_8px_var(--accent-success)]" />
+                Coherent
+              </Badge>
             ) : (
-              <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent-error shadow-[0_0_8px_var(--accent-error)]" />
-                <span className="text-[9px] font-bold text-accent-error uppercase tracking-tighter">Severed</span>
-              </div>
+              <Badge variant="glass" className="bg-red-500/10 text-red-500 border-red-500/20 px-1.5 py-0 h-4 text-[9px] uppercase tracking-tighter">
+                <div className="w-1 h-1 rounded-full bg-red-500 mr-1" />
+                Severed
+              </Badge>
             )}
           </div>
         </div>
       </div>
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={onRefresh}
         disabled={loading}
         title="Refresh Data"
-        className="p-2 rounded-lg hover:bg-white/10 text-text-secondary hover:text-white transition-colors active:scale-90 disabled:opacity-40"
+        className="h-8 w-8 text-slate-500 hover:text-white hover:bg-white/10"
       >
         <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-      </button>
-    </div>
+      </Button>
+    </CardHeader>
 
     {/* Body */}
-    <div className="flex-1 overflow-y-auto p-5 custom-scrollbar min-h-[300px]">
+    <CardContent className="flex-1 overflow-y-auto p-5 custom-scrollbar min-h-[300px]">
       {error ? (
-        <div className="flex items-start gap-3 p-4 bg-accent-error/10 border border-accent-error/20 rounded-xl">
-          <AlertTriangle size={16} className="shrink-0 text-accent-error" />
+        <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+          <AlertTriangle size={16} className="shrink-0 text-red-500" />
           <div className="space-y-1">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-accent-error">Backbone Desync</div>
-            <div className="text-xs text-red-300 leading-relaxed">{error}</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-red-500">Backbone Desync</div>
+            <div className="text-xs text-red-300/80 leading-relaxed">{error}</div>
           </div>
         </div>
       ) : children}
-    </div>
-  </GlassCard>
+    </CardContent>
+  </Card>
 );
 
 // ── Specialized Sub-Hubs ─────────────────────────────────────────────────────
@@ -115,8 +119,6 @@ const PlexSubHub: React.FC = () => {
   const fetchPlexData = useCallback(async () => {
     setLoading(true);
     try {
-      // Direct fetch via base bridge pulse or specialized path
-      // Note: Legacy used homeGet('plex', 'sessions')
       const resp = await fetch('http://localhost:10871/home/plex/sessions');
       const data = await resp.json();
       setSessions(data.sessions || data.MediaContainer?.Metadata || []);
@@ -141,10 +143,10 @@ const PlexSubHub: React.FC = () => {
     >
       {loading ? <Skeleton /> : (
         <div className="space-y-4">
-          <div className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Active Streams ({sessions.length})</div>
+          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Streams ({sessions.length})</div>
           <AnimatePresence>
             {sessions.length === 0 ? (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-text-secondary italic italic items-center flex gap-2">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-slate-500 italic items-center flex gap-2">
                 <Activity size={12} /> Idle Grid System
               </motion.div>
             ) : sessions.map((s, i) => (
@@ -156,8 +158,8 @@ const PlexSubHub: React.FC = () => {
               >
                 <div className="text-xs font-bold text-white truncate">{s.grandparentTitle ? `${s.grandparentTitle} - ` : ''}{s.title}</div>
                 <div className="flex justify-between items-center mt-2">
-                  <span className="text-[10px] text-text-secondary">{s.Player?.title || 'Unknown Player'}</span>
-                  <span className="text-[9px] font-black uppercase text-yellow-400">{s.Player?.state || 'Playing'}</span>
+                  <span className="text-[10px] text-slate-400">{s.Player?.title || 'Unknown Player'}</span>
+                  <span className="text-[9px] font-black uppercase text-yellow-500/80">{s.Player?.state || 'Playing'}</span>
                 </div>
               </motion.div>
             ))}
@@ -201,16 +203,16 @@ const CalibreSubHub: React.FC = () => {
     >
       {loading ? <Skeleton /> : (
         <div className="space-y-3">
-          <div className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Recent Ingestions</div>
+          <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Recent Ingestions</div>
           {recent.map((b, i) => (
             <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0 group/book">
               <div className="min-w-0 flex-1">
-                <div className="text-xs font-bold text-white truncate group-hover/book:text-accent-primary transition-colors">{b.title}</div>
-                <div className="text-[10px] text-text-secondary truncate">{b.authors || b.author}</div>
+                <div className="text-xs font-bold text-white truncate group-hover/book:text-blue-400 transition-colors">{b.title}</div>
+                <div className="text-[10px] text-slate-400 truncate">{b.authors || b.author}</div>
               </div>
               <div className="flex gap-1 ml-2">
                 {(b.formats || []).slice(0, 2).map((f: string) => (
-                  <span key={f} className="text-[8px] font-black px-1.5 py-0.5 rounded bg-white/5 text-text-secondary uppercase">{f}</span>
+                  <Badge key={f} variant="glass" className="text-[8px] font-black px-1.5 py-0 h-4 bg-white/5 text-slate-400 border-white/10 uppercase">{f}</Badge>
                 ))}
               </div>
             </div>
@@ -233,7 +235,7 @@ const HASubHub: React.FC = () => {
       const resp = await fetch('http://localhost:10871/home/home-assistant/states');
       const data = await resp.json();
       const all = data.entities || data || [];
-      const filtered = all.slice(0, 10); // Limit for the hub view
+      const filtered = all.slice(0, 10);
       setEntities(filtered);
       setOnline(true);
       setError(null);
@@ -260,10 +262,10 @@ const HASubHub: React.FC = () => {
             <div key={i} className="flex items-center justify-between p-2.5 bg-white/[0.03] border border-white/5 rounded-xl">
               <div className="min-w-0">
                 <div className="text-xs font-bold text-white truncate">{e.attributes?.friendly_name || e.entity_id}</div>
-                <div className="text-[9px] text-text-secondary uppercase tracking-tighter">{e.entity_id.split('.')[0]}</div>
+                <div className="text-[9px] text-slate-500 uppercase tracking-tighter">{e.entity_id.split('.')[0]}</div>
               </div>
               <div className="flex items-center gap-3">
-                <span className={`text-[10px] font-black uppercase ${['on', 'playing', 'open'].includes(e.state) ? 'text-accent-success' : 'text-text-secondary'}`}>
+                <span className={`text-[10px] font-black uppercase ${['on', 'playing', 'open'].includes(e.state) ? 'text-emerald-400' : 'text-slate-500'}`}>
                   {e.state}
                 </span>
                 <Zap size={12} className={['on', 'playing'].includes(e.state) ? 'text-yellow-400' : 'text-white/10'} />
@@ -301,72 +303,78 @@ const HomeHub: React.FC = () => {
   }, []);
 
   return (
-    <div className="space-y-10 pb-20">
+    <div className="p-8 max-w-7xl mx-auto space-y-10">
       <header className="flex flex-col lg:flex-row lg:items-end justify-between gap-10">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <span className="px-3 py-1 rounded-lg bg-accent-primary/10 border border-accent-primary/20 text-[10px] font-black text-accent-primary uppercase tracking-[0.2em]">
-              Home Substrate v13.3
-            </span>
-            <div className="h-px w-24 bg-gradient-to-r from-accent-primary/50 to-transparent" />
+            <Badge variant="glass" className="bg-blue-500/10 border-blue-500/20 text-blue-400 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-[0.2em]">
+              HOME_SUBSTRATE_v13.3
+            </Badge>
+            <div className="h-px w-24 bg-gradient-to-r from-blue-500/50 to-transparent" />
           </div>
-          <h1 className="text-7xl font-bold font-gradient tracking-tighter leading-none">
-            Home <span className="opacity-50">Hub</span>
+          <h1 className="text-5xl font-black text-slate-100 tracking-tighter leading-none uppercase italic">
+            Home <span className="opacity-40">Hub</span>
           </h1>
-          <p className="text-text-secondary text-lg max-w-2xl font-light border-l border-white/10 pl-6 py-1">
-            Orchestrating local media topology and physical system constraints through the RoboFang Neural Bridge.
+          <p className="text-slate-400 text-lg max-w-2xl font-medium border-l border-white/10 pl-6 py-1">
+            Centralized orchestration of residential media topography and IoT system constraints through the RoboFang Neural Bridge.
           </p>
         </div>
 
         {/* Bridge Status Indicator */}
-        <GlassCard className="min-w-[320px] !p-6 flex flex-col gap-4 border-accent-primary/10">
-          <div className="flex items-center justify-between">
-            <div className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">Neural Bridge Integrity</div>
-            <div className={`flex items-center gap-2 px-3 py-1 rounded-lg border ${bridgeStatus.online ? 'bg-accent-success/10 border-accent-success/20 text-accent-success' : 'bg-accent-error/10 border-accent-error/20 text-accent-error'}`}>
-              <div className={`w-1.5 h-1.5 rounded-full ${bridgeStatus.online ? 'bg-accent-success animate-pulse' : 'bg-accent-error'}`} />
-              <span className="text-[9px] font-black uppercase tracking-widest">{bridgeStatus.online ? 'Coherent' : 'Severed'}</span>
-            </div>
+        <Card className="min-w-[320px] p-6 bg-slate-950/40 border-blue-500/10">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Neural Bridge Integrity</div>
+            {bridgeStatus.online ? (
+              <Badge variant="glass" className="bg-emerald-500/10 border-emerald-500/20 text-emerald-400 uppercase text-[9px] font-black tracking-widest">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-2 animate-pulse" />
+                Coherent
+              </Badge>
+            ) : (
+              <Badge variant="glass" className="bg-red-500/10 border-red-500/20 text-red-500 uppercase text-[9px] font-black tracking-widest">
+                <div className="w-1.5 h-1.5 rounded-full bg-red-500 mr-2" />
+                Severed
+              </Badge>
+            )}
           </div>
           
           <div className="space-y-2">
-            <div className="flex justify-between text-[10px] font-mono text-text-secondary">
+            <div className="flex justify-between text-[10px] font-mono text-slate-400">
               <span>SYSTEM_STABILITY</span>
-              <span className={bridgeStatus.online ? 'text-accent-success' : 'text-accent-error'}>{bridgeStatus.integrity.toFixed(1)}%</span>
+              <span className={bridgeStatus.online ? 'text-emerald-400' : 'text-red-400'}>{bridgeStatus.integrity.toFixed(1)}%</span>
             </div>
             <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }}
                 animate={{ width: `${bridgeStatus.integrity}%` }}
-                className={`h-full ${bridgeStatus.online ? 'bg-gradient-to-r from-accent-primary to-accent-secondary' : 'bg-accent-error'}`}
+                className={`h-full ${bridgeStatus.online ? 'bg-gradient-to-r from-blue-500 to-indigo-500' : 'bg-red-500'}`}
               />
             </div>
           </div>
-        </GlassCard>
+        </Card>
       </header>
 
       {/* Overview Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-        <StatPill label="Active Streams" value="2" icon={<Tv2 size={14} className="text-yellow-400" />} />
-        <StatPill label="IoT Entities" value="128" icon={<Home size={14} className="text-emerald-400" />} />
-        <StatPill label="Secure Zones" value="Locked" icon={<Shield size={14} className="text-rose-400" />} />
-        <StatPill label="Bridge Pulse" value="Coherent" icon={<Zap size={14} className="text-accent-primary" />} />
+        <StatPill label="STREAM_VECTOR" value="2" icon={<Tv2 size={14} className="text-yellow-400" />} />
+        <StatPill label="ENTITY_COUNT" value="128" icon={<Home size={14} className="text-emerald-400" />} />
+        <StatPill label="ZONE_SECURITY" value="SECURE" icon={<Shield size={14} className="text-rose-400" />} />
+        <StatPill label="BRIDGE_COHERENCE" value="ONLINE" icon={<Zap size={14} className="text-blue-400" />} />
       </div>
 
       {/* Main Connector Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pb-12">
         <PlexSubHub />
         <CalibreSubHub />
         <HASubHub />
         
-        {/* These would be migrated next in the same pattern */}
         <ConnectorCard title="Tapo Devices" icon={<Camera size={20} />} colorClass="bg-green-500/20" glowClass="shadow-green-500/20" online={bridgeStatus.online} loading={false} onRefresh={() => {}}>
-           <div className="text-xs text-text-secondary italic">Deployment pending Phase 2 extension.</div>
+           <div className="text-xs text-slate-500 italic">Provisioning pending Phase 2 topology expansion.</div>
         </ConnectorCard>
         <ConnectorCard title="Netatmo Weather" icon={<CloudSun size={20} />} colorClass="bg-cyan-500/20" glowClass="shadow-cyan-500/20" online={bridgeStatus.online} loading={false} onRefresh={() => {}}>
-           <div className="text-xs text-text-secondary italic">Deployment pending Phase 2 extension.</div>
+           <div className="text-xs text-slate-500 italic">Provisioning pending Phase 2 topology expansion.</div>
         </ConnectorCard>
         <ConnectorCard title="Ring Security" icon={<Bell size={20} />} colorClass="bg-red-500/20" glowClass="shadow-red-500/20" online={bridgeStatus.online} loading={false} onRefresh={() => {}}>
-           <div className="text-xs text-text-secondary italic">Deployment pending Phase 2 extension.</div>
+           <div className="text-xs text-slate-500 italic">Provisioning pending Phase 2 topology expansion.</div>
         </ConnectorCard>
       </div>
     </div>

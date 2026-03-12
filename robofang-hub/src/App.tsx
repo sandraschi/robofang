@@ -39,7 +39,10 @@ import Browser from './pages/systems/Browser';
 import FileSystem from './pages/systems/FileSystem';
 import Profile from './pages/systems/Profile';
 import Logs from './pages/systems/Logs';
+import DocViewer from './pages/systems/DocViewer';
+import McpDocs from './pages/systems/McpDocs';
 import Notifications from './pages/systems/Notifications';
+import Onboarding from './pages/systems/Onboarding';
 
 import './index.css';
 
@@ -94,6 +97,9 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/logs" element={<Logs />} />
           <Route path="/notifications" element={<Notifications />} />
+          <Route path="/docs/:slug" element={<DocViewer />} />
+          <Route path="/mcp-docs" element={<McpDocs />} />
+          <Route path="/onboarding" element={<Onboarding />} />
 
           <Route path="*" element={<Dashboard />} />
         </Routes>
