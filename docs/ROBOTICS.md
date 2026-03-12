@@ -10,8 +10,10 @@ The name "Robofang" is an intentional provocation. It signifies that our agents 
 
 We do not believe in a one-size-fits-all approach to robotics. Instead, we follow a tiered strategy that allows for both accessible learning and high-end industrial-grade performance.
 
-### 1. The Primary Champion: Noetix Bumi
-Priced at approximately $1,500, the **Noetix Bumi** is the cornerstone of our physical agency strategy. In the 2026 SOTA landscape, it represents the most accessible "full-stack" humanoid for agentic orchestration.
+### 1. The Primary Champion: Noetix Bumi (The "iPhone-Priced" Breakthrough)
+The **Noetix Bumi** is not just another robot; it is a fundamental shift in the robotics landscape—a Chinese breakthrough that finally delivers an **"Android for the price of an iPhone."** Priced at approximately $1,399 (¥10,000 range), it shatters the price-to-performance ratio that has kept humanoid robotics locked in research labs for decades.
+
+This is the cornerstone of our physical agency strategy. In the 2026 SOTA landscape, it represents the first true "mass-market" humanoid capable of high-fidelity agentic orchestration. Noetix Robotics has intentionally designed Bumi for the education and home markets, providing the lightweight agility and open substrate required for our **Embodied Sentience** loop.
 
 <p align="center">
   <img src="../assets/bumi_step2.png" alt="Noetix Bumi - THE NEXT STEP" width="500">
