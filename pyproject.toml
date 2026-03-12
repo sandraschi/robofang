@@ -82,3 +82,8 @@ line-ending = "auto"
 # Ignore imports not at top of file in scripts
 "scripts/*.py" = ["E402"]
 "src/robofang/main.py" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["src"]

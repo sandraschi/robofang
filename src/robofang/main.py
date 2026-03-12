@@ -9,7 +9,6 @@ from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional
 
 import httpx
-import markdown
 import psutil
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Response
@@ -187,14 +186,13 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup_event():
-    """Manage orchestrator lifecycle and auto-launch enabled fleet nodes.
-    Launch MCP server processes first, then wait, then start orchestrator so
-    connector.connect() can reach backends that are already binding.
-    """
+    """Manage orchestrator lifecycle and auto-launch enabled fleet nodes."""
     logger.info("RoboFang Bridge starting up...")
+    orchestrator.storage.log_event("info", "bridge", "startup_initiated")
     await auto_launch_enabled_connectors()
     await asyncio.sleep(8)
     await orchestrator.start()
+    orchestrator.storage.log_event("info", "bridge", "startup_complete")
 
 
 async def auto_launch_enabled_connectors():
@@ -294,13 +292,18 @@ async def launch_connector(name: str):
         raise HTTPException(status_code=404, detail=f"Launch script not found in {repo_path}")
 
     try:
-        # Launch via PowerShell in a new console to prevent zombie-blocking the bridge
         subprocess.Popen(
             ["powershell.exe", "-ExecutionPolicy", "Bypass", "-File", str(start_ps1)],
             cwd=repo_path,
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
         logger.info(f"SOTA Trigger: Launched {name} from {repo_path}")
+        orchestrator.storage.log_event(
+            "info",
+            "fleet",
+            "connector_launched",
+            {"name": name, "path": str(repo_path), "method": "start.ps1"},
+        )
         return {"success": True, "message": f"Launched {name} via {start_ps1}"}
     except Exception as e:
         logger.error(f"Failed to launch connector {name}: {e}")
@@ -325,6 +328,76 @@ async def get_connector_tools(connector_id: str):
         raise HTTPException(status_code=503, detail="Connector backend unreachable")
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Connector backend timeout")
+
+
+# Status tool name hints per connector (optional; fallback = first tool with "status" in name)
+STATUS_TOOL_PARAMS: Dict[str, Dict[str, Any]] = {
+    "blender": {"operation": "status", "format": "text"},
+}
+
+
+@app.get("/api/connectors/{connector_id}/status")
+async def get_connector_status(connector_id: str):
+    """
+    Return server-side status for the connector (e.g. Blender running, installed).
+    Tries: GET /health, GET /status, then POST /tool with a status-like tool if available.
+    """
+    base = _backend_url_for_connector(connector_id)
+    if not base:
+        raise HTTPException(status_code=404, detail=f"Unknown connector: {connector_id}")
+
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        # 1. Try health or status HTTP endpoints
+        for path in ("/api/v1/health", "/health", "/status", "/api/status"):
+            try:
+                r = await client.get(f"{base.rstrip('/')}{path}")
+                if r.status_code == 200:
+                    try:
+                        data = r.json()
+                        if isinstance(data, dict):
+                            return {
+                                "success": True,
+                                "server_status": data.get("message") or str(data),
+                            }
+                        return {"success": True, "server_status": str(data)}
+                    except Exception:
+                        return {"success": True, "server_status": (r.text or "").strip()[:500]}
+            except (httpx.ConnectError, httpx.TimeoutException):
+                continue
+
+        # 2. Try POST /tool (Blender-style) with a status tool
+        try:
+            tools_r = await client.get(f"{base.rstrip('/')}/tools")
+            if tools_r.status_code != 200:
+                return {"success": False, "server_status": None}
+
+            tools_data = tools_r.json()
+            tools_list = tools_data if isinstance(tools_data, list) else tools_data.get("tools", [])
+            status_tool_name = None
+            for t in tools_list:
+                name = t.get("name") or t.get("title") or ""
+                if "status" in name.lower():
+                    status_tool_name = name
+                    break
+            if not status_tool_name:
+                return {"success": False, "server_status": None}
+
+            params = STATUS_TOOL_PARAMS.get(connector_id) or {}
+            tool_r = await client.post(
+                f"{base.rstrip('/')}/tool",
+                json={"tool": status_tool_name, "params": params},
+            )
+            if tool_r.status_code != 200:
+                return {"success": False, "server_status": None}
+            body = tool_r.json()
+            msg = body.get("message") or body.get("data")
+            if isinstance(msg, dict):
+                msg = msg.get("message") or str(msg)
+            return {"success": True, "server_status": (msg or "").strip()[:1000]}
+        except (httpx.ConnectError, httpx.TimeoutException):
+            return {"success": False, "server_status": None}
+        except Exception:
+            return {"success": False, "server_status": None}
 
 
 # Enable CORS for dashboard on port 10864
@@ -433,6 +506,8 @@ async def save_comms_settings(req: CommsSettingsRequest):
         storage.save_secret("comms_telegram_chat_id", req.telegram_chat_id.strip())
     if req.discord_webhook is not None and req.discord_webhook.strip():
         storage.save_secret("comms_discord_webhook", req.discord_webhook.strip())
+
+    orchestrator.storage.log_event("info", "settings", "comms_updated")
     return {"success": True}
 
 
@@ -516,6 +591,12 @@ async def launch_app(request: LaunchRequest):
             cwd=str(path),
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
+        orchestrator.storage.log_event(
+            "info",
+            "fleet",
+            "app_launched",
+            {"name": path.name, "path": str(path), "script": str(start_script)},
+        )
         return {"success": True, "message": f"Launched {path.name}"}
     except Exception as e:
         logger.error(f"Launch failed: {e}")
@@ -590,6 +671,7 @@ async def get_fleet():
             "source": "live",
             "domain": "connectors",
             "enabled": True,
+            "repo_path": REPO_MAP.get(name) or "",
         }
 
     # 2. Federation map: connectors section — enrich with backend_url, frontend_url
@@ -613,13 +695,16 @@ async def get_fleet():
             "domain": "connectors",
             "backend_url": backend_url,
             "frontend_url": frontend_url,
+            "repo_path": REPO_MAP.get(name) or "",
         }
-    # Backfill backend_url for live connectors not in conn_cfg
+    # Backfill backend_url, repo_path, frontend_url for live connectors not in conn_cfg
     for name in list(live.keys()):
         if live[name].get("backend_url") in (None, ""):
             live[name]["backend_url"] = MCP_BACKENDS.get(name) or ""
         if live[name].get("frontend_url") is None:
             live[name]["frontend_url"] = conn_cfg.get(name, {}).get("mcp_frontend") or ""
+        if live[name].get("repo_path") is None or live[name].get("repo_path") == "":
+            live[name]["repo_path"] = REPO_MAP.get(name) or ""
 
     # 3. Federation map: domains section
     domain_agents: list = []
@@ -709,6 +794,13 @@ async def get_logs(
         "logs": entries,
         "latest_id": entries[-1]["id"] if entries else None,
     }
+
+
+@app.get("/api/audit")
+async def get_audit(limit: int = 100):
+    """Retrieve persistent audit logs from RoboFang Storage."""
+    logs = orchestrator.storage.get_audit_logs(limit=limit)
+    return {"success": True, "count": len(logs), "audit_logs": logs}
 
 
 @app.delete("/logs")
@@ -979,8 +1071,11 @@ async def register_fleet_node(req: FleetRegisterRequest):
             # Ensure it's enabled by default if not specified
             if "enabled" not in req.config:
                 req.config["enabled"] = True
-        
+
         ok = orchestrator.update_topology(updates)
+        orchestrator.storage.log_event(
+            "info", "fleet", "node_registered", {"id": req.id, "category": req.category}
+        )
         return {"success": ok, "message": f"Successfully registered {req.id} in {req.category}"}
     except Exception as e:
         logger.error(f"Failed to register fleet node: {e}")
@@ -999,18 +1094,15 @@ async def update_comms_settings(req: CommsSettingsRequest):
     try:
         updates = {"connectors": {}}
         if req.telegram_token:
-            updates["connectors"]["telegram"] = {
-                "token": req.telegram_token,
-                "enabled": True
-            }
-        
+            updates["connectors"]["telegram"] = {"token": req.telegram_token, "enabled": True}
+
         if req.discord_token:
             updates["connectors"]["discord"] = {
                 "token": req.discord_token,
                 "channel_id": req.discord_channel,
-                "enabled": True
+                "enabled": True,
             }
-        
+
         if updates["connectors"]:
             ok = orchestrator.update_topology(updates)
             return {"success": ok}
@@ -1232,21 +1324,22 @@ async def pause_hand(hand_id: str):
     return {"success": True, "message": f"Hand {hand_id} paused"}
 
 
-
 @app.get("/api/docs")
 async def list_docs():
     """List available documentation files from the docs/ directory."""
     docs_dir = Path("D:/Dev/repos/robofang/docs")
     if not docs_dir.exists():
         return {"success": False, "error": "Docs directory not found"}
-    
+
     docs = []
     for f in docs_dir.glob("*.md"):
-        docs.append({
-            "slug": f.stem,
-            "title": f.stem.replace("_", " ").replace("-", " ").title(),
-            "path": str(f)
-        })
+        docs.append(
+            {
+                "slug": f.stem,
+                "title": f.stem.replace("_", " ").replace("-", " ").title(),
+                "path": str(f),
+            }
+        )
     return {"success": True, "docs": docs}
 
 
@@ -1256,14 +1349,14 @@ async def get_doc(slug: str):
     doc_path = Path(f"D:/Dev/repos/robofang/docs/{slug}.md")
     if not doc_path.exists():
         raise HTTPException(status_code=404, detail=f"Documentation not found: {slug}")
-    
+
     try:
         content = doc_path.read_text(encoding="utf-8")
         return {
             "success": True,
             "slug": slug,
             "title": slug.replace("_", " ").replace("-", " ").title(),
-            "content": content
+            "content": content,
         }
     except Exception as e:
         logger.error(f"Failed to read doc {slug}: {e}")

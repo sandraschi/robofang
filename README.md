@@ -1,26 +1,92 @@
-<h1 align="center">robofang [ALPHA]</h1>
+<h1 align="center">robofang</h1>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/OpenClaw-Heritage-blue?style=for-the-badge&logo=github" alt="OpenClaw Heritage">
-  <img src="https://img.shields.io/badge/OpenFang-Agency-red?style=for-the-badge&logo=target" alt="OpenFang Agency">
-  <img src="https://img.shields.io/github/actions/workflow/status/sandraschi/robofang/ci.yml?branch=main&style=for-the-badge&logo=github&label=CI" alt="CI Status">
-  <img src="https://img.shields.io/badge/MCP-Servers-orange?style=for-the-badge&logo=serverless" alt="MCP Servers">
-  <img src="https://img.shields.io/badge/Robotics-ROS_2-blue?style=for-the-badge&logo=ros" alt="Robotics ROS 2">
-  <img src="https://img.shields.io/badge/Virtual-Environments-green?style=for-the-badge&logo=unity" alt="Virtual Environments">
+  <strong>Your AI. Your hardware. Your data. Nobody else's.</strong><br>
+  Sovereign agentic orchestration — with hands, legs, senses, and a voice.
 </p>
 
-"Robofang represents a fundamental paradigm shift in the Artificial Intelligence landscape..." — is what an LLM would want to say. 
+<p align="center">
+  <img src="https://img.shields.io/badge/status-alpha-orange?style=for-the-badge" alt="Alpha">
+  <img src="https://img.shields.io/github/actions/workflow/status/sandraschi/robofang/ci.yml?branch=main&style=for-the-badge&logo=github&label=CI" alt="CI Status">
+  <img src="https://img.shields.io/badge/MCP-Fleet-orange?style=for-the-badge&logo=serverless" alt="MCP Fleet">
+  <img src="https://img.shields.io/badge/Robotics-ROS_2-blue?style=for-the-badge&logo=ros" alt="Robotics ROS 2">
+  <img src="https://img.shields.io/badge/inference-local_RTX_4090-76b900?style=for-the-badge&logo=nvidia" alt="Local Inference">
+  <img src="https://img.shields.io/badge/FastMCP-3.x-9b59b6?style=for-the-badge" alt="FastMCP 3">
+</p>
 
-In reality, Robofang is a nice little repo with a few good ideas, mostly collected from 25 other repos and integrated into a single, cohesive framework. While contemporary AI development is largely focused on expanding the latent space of large language models—effectively creating increasingly sophisticated, yet passive, universal oracles—Robofang operates on a different, uncompromising premise: **Agents Need Hands** (a concept pioneered by Austrian genius viber [steipete](https://steipete.com/)).
+---
 
-But hands are not a monolith. Dexterity requires a spectrum of capability, from atomic tool use to complex physical interaction. Robofang orchestrates agency through four distinct types of "Hands":
+## The problem with 2026 AI agents
 
-1.  **SimpleHands (Atomic Capability)**: The baseline. SimpleHands allow an agent to execute direct code snippets, interact with terminal environments, and perform one-off file modifications. This is the dexterity of the raw script.
-2.  **FlowHands (Process Orchestration)**: Agency through time. FlowHands enable the agent to navigate complex, multi-step workflows, manage state across long-running loops, and autonomously correct its own trajectory based on system telemetry.
-3.  **AppHands (Digital Integration)**: Agency through ecosystem. Powered by the Model Context Protocol (MCP), AppHands extend the agent’s reach into your entire digital footprint—Email, Discord, Slack, Home Assistant, and the vast fleet of specialized MCP servers.
-4.  **RoboHands (Physical/Virtual Reality)**: The ultimate frontier. RoboHands bridge the digital-physical divide, translating cognitive intent into high-fidelity simulations (Blender/Unity) and real-world robotics hardware via ROS and OSC bridges.
+Every major cloud agent — Manus, Gemini Live, Claude computer use — shares the same architecture: your intent, their infrastructure, their data retention, their pricing model, their uptime SLA, their safety filter between you and your own tools.
 
-To achieve true autonomy, intelligence must be situated within a purposeful container. In our opinion, **Agents Need Bots.** Robofang is the orchestration layer where cognitive architecture meets physical and virtual capability, transforming AI from a predictive spectator into a sovereign actor capable of touch, creation, and intervention across the digital, virtual, and physical substrate.
+They are impressive. They are also not yours.
+
+Robofang is the alternative: a locally-running orchestration layer where **you** are the architect, the inference runs on your hardware at zero per-token cost, and the agent has genuine reach into the physical and virtual world — not just a browser tab.
+
+---
+
+## What it actually does
+
+The core loop:
+
+```
+Perceive (senses) → Reason (Council) → Act (hands + legs) → Speak (voice) → Audit → Memory
+```
+
+Running on your machine:
+
+- **Council of agents** (Foreman / Labor / Satisficer) handles complex tasks with adversarial self-auditing — no single black-box LLM call, no hallucination without a trace
+- **Live fleet map** of every MCP server you run: tool schemas, ports, health signals — queryable by agents, visible in the hub at `localhost:10870`
+- **Local inference** via Ollama (RTX 4090 — Llama 3.3 70B, Qwen 2.5 32B at zero per-token cost); cloud is the fallback, not the default
+- **Resonite + OSC bridge** for 30 Hz joint control of virtual avatars — the same code path that bridges to physical robots via ROS 2
+- **Persistent memory** (ADN / memops): every decision, sensor reading, and reasoning step is logged and queryable; agents remember across sessions
+
+---
+
+## The five capabilities (Hands, Legs, Senses, Voice, Memory)
+
+> *"Agents Need Hands"* — [steipete](https://steipete.com/)
+
+Hands were the start. A complete agent needs more:
+
+| Capability | Tier | What it covers |
+|------------|------|----------------|
+| **Hands** | SimpleHands → AppHands | File ops, code execution, MCP fleet (email, Discord, Hue, Tapo, Plex, Calibre, Ring...) |
+| **Legs** | FlowHands → RoboHands | Multi-step workflows, ROS 2 locomotion, Resonite avatar embodiment, Yahboom / Noetix Bumi hardware |
+| **Senses** | Perception layer | OSC telemetry, camera feeds, Home Assistant sensors, IoT state, VLM vision via MCP bridges |
+| **Voice** | Speech bridge | TTS/STT via local or cloud models, Resonite ProtoFlux audio, ElevenLabs / Hume integration |
+| **Memory** | ADN substrate | Persistent knowledge graph (memops), Forensic Trace logs, semantic RAG across all sessions |
+
+Each layer is independent and MCP-addressable. You can run just the fleet manager, or the full embodied loop.
+
+---
+
+## Quick start
+
+```powershell
+git clone https://github.com/sandraschi/robofang
+cd robofang
+python -m venv .venv
+.\.venv\Scripts\activate
+pip install -e .
+copy .env.example .env   # fill in your credentials
+cd robofang-hub; npm install; npm run build; cd ..
+.\start_all.ps1
+# Hub: http://localhost:10870
+```
+
+---
+
+## Architecture
+
+<p align="center">
+  <img src="assets/architecture.png" alt="Robofang 3-Level Architecture" width="800">
+</p>
+
+The Council pattern — Foreman (architect) → Labor (executor) → Satisficer (auditor) — maps directly onto Karl Friston's sensorimotor loop: perceive, predict, act, update. Not as a metaphor. As an engineering constraint. The Satisficer exists because unchecked ReAct loops hallucinate. The Forensic Trace exists because you should be able to see exactly why your agent did what it did.
+
+---
 
 ## Expectation vs Reality
 
@@ -28,27 +94,13 @@ To achieve true autonomy, intelligence must be situated within a purposeful cont
 | :---: | :---: |
 | ![EXPECTATION](assets/whimsical-clobber.png) | ![REALITY](assets/sad_reality.png) |
 
-## The Vision: Beyond the Chatbox
+---
 
-<p align="center">
-  <img src="assets/architecture.png" alt="Robofang 3-Level Architecture" width="800">
-</p>
+## The philosophy: Human as Sovereign
 
-For too long, our interaction with AI has been confined to a text-based "chatbox." We ask questions, and we get answers. But true utility—true intelligence—requires the ability to interact with the world. Whether that world is digital, virtual, or physical, an agent without the means to effect change is merely a spectator. 
+In the current industry default, the human is a prompt engineer — a data source for someone else's oracle.
 
-Robofang provides the foundation where agency is materialized. It represents the transition from AI as a service to AI as an actor. **Agents need hands! But not just "inbox weeder" hands!** We don't just want to automate your email sorting; we want to give our agents the dexterity to navigate your digital life, the creativity to build in virtual spaces, and the physicality to interact with your physical home.
-
-## The Great Architecture Debate
-
-Robofang is built on a specific philosophical stance regarding the relationship between the human and the artificial. 
-
-### AI-Centric: The Passive Prompt-Server
-In the prevailing industry paradigm, the AI is the "star." The human is relegated to the role of a "prompt engineer"—effectively a data-source and prompt-server for the machine's latent space. This is a path toward the erosion of individual agency, where the human merely navigates pre-calculated paths generated by a universal oracle.
-
-### Human-Centric: The Sovereign Orchestrator (The Robofang Way)
-In the Robofang architecture, **the Human is the Master of Puppets.** 
-
-The agent is not the star; it is the **Loyal Guardian** (think Benny, our German Shepherd). Its job is to provide "Hands" to execute the Human's intent across the digital, virtual, and physical substrates. The Human remains the strategist, the creator, and the ultimate arbiter of truth. The AI provides the dexterity, the mobility, and the 24/7 vigilance required to manifest that human sovereignty.
+In the Robofang architecture, **the Human is the Master of Puppets.** The agent is the **Loyal Guardian** — think Benny, our German Shepherd. Its job is dexterity in service of human intent. The human sets strategy. The agent handles execution across digital, virtual, and physical substrates.
 
 <p align="center">
   <img src="assets/bumi_step2.png" alt="The Robofang Bros: Benny and Bumi" width="600">
@@ -56,24 +108,19 @@ The agent is not the star; it is the **Loyal Guardian** (think Benny, our German
   <em>The Robofang Bros: Harmonious co-operation between Benny and Bumi.</em>
 </p>
 
-## The Smorgasbord of Features
+---
 
-Robofang is a "behemoth" by design. It inherits the robust communication features of **OpenClaw** and layers on a massive smorgasbord of media and generation capabilities. 
+## Documentation
 
-You get deep integration for **media consumption** (Plex, Calibre, Immich) so your agent knows what you've read and watched. You get **media generation** capabilities, allowing your agent to use Blender or Inkscape to produce professional assets. And you get a **virtualization pipeline** that bridges the gap between social spaces like VRChat and industrial tools like Unity3D.
+- [**Installation Guide**](docs/INSTALLATION.md): Environment setup and first-hand onboarding
+- [**Architecture**](docs/ARCHITECTURE.md): Council of Dozens, memory substrate, federation mesh
+- [**MCP Fleet Catalog**](docs/MCP_FLEET.md): Available digital hands and the pipeline ahead
+- [**Robotics Profile**](docs/ROBOTICS.md): Hardware strategy — Yahboom entry level to Noetix Bumi humanoid
+- [**Technical Stack**](docs/TECHNICAL.md): FastAPI / FastMCP 3.x core, orchestration logic, plugin system
 
-## Exploring the Behemoth
+---
 
-To understand how to deploy and use Robofang, please follow our hierarchical documentation hub:
-
--   [**Installation Guide**](docs/INSTALLATION.md): A detailed, step-by-step walkthrough on how to set up the environment and onboard your first MCP "Hands."
--   [**Technical Stack**](docs/TECHNICAL.md): A deep dive for engineers on our FastAPI core, the orchestration logic, and our modular plugin system.
--   [**MCP Fleet Catalog**](docs/MCP_FLEET.md): A comprehensive list of the digital hands currently available and the ones we have in the pipeline.
--   [**Robotics Profile**](docs/ROBOTICS.md): Our strategy for physical agency, detailing our hardware choices from the entry-level Yahboom to our humanoid champion, the Noetix Bumi.
-
-## Join the Robofang Grid
-
-Robofang is a community-driven project. Join our Discord to share your "Hands," discuss cognitive architectures, or just show off your latest level-3 agency milestones.
+## Join the Grid
 
 <p align="center">
   <a href="https://discord.gg/robofang">

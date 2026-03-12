@@ -12,6 +12,23 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 
 ---
 
+## [Unreleased] — 2026-03-12
+
+### Added
+- **Single-command launch**: `start_all.ps1` brings up supervisor (10872), bridge (10871), and hub (10870) ready for MCP/LLM/auth configuration. Root `start.bat` invokes it for double-click or cmd.
+- **Fleet cards**: Connector cards show server status (from MCP status tool where available) and "Open webapp" / "Start webapp" (launch from repo_path, then open URL).
+- **Install to register to launch**: After market install completes, hub auto-registers the connector in the bridge topology and launches it once; connector then auto-starts on every robofang start.
+- **Bridge API**: `GET /api/connectors/{id}/status` (health/status/tool-based), `GET /fleet` includes `repo_path`; `POST /api/fleet/register`, `POST /api/connector/launch/{id}`.
+- **Testing**: `tests/conftest.py` (mocked orchestrator), `tests/test_bridge_fleet.py` (GET /fleet, POST register, GET connector status 404, GET /health), `docs/TESTING.md` (pytest commands, manual install flow, API checks).
+- **Backup**: `scripts/backup-repo.ps1` (SOTA script from fleet; run from repo root).
+- **Dark App Factory**: Fleet registry entry and `configs/federation_map.json` connector (dashboard 8002, enabled: false).
+
+### Changed
+- **Safe startup (default)**: Docs and behavior default to starting robofang only; webapps started on-demand or in small batches. Full fleet at once is opt-in only.
+- **Docs**: INSTALLATION.md references robofang-hub (not dashboard), start.bat, and "ready for configuration" flow. Hub URL and config steps clarified.
+
+---
+
 ## [Unreleased] — 2026-02-25 (Session 2)
 
 ### Added

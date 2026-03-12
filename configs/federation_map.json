@@ -122,6 +122,11 @@
             "mcp_backend": "http://localhost:10700",
             "description": "VirtualBox — VM lifecycle, snapshots, network config"
         },
+        "dark-app-factory": {
+            "enabled": false,
+            "mcp_frontend": "http://localhost:8002",
+            "description": "Dark App Factory — vibe -> Foreman -> Council -> generated app; dashboard 8002"
+        },
         "docker": {
             "enabled": true,
             "mcp_backend": "http://localhost:10807",

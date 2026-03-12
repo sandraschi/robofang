@@ -74,6 +74,18 @@ class RoboFangStorage:
                 )
             """)
 
+            # 5. Audit Logs (Persistent track of critical actions)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS audit_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    level TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    event TEXT NOT NULL,
+                    details TEXT                -- JSON blob
+                )
+            """)
+
             conn.commit()
 
     # --- Security Policy Operations ---
@@ -189,3 +201,40 @@ class RoboFangStorage:
                 except (TypeError, ValueError):
                     return row[0]
         return None
+
+    # --- Audit Log Operations ---
+
+    def log_event(
+        self, level: str, source: str, event: str, details: Optional[Dict[str, Any]] = None
+    ):
+        """Persist a critical event to the audit log."""
+        with self._get_connection() as conn:
+            conn.execute(
+                """
+                INSERT INTO audit_logs (level, source, event, details)
+                VALUES (?, ?, ?, ?)
+            """,
+                (level, source, event, json.dumps(details or {})),
+            )
+            conn.commit()
+
+    def get_audit_logs(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Retrieve the most recent audit logs."""
+        logs = []
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                "SELECT id, timestamp, level, source, event, details FROM audit_logs ORDER BY timestamp DESC LIMIT ?",
+                (limit,),
+            )
+            for row in cursor.fetchall():
+                logs.append(
+                    {
+                        "id": row[0],
+                        "timestamp": row[1],
+                        "level": row[2],
+                        "source": row[3],
+                        "event": row[4],
+                        "details": json.loads(row[5]),
+                    }
+                )
+        return logs
