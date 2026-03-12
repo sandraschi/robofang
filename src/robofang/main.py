@@ -1,5 +1,6 @@
 import asyncio
 import collections
+import json
 import logging
 import os
 import subprocess
@@ -16,7 +17,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastmcp import FastMCP
 from pydantic import BaseModel
 
+from robofang.core.external_registries import (
+    discover_docker,
+    discover_registry,
+    get_registry_server_repo,
+    normalize_github_repo_url,
+)
 from robofang.core.hand_manifest import HandAgentConfig, HandDefinition
+from robofang.core.installer import HandManifestItem
 from robofang.core.orchestrator import OrchestrationClient
 from robofang.diagnostics import router as diagnostics_router
 from robofang.mcp_server import get_help_content, register_mcp
@@ -559,6 +567,108 @@ class LaunchRequest(BaseModel):
     repo_path: str
 
 
+def _hands_base_dir() -> Path:
+    return Path(orchestrator.installer.hands_base_dir)
+
+
+def _prepare_hand_webapp(repo_path: Path, webapp_dir: Path) -> None:
+    """Install webapp deps before first launch: npm install in webapp (and frontend if present), uv sync at repo root. Log and continue on failure."""
+    try:
+        if (webapp_dir / "package.json").exists():
+            r = subprocess.run(
+                ["npm", "install"],
+                cwd=str(webapp_dir),
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            if r.returncode != 0:
+                logger.warning("prepare webapp npm install (root): %s", r.stderr or r.stdout)
+            else:
+                logger.info("prepare webapp: npm install ok in %s", webapp_dir.name)
+        frontend = webapp_dir / "frontend"
+        if (frontend / "package.json").exists():
+            r = subprocess.run(
+                ["npm", "install"],
+                cwd=str(frontend),
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+            if r.returncode != 0:
+                logger.warning("prepare webapp npm install (frontend): %s", r.stderr or r.stdout)
+            else:
+                logger.info("prepare webapp: npm install ok in frontend")
+        if (repo_path / "pyproject.toml").exists():
+            r = subprocess.run(
+                ["uv", "sync"],
+                cwd=str(repo_path),
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            if r.returncode != 0:
+                logger.warning("prepare webapp uv sync: %s", r.stderr or r.stdout)
+            else:
+                logger.info("prepare webapp: uv sync ok at repo root")
+    except subprocess.TimeoutExpired:
+        logger.warning("prepare webapp timed out for %s", repo_path.name)
+    except FileNotFoundError:
+        logger.debug("prepare webapp: npm or uv not in PATH for %s", repo_path.name)
+    except Exception as e:
+        logger.warning("prepare webapp failed: %s", e)
+
+
+@app.post("/api/fleet/launch-hand/{hand_id}")
+async def launch_hand_webapp(hand_id: str):
+    """Launch the webapp for an installed hand (web_sota/start.ps1 or webapp/start.ps1). Auto-prepares deps before first launch."""
+    base = _hands_base_dir()
+    path = (base / hand_id.strip()).resolve()
+    try:
+        path.relative_to(base.resolve())
+    except ValueError:
+        raise HTTPException(status_code=403, detail="Invalid hand_id")
+    if not path.exists() or not path.is_dir():
+        raise HTTPException(status_code=404, detail=f"Hand '{hand_id}' not installed")
+    meta = _read_repo_metadata(path)
+    start_script: Optional[Path] = None
+    if meta.get("webapp_script"):
+        candidate = path / meta["webapp_script"].lstrip("/")
+        if candidate.exists():
+            start_script = candidate
+    if not start_script or not start_script.exists():
+        for rel in ("web_sota/start.ps1", "webapp/start.ps1", "web/start.ps1"):
+            candidate = path / rel
+            if candidate.exists():
+                start_script = candidate
+                break
+    if not start_script or not start_script.exists():
+        raise HTTPException(status_code=400, detail=f"No webapp start.ps1 found for {hand_id}")
+    _prepare_hand_webapp(path, start_script.parent)
+    try:
+        subprocess.Popen(
+            [
+                "powershell.exe",
+                "-ExecutionPolicy",
+                "Bypass",
+                "-File",
+                str(start_script),
+            ],
+            cwd=str(path),
+            creationflags=subprocess.CREATE_NEW_CONSOLE,
+        )
+        orchestrator.storage.log_event(
+            "info",
+            "fleet",
+            "hand_webapp_launched",
+            {"hand_id": hand_id, "path": str(path)},
+        )
+        return {"success": True, "message": f"Launched webapp for {hand_id}"}
+    except Exception as e:
+        logger.error("Launch hand webapp failed: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.post("/api/fleet/launch")
 async def launch_app(request: LaunchRequest):
     """Launch another MCP app via its start.ps1 script."""
@@ -1080,6 +1190,462 @@ async def register_fleet_node(req: FleetRegisterRequest):
     except Exception as e:
         logger.error(f"Failed to register fleet node: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/fleet/discover")
+async def fleet_discover(source: str = "registry", limit: int = 50):
+    """
+    Discover MCP servers from external sources: registry (MCP Registry API) or docker (Docker MCP catalog).
+    Returns list of installable/catalog entries. For GitHub, use add-from-external with repo_url.
+    """
+    source = (source or "registry").lower()
+    if source == "registry":
+        items = await discover_registry(limit=min(limit, 100))
+    elif source == "docker":
+        items = discover_docker()
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="source must be 'registry' or 'docker'. For GitHub use POST /api/fleet/add-from-external.",
+        )
+    return {"success": True, "source": source, "items": items}
+
+
+class AddFromExternalRequest(BaseModel):
+    source: str  # "registry" | "docker" | "github"
+    id: Optional[str] = None  # registry/docker server id
+    repo_url: Optional[str] = None  # required for github; optional override for registry
+    name: Optional[str] = None
+
+
+@app.post("/api/fleet/add-from-external")
+async def fleet_add_from_external(req: AddFromExternalRequest):
+    """
+    Add an MCP server to the fleet from an external source: registry (by id), or GitHub (by repo_url).
+    Appends to fleet_manifest.yaml and runs install. Docker add not yet supported (discover only).
+    """
+    source = (req.source or "").strip().lower()
+    if not source:
+        raise HTTPException(status_code=400, detail="source is required")
+
+    if source == "github":
+        repo_url = normalize_github_repo_url(req.repo_url or "")
+        if not repo_url:
+            raise HTTPException(
+                status_code=400, detail="repo_url is required and must be a GitHub repo URL"
+            )
+        hand_id = Path(repo_url).name.replace(".git", "")
+        name = (req.name or hand_id).strip() or hand_id
+        item = HandManifestItem(
+            id=hand_id,
+            name=name,
+            category="External",
+            description="Added from GitHub",
+            repo_url=repo_url,
+            install_script="start.ps1",
+            tags=["external"],
+        )
+    elif source == "registry":
+        if not req.id:
+            raise HTTPException(status_code=400, detail="id is required for registry source")
+        hand_id = req.id.strip()
+        parts = hand_id.rsplit("-", 1)
+        server_name = f"{parts[0]}/{parts[1]}" if len(parts) == 2 else hand_id
+        repo_url = req.repo_url and req.repo_url.strip()
+        if not repo_url:
+            repo_url = await get_registry_server_repo(server_name)
+        if not repo_url:
+            raise HTTPException(
+                status_code=400,
+                detail="repo_url not found for this server; provide repo_url in request body.",
+            )
+        name = (req.name or hand_id).strip() or hand_id
+        item = HandManifestItem(
+            id=hand_id,
+            name=name,
+            category="External",
+            description=f"From MCP Registry: {hand_id}",
+            repo_url=repo_url,
+            install_script="start.ps1",
+            tags=["external", "registry"],
+        )
+    elif source == "docker":
+        raise HTTPException(
+            status_code=501,
+            detail="Add from Docker not implemented; use discover then configure federation_map manually.",
+        )
+    else:
+        raise HTTPException(status_code=400, detail="source must be registry, docker, or github")
+
+    try:
+        orchestrator.installer.add_hand_to_manifest(item)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
+    result = await orchestrator.onboard_hand(item.id)
+    if not result.get("success"):
+        logger.warning("Onboard hand after add-from-external: %s", result)
+    return {
+        "success": True,
+        "message": f"Added {item.id} to fleet manifest and ran install.",
+        "install_result": result,
+    }
+
+
+def _load_fleet_analysis() -> Dict[str, Any]:
+    """Load fleet_analysis.json (written by scripts/analyze_fleet_fastmcp.py). Keys: hand_id -> fastmcp_version, mcpb_present."""
+    try:
+        base = _hands_base_dir()
+        root = base.parent
+        path = root / "fleet_analysis.json"
+        if path.exists():
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+            return data.get("hands", {})
+    except (OSError, json.JSONDecodeError):
+        pass
+    return {}
+
+
+def _read_repo_metadata(repo_path: Path) -> Dict[str, Any]:
+    """Read robofang.json and optionally llm.txt from repo root. Returns dict to merge into catalog/hand info."""
+    out: Dict[str, Any] = {}
+    if not repo_path.exists() or not repo_path.is_dir():
+        return out
+    jpath = repo_path / "robofang.json"
+    if jpath.exists():
+        try:
+            with open(jpath, encoding="utf-8") as f:
+                data = json.load(f)
+            for key in ("name", "category", "description", "webapp_script", "ports"):
+                if key in data and data[key] is not None:
+                    out[key] = data[key]
+        except (json.JSONDecodeError, OSError):
+            pass
+    lpath = repo_path / "llm.txt"
+    if lpath.exists():
+        try:
+            with open(lpath, encoding="utf-8") as f:
+                raw = f.read()
+            for marker in ("## RoboFang", "## Integration", "## Robofang"):
+                if marker in raw:
+                    raw = raw.split(marker, 1)[1].strip().lstrip("\n")
+                    break
+            summary = (raw[:400] or "").strip()
+            if summary:
+                out["integration_summary"] = summary
+        except OSError:
+            pass
+    return out
+
+
+# Curated MCP servers installable from GitHub (id, name, category, description, repo_url).
+# Merged with fleet_manifest for GET /api/fleet/catalog. Install = clone repo + run install script.
+# TODO: replace with autodetect from GitHub org/user (e.g. sandraschi) via API; filter by topic *-mcp or name pattern.
+FLEET_CATALOG_GITHUB: List[Dict[str, Any]] = [
+    {
+        "id": "blender-mcp",
+        "name": "Blender",
+        "category": "Creative",
+        "description": "3D creation and scene control.",
+        "repo_url": "https://github.com/sandraschi/blender-mcp",
+    },
+    {
+        "id": "gimp-mcp",
+        "name": "GIMP",
+        "category": "Creative",
+        "description": "Image editing and assets.",
+        "repo_url": "https://github.com/sandraschi/gimp-mcp",
+    },
+    {
+        "id": "svg-mcp",
+        "name": "SVG",
+        "category": "Creative",
+        "description": "Vector graphics.",
+        "repo_url": "https://github.com/sandraschi/svg-mcp",
+    },
+    {
+        "id": "vrchat-mcp",
+        "name": "VRChat",
+        "category": "Creative",
+        "description": "VRChat world and avatar control.",
+        "repo_url": "https://github.com/sandraschi/vrchat-mcp",
+    },
+    {
+        "id": "avatar-mcp",
+        "name": "Avatar / Resonite",
+        "category": "Creative",
+        "description": "Resonite and avatar OSC.",
+        "repo_url": "https://github.com/sandraschi/avatar-mcp",
+    },
+    {
+        "id": "plex-mcp",
+        "name": "Plex",
+        "category": "Media",
+        "description": "Media library and playback.",
+        "repo_url": "https://github.com/sandraschi/plex-mcp",
+    },
+    {
+        "id": "caliber-mcp",
+        "name": "Calibre",
+        "category": "Media",
+        "description": "Ebook library.",
+        "repo_url": "https://github.com/sandraschi/calibre-mcp",
+    },
+    {
+        "id": "robotics-mcp",
+        "name": "Robotics",
+        "category": "Robotics",
+        "description": "ROS 2, Yahboom, Unitree, Dreame.",
+        "repo_url": "https://github.com/sandraschi/robotics-mcp",
+    },
+    {
+        "id": "noetix-bumi-mcp",
+        "name": "Noetix Bumi",
+        "category": "Robotics",
+        "description": "Humanoid ROS 2.",
+        "repo_url": "https://github.com/sandraschi/noetix-bumi-mcp",
+    },
+    {
+        "id": "virtualization-mcp",
+        "name": "Virtualization",
+        "category": "Infrastructure",
+        "description": "VirtualBox / VM management.",
+        "repo_url": "https://github.com/sandraschi/virtualization-mcp",
+    },
+    {
+        "id": "advanced-memory-mcp",
+        "name": "Advanced Memory",
+        "category": "Knowledge",
+        "description": "RAG and knowledge graph.",
+        "repo_url": "https://github.com/sandraschi/advanced-memory-mcp",
+    },
+    {
+        "id": "rustdesk-mcp",
+        "name": "RustDesk",
+        "category": "Infrastructure",
+        "description": "Remote desktop.",
+        "repo_url": "https://github.com/sandraschi/rustdesk-mcp",
+    },
+    {
+        "id": "osc-mcp",
+        "name": "OSC",
+        "category": "Creative",
+        "description": "Open Sound Control.",
+        "repo_url": "https://github.com/sandraschi/osc-mcp",
+    },
+    {
+        "id": "ring-mcp",
+        "name": "Ring",
+        "category": "Home",
+        "description": "Ring doorbell and cameras.",
+        "repo_url": "https://github.com/sandraschi/ring-mcp",
+    },
+    {
+        "id": "tapo-camera-mcp",
+        "name": "Tapo Camera",
+        "category": "Home",
+        "description": "TP-Link Tapo devices.",
+        "repo_url": "https://github.com/sandraschi/tapo-camera-mcp",
+    },
+    {
+        "id": "daw-mcp",
+        "name": "DAW",
+        "category": "Creative",
+        "description": "Digital audio workstations.",
+        "repo_url": "https://github.com/sandraschi/daw-mcp",
+    },
+]
+
+
+def _fleet_catalog() -> List[Dict[str, Any]]:
+    """Manifest hands (with repo_url) plus curated GitHub list; dedupe by id. Enrich from robofang.json/llm.txt when installed."""
+    seen: set = set()
+    out: List[Dict[str, Any]] = []
+    base = _hands_base_dir()
+    analysis = _load_fleet_analysis()
+    for h in orchestrator.installer.get_manifest():
+        entry = {
+            "id": h.id,
+            "name": h.name,
+            "category": h.category or "Other",
+            "description": (h.description or "")[:200],
+            "repo_url": h.repo_url,
+        }
+        path = base / h.id
+        if path.exists() and path.is_dir():
+            meta = _read_repo_metadata(path)
+            if meta.get("name"):
+                entry["name"] = str(meta["name"])[:100]
+            if meta.get("category"):
+                entry["category"] = str(meta["category"])[:50]
+            if meta.get("description"):
+                entry["description"] = str(meta["description"])[:200]
+            if meta.get("integration_summary"):
+                entry["integration_summary"] = meta["integration_summary"]
+            if meta.get("webapp_script"):
+                entry["webapp_script"] = meta["webapp_script"]
+            if meta.get("ports"):
+                entry["ports"] = meta["ports"]
+        a = analysis.get(h.id, {})
+        if a.get("fastmcp_version") and a["fastmcp_version"] != "not_scanned":
+            entry["fastmcp_version"] = a["fastmcp_version"]
+        entry["mcpb_present"] = a.get("mcpb_present", False)
+        entry["installed"] = path.exists() and path.is_dir()
+        out.append(entry)
+        seen.add(h.id)
+    analysis = _load_fleet_analysis()
+    for c in FLEET_CATALOG_GITHUB:
+        if c["id"] in seen:
+            continue
+        seen.add(c["id"])
+        entry = {**c, "description": (c.get("description") or "")[:200], "installed": False}
+        a = analysis.get(c["id"], {})
+        if a.get("fastmcp_version") and a["fastmcp_version"] != "not_scanned":
+            entry["fastmcp_version"] = a["fastmcp_version"]
+        entry["mcpb_present"] = a.get("mcpb_present", False)
+        out.append(entry)
+    return out
+
+
+@app.get("/api/fleet/hand/{hand_id}/info")
+async def fleet_hand_info(hand_id: str):
+    """Return manifest entry plus repo metadata (robofang.json + llm.txt) when hand is installed."""
+    hand_id = hand_id.strip()
+    hands = [h for h in orchestrator.installer.get_manifest() if h.id == hand_id]
+    if not hands:
+        raise HTTPException(status_code=404, detail=f"Hand '{hand_id}' not in manifest")
+    h = hands[0]
+    entry = {
+        "id": h.id,
+        "name": h.name,
+        "category": h.category or "Other",
+        "description": (h.description or "")[:200],
+        "repo_url": h.repo_url,
+    }
+    base = _hands_base_dir()
+    path = base / hand_id
+    if path.exists() and path.is_dir():
+        meta = _read_repo_metadata(path)
+        if meta.get("name"):
+            entry["name"] = meta["name"]
+        if meta.get("category"):
+            entry["category"] = meta["category"]
+        if meta.get("description"):
+            entry["description"] = meta["description"]
+        if meta.get("integration_summary"):
+            entry["integration_summary"] = meta["integration_summary"]
+        if meta.get("webapp_script"):
+            entry["webapp_script"] = meta["webapp_script"]
+        if meta.get("ports"):
+            entry["ports"] = meta["ports"]
+    a = _load_fleet_analysis().get(hand_id, {})
+    if a.get("fastmcp_version") and a["fastmcp_version"] != "not_scanned":
+        entry["fastmcp_version"] = a["fastmcp_version"]
+    entry["mcpb_present"] = a.get("mcpb_present", False)
+    return {"success": True, "hand": entry}
+
+
+@app.get("/api/fleet/manifest")
+async def fleet_manifest():
+    """Return installable hands from fleet_manifest.yaml (for backward compat)."""
+    hands = orchestrator.installer.get_manifest()
+    return {
+        "success": True,
+        "hands": [
+            {
+                "id": h.id,
+                "name": h.name,
+                "category": h.category,
+                "description": (h.description or "")[:200],
+                "repo_url": h.repo_url,
+            }
+            for h in hands
+        ],
+    }
+
+
+@app.get("/api/fleet/catalog")
+async def fleet_catalog():
+    """Catalog of MCP servers installable from GitHub (manifest + curated). Each has repo_url; install = clone from GitHub."""
+    return {"success": True, "hands": _fleet_catalog()}
+
+
+class CatalogItemForInstall(BaseModel):
+    id: Optional[str] = None
+    name: Optional[str] = None
+    category: Optional[str] = None
+    description: Optional[str] = None
+    repo_url: str
+
+
+class OnboardFromGitHubRequest(BaseModel):
+    """Install selected items from catalog by repo_url (clone from GitHub)."""
+
+    items: List[CatalogItemForInstall]
+
+
+@app.post("/api/fleet/onboard-from-github")
+async def fleet_onboard_from_github(req: OnboardFromGitHubRequest):
+    """Install each selected item: add to manifest and clone from GitHub."""
+    if not req.items:
+        return {"success": True, "results": [], "message": "No items selected."}
+    results = []
+    for item in req.items:
+        repo_url = (item.repo_url or "").strip()
+        if not repo_url:
+            results.append(
+                {"hand_id": item.id or "", "success": False, "message": "Missing repo_url"}
+            )
+            continue
+        try:
+            hand_id = (item.id or Path(repo_url).name.replace(".git", "")).strip()
+            name = (item.name or hand_id).strip() or hand_id
+            add_item = HandManifestItem(
+                id=hand_id,
+                name=name,
+                category=item.category or "External",
+                description=item.description or "Added from GitHub",
+                repo_url=repo_url,
+                install_script="start.ps1",
+                tags=["external"],
+            )
+            orchestrator.installer.add_hand_to_manifest(add_item)
+            result = await orchestrator.onboard_hand(hand_id)
+            results.append(
+                {
+                    "hand_id": hand_id,
+                    "success": result.get("success", False),
+                    "message": result.get("message") or result.get("error"),
+                }
+            )
+        except ValueError as e:
+            results.append({"hand_id": item.id or "", "success": False, "message": str(e)})
+        except Exception as e:
+            results.append({"hand_id": item.id or "", "success": False, "message": str(e)})
+    return {"success": True, "results": results}
+
+
+class OnboardRequest(BaseModel):
+    hand_ids: List[str]
+
+
+@app.post("/api/fleet/onboard")
+async def fleet_onboard(req: OnboardRequest):
+    """Install selected hands already in fleet manifest (clone + optional install script)."""
+    if not req.hand_ids:
+        return {"success": True, "results": [], "message": "No hands selected."}
+    results = []
+    for hand_id in req.hand_ids:
+        result = await orchestrator.onboard_hand(hand_id.strip())
+        results.append(
+            {
+                "hand_id": hand_id,
+                "success": result.get("success", False),
+                "message": result.get("message") or result.get("error"),
+            }
+        )
+    return {"success": True, "results": results}
 
 
 class CommsSettingsRequest(BaseModel):

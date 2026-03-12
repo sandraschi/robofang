@@ -80,3 +80,22 @@ class HandInstaller:
         except Exception as e:
             logger.error(f"Error during installation of {hand_id}: {e}")
             return {"success": False, "error": str(e)}
+
+    def add_hand_to_manifest(self, item: HandManifestItem) -> None:
+        """Append a hand to fleet_manifest.yaml. Preserves existing entries and optional keys."""
+        data = {}
+        if self.manifest_path.exists():
+            try:
+                with open(self.manifest_path, "r", encoding="utf-8") as f:
+                    data = yaml.safe_load(f) or {}
+            except Exception as e:
+                logger.error(f"Failed to load manifest for append: {e}")
+                raise
+        hands = list(data.get("hands", []))
+        if any((h.get("id") == item.id) for h in hands):
+            raise ValueError(f"Hand '{item.id}' already in manifest.")
+        hands.append(item.model_dump())
+        data["hands"] = hands
+        with open(self.manifest_path, "w", encoding="utf-8") as f:
+            yaml.safe_dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
+        logger.info(f"Added hand '{item.id}' to fleet manifest.")

@@ -25,6 +25,8 @@ def _make_mock_orchestrator():
     mock.update_topology = MagicMock(return_value=True)
     mock.start = AsyncMock(return_value=None)
     mock.stop = AsyncMock(return_value=None)
+    mock.installer = MagicMock()
+    mock.onboard_hand = AsyncMock(return_value={"success": True, "message": "OK"})
     return mock
 
 

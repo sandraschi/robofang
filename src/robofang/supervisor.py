@@ -503,6 +503,17 @@ supervisor = SupervisorInterface()
 
 app = FastAPI(title="RoboFang Supervisor", version="1.0.0")
 
+
+@app.on_event("startup")
+def _auto_start_bridge():
+    """Start the bridge automatically so start.bat brings up bridge + hub with one click."""
+    result = _bridge.start()
+    if result.get("ok"):
+        logger.info("Bridge auto-started on port %s (PID %s)", BRIDGE_PORT, result.get("pid"))
+    else:
+        logger.warning("Bridge auto-start skipped: %s", result.get("reason", "unknown"))
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[

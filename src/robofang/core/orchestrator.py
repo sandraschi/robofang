@@ -622,15 +622,19 @@ class OrchestrationClient:
 
     def update_topology(self, updates: Dict[str, Any]) -> bool:
         """Merges updates into the topology and persists to disk.
-        
+
         Supports updating 'nodes', 'connectors', 'domains', etc.
         """
         for key, value in updates.items():
-            if isinstance(value, dict) and key in self.topology and isinstance(self.topology[key], dict):
+            if (
+                isinstance(value, dict)
+                and key in self.topology
+                and isinstance(self.topology[key], dict)
+            ):
                 self.topology[key].update(value)
             else:
                 self.topology[key] = value
-        
+
         success = self._save_topology()
         if success:
             # Re-initialize connectors to handle any new ones

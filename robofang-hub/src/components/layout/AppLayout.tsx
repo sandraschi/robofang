@@ -48,6 +48,12 @@ interface AppLayoutProps {
 
 const navigation = [
   {
+    title: 'Get started',
+    items: [
+      { to: '/onboarding', icon: Rocket, label: 'Onboarding' },
+    ]
+  },
+  {
     title: 'Hubs',
     items: [
       { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -89,7 +95,6 @@ const navigation = [
       { to: '/status', icon: ShieldCheck, label: 'Health Status' },
       { to: '/pulse', icon: Radio, label: 'System Pulse' },
       { to: '/settings', icon: Settings, label: 'Settings' },
-      { to: '/onboarding', icon: Rocket, label: 'System Setup' },
       { to: '/help', icon: HelpCircle, label: 'Help' },
       { to: '/lab', icon: FlaskConical, label: 'Lab' },
       { to: '/admin', icon: Shield, label: 'Security Admin' },
@@ -113,12 +118,16 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
     }
   });
 
+  const defaultExpanded: Record<string, boolean> = Object.fromEntries(
+    navigation.map((g) => [g.title, true])
+  );
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem('sidebar-expanded-groups');
-      return saved ? JSON.parse(saved) : { 'Hubs': true, 'Management': true, 'Intelligence': true, 'Systems & Tools': true };
+      const parsed = saved ? JSON.parse(saved) : {};
+      return { ...defaultExpanded, ...parsed };
     } catch {
-      return { 'Hubs': true, 'Management': true, 'Intelligence': true, 'Systems & Tools': true };
+      return { ...defaultExpanded };
     }
   });
 
@@ -154,7 +163,7 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                 className="flex flex-col"
               >
                 <h1 className="text-xl font-black text-white tracking-tighter leading-none">ROBOFANG</h1>
-                <span className="text-[9px] font-bold text-slate-500 tracking-[0.2em] uppercase mt-1">Management Hub</span>
+                <span className="text-xs font-bold text-slate-500 tracking-[0.2em] uppercase mt-1">Management Hub</span>
               </motion.div>
             )}
           </AnimatePresence>
@@ -163,13 +172,13 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         <ScrollArea className="flex-1 px-3">
           <div className="space-y-4 py-4">
             {navigation.map((group) => {
-              const isExpanded = expandedGroups[group.title];
+              const isExpanded = expandedGroups[group.title] !== false;
               return (
                 <div key={group.title} className="space-y-1">
                   {!isCollapsed && (
                     <button 
                       onClick={() => toggleGroup(group.title)}
-                      className="w-full h-8 px-4 flex items-center justify-between text-[10px] font-black text-slate-600 uppercase tracking-[0.3em] hover:text-slate-400 transition-colors group"
+                      className="w-full h-8 px-4 flex items-center justify-between text-xs font-black text-slate-600 uppercase tracking-[0.3em] hover:text-slate-400 transition-colors group"
                     >
                       <span>{group.title}</span>
                       <motion.div
