@@ -10,7 +10,9 @@ from typing import Any, ClassVar, Dict, List, Optional, Set
 
 from robofang.bridges.journal_bridge import JournalBridge
 from robofang.core.hands import HandsManager
+from robofang.core.installer import HandInstaller
 from robofang.core.knowledge import KnowledgeEngine
+from robofang.core.lifecycle import LifecycleManager
 from robofang.core.moltbook import MoltbookClient
 from robofang.core.personality import PersonalityEngine
 from robofang.core.plugins import PluginManager
@@ -19,8 +21,6 @@ from robofang.core.security import SecurityManager
 from robofang.core.security_secrets import SecretsManager
 from robofang.core.skills import SkillManager
 from robofang.core.storage import RoboFangStorage
-from robofang.core.installer import HandInstaller
-from robofang.core.lifecycle import LifecycleManager
 
 logger = logging.getLogger(__name__)
 
@@ -82,11 +82,10 @@ class OrchestrationClient:
         self.knowledge = KnowledgeEngine(storage=self.storage)
         self.memory = _OrchestratorMemory(storage=self.storage)
         self.hands = HandsManager(self)
-        
+
         # New Core Logic Extensions (RoboFang Evolution)
         self.installer = HandInstaller(
-            manifest_path=_PKG_ROOT / "fleet_manifest.yaml",
-            hands_base_dir=_PKG_ROOT / "hands"
+            manifest_path=_PKG_ROOT / "fleet_manifest.yaml", hands_base_dir=_PKG_ROOT / "hands"
         )
         self.lifecycle = LifecycleManager(self)
 

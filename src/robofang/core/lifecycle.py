@@ -1,18 +1,19 @@
-import time
-import logging
 import asyncio
-from typing import Dict, Set, Any, Optional
+import logging
+import time
+from typing import Any, Dict, Optional, Set
 
 logger = logging.getLogger(__name__)
 
+
 class LifecycleManager:
     """Manages the slumber and wakeup cycles of MCP servers (Hands) to conserve resources."""
-    
+
     def __init__(self, orchestrator: Any, ttl_seconds: int = 1800):
         self.orchestrator = orchestrator
         self.ttl_seconds = ttl_seconds
         self.last_used: Dict[str, float] = {}
-        self.locked_hands: Set[str] = set() # Hands that shouldn't be auto-slumbered
+        self.locked_hands: Set[str] = set()  # Hands that shouldn't be auto-slumbered
         self._monitor_task: Optional[asyncio.Task] = None
         self.running = False
 
@@ -44,7 +45,7 @@ class LifecycleManager:
         """Periodically check for idle hands to slumber."""
         while self.running:
             try:
-                await asyncio.sleep(60) # Check every minute
+                await asyncio.sleep(60)  # Check every minute
                 await self.check_slumber()
             except asyncio.CancelledError:
                 break
@@ -57,12 +58,14 @@ class LifecycleManager:
         for hand_id, last_time in list(self.last_used.items()):
             if hand_id in self.locked_hands:
                 continue
-                
+
             if now - last_time > self.ttl_seconds:
                 # Get the hand instance from HandsManager
                 hand = self.orchestrator.hands.hands.get(hand_id)
                 if hand and hand.active:
-                    logger.info(f"Hand '{hand_id}' idle for >{self.ttl_seconds}s. Initiating slumber.")
+                    logger.info(
+                        f"Hand '{hand_id}' idle for >{self.ttl_seconds}s. Initiating slumber."
+                    )
                     await self.slumber(hand_id)
 
     async def slumber(self, hand_id: str):

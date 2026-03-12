@@ -87,7 +87,7 @@ const Knowledge: React.FC = () => {
                      <Database size={20} />
                   </div>
                   <h4 className="text-xs font-black uppercase tracking-widest text-text-secondary">Vector Store</h4>
-                  <p className="text-sm font-bold font-mono">LanceDB (SOTA-2026)</p>
+                  <p className="text-sm font-bold font-mono">LanceDB (Core-2026)</p>
                </div>
                <div className="p-6 rounded-3xl glass-panel border border-white/5 flex flex-col items-center text-center gap-3 shadow-xl">
                   <div className="p-3 rounded-2xl bg-purple-500/10 text-purple-400">

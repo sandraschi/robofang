@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
     Zap, Cpu, Activity, Shield, Layers, Database,
-    Eye, Camera, Bot, FlaskConical, Trophy
+    Eye, Camera, FlaskConical, Trophy
 } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import LogicAnalyzer from '../../components/LogicAnalyzer';
@@ -39,7 +39,7 @@ const Lab: React.FC = () => {
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[9px] font-black border border-emerald-500/20 rounded-full uppercase tracking-widest">BUILD_SOTA_2026</span>
+                    <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 text-[9px] font-black border border-emerald-500/20 rounded-full uppercase tracking-widest">BUILD_CORE_2026</span>
                     <span className="text-zinc-600 text-[9px] font-mono tracking-widest uppercase">Zero-Trust Verified</span>
                 </div>
             </header>
@@ -116,7 +116,7 @@ const Lab: React.FC = () => {
                             </div>
                             <div className="text-center md:text-left">
                                 <h3 className="text-xl font-black text-white tracking-widest uppercase">Benchmark Matrix</h3>
-                                <p className="text-xs text-zinc-500 font-medium italic">RoboFang SOTA Analysis 2026</p>
+                                <p className="text-xs text-zinc-500 font-medium italic">RoboFang Core Analysis 2026</p>
                             </div>
                             <div className="md:ml-auto">
                                 <span className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-black rounded-full uppercase tracking-widest shadow-[0_0_15px_rgba(16,185,129,0.1)]">GAP: 3.4x</span>

@@ -13,8 +13,6 @@ if MCP_CENTRAL_DOCS_PATH not in sys.path:
 # Add robofang to path
 
 
-
-
 @pytest.fixture
 def temp_rag(tmp_path):
     # Use a temporary directory for LanceDB and tracking JSON

@@ -58,7 +58,7 @@ const Help: React.FC = () => {
             </div>
             <div>
               <h3 className="text-lg font-black text-white uppercase tracking-widest">Protocol Docs</h3>
-              <p className="text-xs text-zinc-500 font-medium">Read the primary SOTA implementation manifest.</p>
+              <p className="text-xs text-zinc-500 font-medium">Read the primary implementation manifest.</p>
             </div>
           </div>
           <ChevronRight className="text-zinc-600 group-hover:text-white transition-colors" />

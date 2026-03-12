@@ -165,6 +165,11 @@ MCP_BACKENDS: Dict[str, str] = {
     "bookmarks": "http://localhost:10803",
     "git-github": "http://localhost:10702",
     "pywinauto": "http://localhost:10789",
+    # Wave 6 — Robotics & Hands
+    "unitree": "http://localhost:10831",
+    "yahboom": "http://localhost:10833",
+    "dreame": "http://localhost:10835",
+    "hands": "http://localhost:10837",
 }
 
 
@@ -257,6 +262,12 @@ REPO_MAP: Dict[str, str] = {
     "bookmarks": "d:/Dev/repos/bookmarks-mcp",
     "git-github": "d:/Dev/repos/git-github-mcp",
     "pywinauto": "d:/Dev/repos/pywinauto-mcp",
+    # Robotics & Hands
+    "unitree": "d:/Dev/repos/unitree-robotics",
+    "yahboom": "d:/Dev/repos/yahboom-mcp",
+    "dreame": "d:/Dev/repos/dreame-mcp",
+    "hands": "d:/Dev/repos/hands-mcp",
+    "robotics": "d:/Dev/repos/robotics-mcp",
 }
 
 

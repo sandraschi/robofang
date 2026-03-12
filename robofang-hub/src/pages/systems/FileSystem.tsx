@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
     Folder, File, HardDrive, Database, Search, ChevronRight,
-    ArrowUpLeft, Download, Trash2, Info, MoreVertical,
-    Share2, Grid, List, Plus, Layout
+    Download, Trash2,
+    Share2, Grid, List, Plus
 } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import { motion } from 'framer-motion';

@@ -4,7 +4,6 @@ import {
     BrainCircuit
 } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
-import { AnimatePresence } from 'framer-motion';
 
 const BRIDGE_BASE_URL = 'http://localhost:10871';
 const POLL_INTERVAL_MS = 4000;
@@ -17,21 +16,16 @@ interface LogEntry {
     message: string;
     category: 'system' | 'mcp' | 'agent' | 'auth';
 }
-
 const Logs: React.FC = () => {
     const [logs, setLogs] = useState<LogEntry[]>([]);
-    const [loading, setLoading] = useState(false);
     const [live, setLive] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedLevel, setSelectedLevel] = useState('all');
-    const [selectedCategory, setSelectedCategory] = useState('all');
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     
     const latestIdRef = useRef<string | null>(null);
-    const scrollRef = useRef<HTMLDivElement>(null);
 
     const fetchAll = useCallback(async () => {
-        setLoading(true);
         try {
             const resp = await fetch(`${BRIDGE_BASE_URL}/logs?limit=300`);
             const data = await resp.json();
@@ -44,8 +38,6 @@ const Logs: React.FC = () => {
                 { id: '2', timestamp: new Date().toISOString(), level: 'warn', source: 'MCP_BRIDGE', message: 'Latency spike detected in local-mcp-server.', category: 'mcp' },
                 { id: '3', timestamp: new Date().toISOString(), level: 'error', source: 'AUTH_NODE', message: 'Failed handshake with remote peer.', category: 'auth' },
             ]);
-        } finally {
-            setLoading(false);
         }
     }, []);
 
@@ -75,10 +67,9 @@ const Logs: React.FC = () => {
 
     const filtered = logs.filter(log => {
         const matchLvl = selectedLevel === 'all' || log.level === selectedLevel;
-        const matchCat = selectedCategory === 'all' || log.category === selectedCategory;
         const matchSearch = log.message.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           log.source.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchLvl && matchCat && matchSearch;
+        return matchLvl && matchSearch;
     });
 
     return (
