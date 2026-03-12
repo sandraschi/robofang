@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Cpu, Radio, Bot, Settings2, RefreshCw, Search,
-    AlertTriangle, Layers, Palette, BookOpen, MessageSquare, Monitor, Wifi, Gamepad2
+    AlertTriangle, Layers, Palette, BookOpen, MessageSquare, Monitor, Wifi, Gamepad2,
+    ExternalLink, Play
 } from 'lucide-react';
 import { fleetApi } from '../api/fleet';
 import type { FleetData, FleetConnector, FleetAgent } from '../api/fleet';
@@ -68,7 +69,30 @@ const StatusBadge: React.FC<{ status: FleetConnector['status'] }> = ({ status })
 
 const ConnectorCard: React.FC<{ item: FleetConnector | FleetAgent }> = ({ item }) => {
     const isAgent = 'capabilities' in item;
+    const connector = isAgent ? null : (item as FleetConnector);
+    const [serverStatus, setServerStatus] = useState<string | null | undefined>(undefined);
+    const [launching, setLaunching] = useState(false);
     const color = domainColor(item.domain);
+
+    useEffect(() => {
+        if (!connector?.id || connector.status !== 'online') return;
+        let cancelled = false;
+        fleetApi.getConnectorStatus(connector.id).then((r) => {
+            if (!cancelled) setServerStatus(r.success ? r.server_status ?? null : null);
+        });
+        return () => { cancelled = true; };
+    }, [connector?.id, connector?.status]);
+
+    const handleStartWebapp = useCallback(async () => {
+        if (!connector?.repo_path) return;
+        setLaunching(true);
+        try {
+            const r = await fleetApi.launchWebapp(connector.repo_path);
+            if (r.success && connector.frontend_url) window.open(connector.frontend_url, '_blank');
+        } finally {
+            setLaunching(false);
+        }
+    }, [connector?.repo_path, connector?.frontend_url]);
 
     const colorMap: Record<string, string> = {
         indigo: 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20 group-hover:border-indigo-500/40',
@@ -105,6 +129,40 @@ const ConnectorCard: React.FC<{ item: FleetConnector | FleetAgent }> = ({ item }
                         {item.type}
                     </div>
                 </div>
+
+                {connector && connector.status === 'online' && serverStatus !== undefined && (
+                    <div className="text-[10px] text-slate-400 font-medium leading-snug line-clamp-3">
+                        {serverStatus ?? 'No status tool'}
+                    </div>
+                )}
+
+                {connector && (connector.repo_path || connector.frontend_url) && (
+                    <div className="flex gap-2 mt-auto pt-2">
+                        {connector.frontend_url && (
+                            <Button
+                                variant="glass"
+                                size="sm"
+                                className="h-8 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-white border-white/10"
+                                onClick={() => window.open(connector.frontend_url!, '_blank')}
+                            >
+                                <ExternalLink size={12} className="mr-1.5" />
+                                Open webapp
+                            </Button>
+                        )}
+                        {connector.repo_path && (
+                            <Button
+                                variant="glass"
+                                size="sm"
+                                className="h-8 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-white border-white/10"
+                                onClick={handleStartWebapp}
+                                disabled={launching}
+                            >
+                                <Play size={12} className="mr-1.5" />
+                                {launching ? 'Starting…' : 'Start webapp'}
+                            </Button>
+                        )}
+                    </div>
+                )}
 
                 {isAgent && (item as FleetAgent).capabilities.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-auto pt-2">

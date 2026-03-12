@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 
 const SUPERVISOR_URL = 'http://localhost:10872';
+const BRIDGE_URL = 'http://localhost:10871';
 
 export interface AgentInfo {
   id: string;
@@ -18,6 +19,14 @@ export interface FleetConnector {
     source: 'live' | 'config' | 'federation';
     domain: string;
     enabled?: boolean;
+    /** Backend URL for MCP (bridge uses for status/tools). */
+    backend_url?: string;
+    /** Webapp URL — open or start from card. */
+    frontend_url?: string;
+    /** Repo path for launch-webapp (bridge only). */
+    repo_path?: string;
+    /** Server status from MCP status tool (e.g. Blender running, installed). Fetched on demand. */
+    server_status?: string | null;
 }
 
 export interface FleetAgent {
@@ -46,29 +55,45 @@ export interface FleetData {
 }
 
 export const fleetApi = {
+    /** Fleet list from bridge (connectors + agents). Use bridge, not supervisor. */
     get: async (): Promise<FleetData> => {
         try {
-            const response = await fetch(`${SUPERVISOR_URL}/fleet/status`);
-            if (!response.ok) throw new Error('Status failed');
+            const response = await fetch(`${BRIDGE_URL}/fleet`);
+            if (!response.ok) throw new Error('Fleet failed');
             return await response.json();
         } catch (err) {
             console.error('Fleet API Error:', err);
-            // Mock data fallback
             return {
                 success: true,
-                summary: { connectors_online: 3, connectors_total: 8, agents_discovered: 12 },
-                connectors: [
-                    { id: 'c1', name: 'Alsergrund-Primary', type: 'supervisor', status: 'online', source: 'live', domain: 'system' },
-                    { id: 'c2', name: 'Plex-Orchestrator', type: 'connector', status: 'online', source: 'config', domain: 'knowledge' },
-                    { id: 'c3', name: 'Unitree-Link', type: 'bridge', status: 'online', source: 'live', domain: 'robotics_vr' },
-                    { id: 'c4', name: 'Legacy-Vault', type: 'archive', status: 'offline', source: 'config', domain: 'system' }
-                ],
-                agents: [
-                    { id: 'a1', name: 'Materialist-Bot', type: 'philosophy', status: 'discovered', source: 'federation', domain: 'comms', path: '/agents/materialist', capabilities: ['Debate', 'Reductionism', 'History'] },
-                    { id: 'a2', name: 'Vortex-Artist', type: 'creative', status: 'discovered', source: 'federation', domain: 'creative', path: '/agents/vortex', capabilities: ['Design', 'Glassmorphism', 'Framer'] }
-                ],
-                domains: ['system', 'knowledge', 'robotics_vr', 'comms', 'creative']
+                summary: { connectors_online: 0, connectors_total: 0, agents_discovered: 0 },
+                connectors: [],
+                agents: [],
+                domains: []
             };
+        }
+    },
+    /** Server status from MCP status tool (e.g. Blender running/installed). */
+    getConnectorStatus: async (connectorId: string): Promise<{ success: boolean; server_status: string | null }> => {
+        try {
+            const response = await fetch(`${BRIDGE_URL}/api/connectors/${encodeURIComponent(connectorId)}/status`);
+            if (!response.ok) return { success: false, server_status: null };
+            return await response.json();
+        } catch {
+            return { success: false, server_status: null };
+        }
+    },
+    /** Start webapp for a connector (optional; repo_path from fleet). */
+    launchWebapp: async (repoPath: string): Promise<{ success: boolean; message?: string }> => {
+        try {
+            const response = await fetch(`${BRIDGE_URL}/api/fleet/launch`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ repo_path: repoPath })
+            });
+            const data = await response.json();
+            return { success: response.ok && data?.success, message: data?.message };
+        } catch (e) {
+            return { success: false, message: (e as Error)?.message };
         }
     },
     onboard: async (agentId: string) => {
@@ -77,32 +102,49 @@ export const fleetApi = {
     },
     getMarket: async () => {
         try {
-            const res = await fetch(`${SUPERVISOR_URL}/fleet/market`);
+            const res = await fetch(`${SUPERVISOR_URL}/supervisor/fleet/market`);
             return await res.json();
         } catch {
             console.error('Failed to fetch market');
-            return {
-                success: true,
-                market: [
-                    { id: 'm1', name: 'DALL-E Node', description: 'Advanced image generation bridge.', port: 10890, repo_path: 'robofang/dalle-node', icon: 'palette', category: 'Creative' },
-                    { id: 'm2', name: 'Whisper-Listener', description: 'Real-time speech-to-text substrate.', port: 10891, repo_path: 'robofang/whisper-listener', icon: 'mic', category: 'Comms' },
-                    { id: 'm3', name: 'Docker-Guardian', description: 'Container health & security agency.', port: 10892, repo_path: 'robofang/docker-guardian', icon: 'shield', category: 'Infra' }
-                ]
-            };
+            return { success: true, market: [] };
         }
     },
     install: async (nodeId: string) => {
-        const res = await fetch(`${SUPERVISOR_URL}/fleet/install/${nodeId}`, { method: 'POST' });
+        const res = await fetch(`${SUPERVISOR_URL}/supervisor/fleet/install`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: nodeId })
+        });
         return await res.json();
     },
     getInstallerStatus: async () => {
         try {
-            const res = await fetch(`${SUPERVISOR_URL}/fleet/installer/status`);
+            const res = await fetch(`${SUPERVISOR_URL}/supervisor/fleet/status`);
             return await res.json();
         } catch {
             console.error('Failed to fetch install status');
             return { success: true, status: {} };
         }
+    },
+    /** Register connector in topology (federation_map) so it auto-starts on each robofang start. */
+    registerConnector: async (connectorId: string, config: { enabled?: boolean; mcp_backend?: string; [k: string]: unknown }) => {
+        const res = await fetch(`${BRIDGE_URL}/api/fleet/register`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                category: 'connectors',
+                id: connectorId,
+                config: { enabled: true, ...config }
+            })
+        });
+        return await res.json();
+    },
+    /** Start MCP server once (e.g. after install). Uses REPO_MAP on bridge. */
+    launchConnector: async (connectorId: string) => {
+        const res = await fetch(`${BRIDGE_URL}/api/connector/launch/${encodeURIComponent(connectorId)}`, {
+            method: 'POST'
+        });
+        return await res.json();
     },
     getAgents: async () => {
         try {

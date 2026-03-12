@@ -28,7 +28,7 @@ Write-Host "  Repo:       $RepoRoot" -ForegroundColor DarkGray
 Write-Host "  Python:     $Python" -ForegroundColor DarkGray
 Write-Host "  Supervisor: http://localhost:10872" -ForegroundColor DarkGray
 Write-Host "  Bridge:     http://localhost:10871" -ForegroundColor DarkGray
-Write-Host "  Dashboard:  http://localhost:10870" -ForegroundColor DarkGray
+Write-Host "  Hub:        http://localhost:10870  (configure MCP, LLM, auth)" -ForegroundColor DarkGray
 Write-Host ""
 
 # -- 0. Clear ports ------------------------------------------------------------
@@ -110,11 +110,11 @@ else {
     Write-Host "[2/3] Bridge running on :10871 (started in step 1.1). Use dashboard Status for supervisor control." -ForegroundColor DarkGray
 }
 
-# -- 3. Start dashboard --------------------------------------------------------
-Write-Host "[3/3] Starting dashboard dev server ..." -ForegroundColor Yellow
+# -- 3. Start hub (config UI: MCP servers, LLM, auth) --------------------------
+Write-Host "[3/3] Starting hub dev server ..." -ForegroundColor Yellow
 $DashDir = Join-Path $RepoRoot "robofang-hub"
 if (-not (Test-Path $DashDir)) {
-    Write-Host "    Dashboard directory not found: $DashDir" -ForegroundColor Red
+    Write-Host "    Hub directory not found: $DashDir" -ForegroundColor Red
     exit 1
 }
 
@@ -123,7 +123,7 @@ Set-Location $DashDir
 # Use start.ps1 if it exists, otherwise npm run dev
 $StartScript = Join-Path $DashDir "start.ps1"
 if (Test-Path $StartScript) {
-    Write-Host "    Using dashboard\start.ps1 ..." -ForegroundColor DarkGray
+    Write-Host "    Using robofang-hub\start.ps1 ..." -ForegroundColor DarkGray
     & $StartScript
 }
 else {

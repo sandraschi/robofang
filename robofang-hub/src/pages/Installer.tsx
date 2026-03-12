@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Download, CheckCircle2, XCircle, Loader2,
     ChevronRight, ShieldCheck, Box, Terminal, Info
 } from 'lucide-react';
-import { getFleetMarket, installFleetNode, getFleetInstallerStatus } from '../api/fleet';
+import { getFleetMarket, installFleetNode, getFleetInstallerStatus, fleetApi } from '../api/fleet';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,16 +25,22 @@ interface InstallStatus {
     logs: string[];
 }
 
+/** Registry id (e.g. blender-mcp) -> topology connector id (e.g. blender) for REPO_MAP. */
+function registryIdToConnectorId(registryId: string): string {
+    return registryId.replace(/-mcp$/, '');
+}
+
 const Installer: React.FC = () => {
     const [market, setMarket] = useState<MarketNode[]>([]);
     const [statuses, setStatuses] = useState<Record<string, InstallStatus>>({});
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState<Set<string>>(new Set());
+    const postInstallDoneRef = useRef<Set<string>>(new Set());
 
     const fetchMarket = async () => {
         try {
             const res = await getFleetMarket();
-            if (res.success) setMarket(res.market);
+            if (res.success && res.market) setMarket(res.market);
         } catch (e) {
             console.error('Failed to fetch market', e);
         } finally {
@@ -45,7 +51,7 @@ const Installer: React.FC = () => {
     const fetchStatus = async () => {
         try {
             const res = await getFleetInstallerStatus();
-            if (res.success) setStatuses(res.status);
+            if (res.success && res.status) setStatuses(res.status);
         } catch (e) {
             console.error('Failed to fetch install status', e);
         }
@@ -56,6 +62,21 @@ const Installer: React.FC = () => {
         const timer = setInterval(fetchStatus, 2000);
         return () => clearInterval(timer);
     }, []);
+
+    useEffect(() => {
+        market.forEach((node) => {
+            const status = statuses[node.id];
+            if (status?.status !== 'completed' || postInstallDoneRef.current.has(node.id)) return;
+            postInstallDoneRef.current.add(node.id);
+            const connectorId = registryIdToConnectorId(node.id);
+            fleetApi
+                .registerConnector(connectorId, {
+                    mcp_backend: `http://localhost:${node.port}`
+                })
+                .then(() => fleetApi.launchConnector(connectorId))
+                .catch((e) => console.error('Post-install register/launch failed', node.id, e));
+        });
+    }, [market, statuses]);
 
     const toggleSelect = (id: string) => {
         const next = new Set(selected);
