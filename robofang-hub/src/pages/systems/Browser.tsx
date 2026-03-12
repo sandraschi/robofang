@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
-    Globe, Lock, Shield, Search, RefreshCw, ChevronLeft, ChevronRight,
-    Star, Layout, Maximize2, ExternalLink, History, MoreHorizontal,
+    Globe, Lock, Shield, RefreshCw, ChevronLeft, ChevronRight,
+    Star, Layout, Maximize2, MoreHorizontal,
     Monitor, Radio, Cpu
 } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';

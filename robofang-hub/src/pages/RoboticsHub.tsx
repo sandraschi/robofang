@@ -29,61 +29,113 @@ interface RoboticsCardProps {
     onRefresh: () => void;
     children: React.ReactNode;
     accentClass: string;
+    connectorId: string;
 }
 
 const RoboticsCard: React.FC<RoboticsCardProps> = ({
-    title, icon, online, loading, onRefresh, children, accentClass
-}) => (
-    <GlassCard className={`flex flex-col h-full bg-slate-900/40 border-slate-700/50 hover:border-${accentClass}-500/30 transition-all duration-500 group overflow-hidden`}>
-        <div className={`flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-${accentClass}-500/5`}>
-            <div className="flex items-center gap-3">
-                <div className={`text-${accentClass}-400 group-hover:scale-110 transition-transform duration-500`}>
-                    {icon}
-                </div>
-                <div>
-                    <div className="text-sm font-bold text-slate-100">{title}</div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                        <div className={`w-1.5 h-1.5 rounded-full ${online ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
-                        <span className={`text-[10px] font-bold uppercase tracking-widest ${online ? "text-emerald-400" : "text-red-400"}`}>
-                            {online ? "Online" : "Offline"}
-                        </span>
+    title, icon, online, loading, onRefresh, children, accentClass, connectorId
+}) => {
+    const [verifying, setVerifying] = useState(false);
+    const [tools, setTools] = useState<number | null>(null);
+
+    const handleVerify = async () => {
+        setVerifying(true);
+        try {
+            const r = await axios.get(`${BRIDGE}/api/connectors/${connectorId}/tools`);
+            setTools(r.data.count || r.data.tools?.length || 0);
+        } catch (e) {
+            console.error("Verification failed", e);
+        } finally {
+            setVerifying(false);
+        }
+    };
+
+    const handleLaunch = async () => {
+        try {
+            await axios.post(`${BRIDGE}/api/connector/launch/${connectorId}`);
+        } catch (e) {
+            console.error("Launch failed", e);
+        }
+    };
+
+    return (
+        <GlassCard className={`flex flex-col h-full bg-slate-900/40 border-slate-700/50 hover:border-${accentClass}-500/30 transition-all duration-500 group overflow-hidden`}>
+            <div className={`flex items-center justify-between px-5 py-4 border-b border-white/[0.06] bg-${accentClass}-500/5`}>
+                <div className="flex items-center gap-3">
+                    <div className={`text-${accentClass}-400 group-hover:scale-110 transition-transform duration-500`}>
+                        {icon}
                     </div>
+                    <div>
+                        <div className="text-sm font-bold text-slate-100">{title}</div>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className={`w-1.5 h-1.5 rounded-full ${online ? "bg-emerald-400 animate-pulse" : "bg-red-400"}`} />
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${online ? "text-emerald-400" : "text-red-400"}`}>
+                                {online ? "Online" : "Offline"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <button
+                    onClick={onRefresh}
+                    disabled={loading}
+                    title="Refresh Metrics"
+                    className="p-1.5 rounded-lg hover:bg-white/10 text-slate-500 hover:text-slate-200 transition-all active:scale-90"
+                >
+                    <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+                </button>
+            </div>
+            <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
+                <AnimatePresence mode="wait">
+                    {loading ? (
+                        <div className="space-y-4 animate-pulse">
+                            {[1, 2, 3, 4].map(i => (
+                                <div 
+                                    key={i} 
+                                    className="skeleton-bar" 
+                                    style={{ "--w": `${70 + (i % 3) * 10}%` } as React.CSSProperties} 
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <motion.div
+                            initial={{ opacity: 0, y: 5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="h-full"
+                        >
+                            {children}
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </div>
+            
+            {/* Fleet Actions */}
+            <div className="px-5 py-3 bg-white/[0.02] border-t border-white/[0.06] flex items-center justify-between">
+                <div className="flex gap-2">
+                    {!online && (
+                        <button 
+                            onClick={handleLaunch}
+                            className={`px-3 py-1 rounded-lg bg-${accentClass}-500/10 hover:bg-${accentClass}-500/20 text-[10px] font-bold text-${accentClass}-400 border border-${accentClass}-500/20 transition-all uppercase tracking-tighter`}
+                        >
+                            Launch Webapp
+                        </button>
+                    )}
+                    <button 
+                        onClick={handleVerify}
+                        disabled={verifying}
+                        className="px-3 py-1 rounded-lg bg-slate-800/60 hover:bg-slate-700/60 text-[10px] font-bold text-slate-400 border border-white/5 transition-all uppercase tracking-tighter flex items-center gap-1.5"
+                    >
+                        {verifying ? <RefreshCw size={10} className="animate-spin" /> : <ShieldCheck size={10} />}
+                        {tools !== null ? `${tools} Tools` : 'Verify Fleet'}
+                    </button>
+                </div>
+                
+                <div className="text-[10px] font-mono text-slate-600">
+                    ID: {connectorId}
                 </div>
             </div>
-            <button
-                onClick={onRefresh}
-                disabled={loading}
-                title="Refresh Metrics"
-                className="p-1.5 rounded-lg hover:bg-white/10 text-slate-500 hover:text-slate-200 transition-all active:scale-90"
-            >
-                <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-            </button>
-        </div>
-        <div className="flex-1 p-5 overflow-y-auto custom-scrollbar">
-            <AnimatePresence mode="wait">
-                {loading ? (
-                    <div className="space-y-4 animate-pulse">
-                        {[1, 2, 3, 4].map(i => (
-                            <div 
-                                key={i} 
-                                className="skeleton-bar" 
-                                style={{ "--w": `${70 + (i % 3) * 10}%` } as React.CSSProperties} 
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <motion.div
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="h-full"
-                    >
-                        {children}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-    </GlassCard>
-);
+        </GlassCard>
+    );
+};
 
 const RoboticsHub: React.FC = () => {
     const [unitreeOnline, setUnitreeOnline] = useState<boolean | null>(null);
@@ -213,6 +265,7 @@ const RoboticsHub: React.FC = () => {
                 {/* Unitree Card */}
                 <RoboticsCard
                     title="Unitree Robotics"
+                    connectorId="unitree"
                     icon={<Activity size={18} />}
                     accentClass="orange"
                     online={unitreeOnline}
@@ -255,6 +308,7 @@ const RoboticsHub: React.FC = () => {
                 {/* OSC Card */}
                 <RoboticsCard
                     title="OSC / Virtual"
+                    connectorId="osc"
                     icon={<Radio size={18} />}
                     accentClass="purple"
                     online={oscOnline}
@@ -279,6 +333,7 @@ const RoboticsHub: React.FC = () => {
                 {/* Kinematics Card */}
                 <RoboticsCard
                     title="Kinematics"
+                    connectorId="hands"
                     icon={<Gamepad2 size={18} />}
                     accentClass="emerald"
                     online={handsOnline}
@@ -307,6 +362,7 @@ const RoboticsHub: React.FC = () => {
                 {/* Yahboom Card */}
                 <RoboticsCard
                     title="Yahboom Raspbot"
+                    connectorId="yahboom"
                     icon={<Bot size={18} />}
                     accentClass="cyan"
                     online={yahboomOnline}
@@ -351,6 +407,7 @@ const RoboticsHub: React.FC = () => {
                 {/* Dreame Card */}
                 <RoboticsCard
                     title="Dreame Vacuum"
+                    connectorId="dreame"
                     icon={<Wind size={18} />}
                     accentClass="emerald"
                     online={dreameOnline}
@@ -391,6 +448,7 @@ const RoboticsHub: React.FC = () => {
                 {/* OSC Dispatcher */}
                 <RoboticsCard
                     title="OSC Dispatcher"
+                    connectorId="osc"
                     icon={<Share2 size={18} />}
                     accentClass="blue"
                     online={true}
@@ -441,9 +499,44 @@ const RoboticsHub: React.FC = () => {
                     </div>
                 </GlassCard>
 
+                {/* OSC Feedback Loop */}
+                <RoboticsCard
+                    title="OSC Feedback Loop"
+                    connectorId="osc"
+                    icon={<Activity size={18} />}
+                    accentClass="rose"
+                    online={true}
+                    loading={false}
+                    onRefresh={() => { }}
+                >
+                    <div className="space-y-3">
+                        <div className="p-3 bg-white/[0.02] rounded-xl border border-white/[0.04] space-y-3">
+                            <div className="text-[9px] text-slate-500 uppercase font-bold tracking-widest">Loopback Status</div>
+                            <div className="space-y-2">
+                                <div className="flex justify-between items-center text-[11px] font-bold">
+                                    <span className="text-slate-400 uppercase tracking-tight">Input Stream</span>
+                                    <span className="text-rose-500 font-mono tracking-tighter flex items-center gap-1">
+                                        Active <Radio size={10} />
+                                    </span>
+                                </div>
+                                <div className="flex justify-between items-center text-[11px] font-bold">
+                                    <span className="text-slate-400 uppercase tracking-tight">Output Stream</span>
+                                    <span className="text-rose-500 font-mono tracking-tighter flex items-center gap-1">
+                                        Active <Radio size={10} />
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <button className="w-full py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-[10px] font-bold uppercase tracking-widest transition-all">
+                            Calibrate Loop
+                        </button>
+                    </div>
+                </RoboticsCard>
+
                 {/* Maintenance */}
                 <RoboticsCard
                     title="Maintenance"
+                    connectorId="robotics"
                     icon={<Settings size={18} />}
                     accentClass="slate"
                     online={true}

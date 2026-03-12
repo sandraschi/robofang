@@ -41,7 +41,7 @@ const Feeds: React.FC = () => {
           { name: 'GitHub / Trending MCP', icon: Github, items: 12, color: 'zinc', status: 'Syncing' },
           { name: 'X / AI Sovereignty', icon: Twitter, items: 156, color: 'sky', status: 'Active' },
           { name: 'Reuters / Geopolitics', icon: Newspaper, items: 28, color: 'red', status: 'Paused' },
-          { name: 'Hackernews / Agentic SOTA', icon: Search, items: 85, color: 'orange', status: 'Active' },
+          { name: 'Hackernews / Agentic Core', icon: Search, items: 85, color: 'orange', status: 'Active' },
           { name: 'Wired / Tech Analysis', icon: Globe, items: 14, color: 'indigo', status: 'Active' },
         ].map((feed, i) => (
           <GlassCard key={i} className="group overflow-hidden">

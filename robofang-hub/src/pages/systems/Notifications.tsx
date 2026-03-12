@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-    Bell, Shield, Info, AlertTriangle, AlertCircle, 
+    Bell, AlertTriangle, 
     CheckCircle2, Clock, Trash2, Settings,
     Cpu, Globe, Zap, Mail, MoreHorizontal
 } from 'lucide-react';

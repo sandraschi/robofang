@@ -1,10 +1,9 @@
 import React from 'react';
 import {
-  Activity, User, Brain, Shield,
-  Cpu, Zap, Database, Globe,
-  Search, Terminal, Loader2, Clock,
-  ShieldAlert, Hexagon, Target, Fingerprint,
-  Settings, LogOut, ChevronRight, Dna, Award
+  Activity, User, Shield,
+  Zap,
+  Fingerprint, Hexagon, Target,
+  Settings, LogOut, Dna, Award
 } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
 import { motion } from 'framer-motion';
