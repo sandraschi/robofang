@@ -3,6 +3,10 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
+  - job_name: 'robofang-bridge'
+    static_configs:
+      - targets: ['host.docker.internal:10871']
+    metrics_path: /metrics
   - job_name: 'robofang-core'
     static_configs:
-      - targets: ['host.docker.internal:10864'] # Robofang Core API
+      - targets: ['host.docker.internal:10864']

@@ -2,7 +2,11 @@
 
 How third parties can contribute **MCP servers** (tools the bridge talks to) and **Hands** (autonomous agent processes) to RoboFang.
 
-**Terminology:** The list of installable MCP servers (from `fleet_manifest.yaml`) is called the **catalog**. The hub’s Fleet Installer loads it via `GET /api/fleet/installer-catalog` (response key `catalog`). Onboarding uses `GET /api/fleet/catalog` (response key `hands`). There is no “market”; everything is catalog or hands.
+**Terminology:** The list of installable MCP servers is the **catalog**. It is built from **fleet-registry.json** (primary: env `ROBOFANG_FLEET_REGISTRY`, or repo `configs/fleet-registry.json`, or bundled `src/robofang/configs/fleet-registry.json`) and, when present, `fleet_manifest.yaml`. The hub’s Onboarding and the Fleet page load the catalog via `GET /api/fleet/catalog` (response key `hands`). Catalog entries may include **requires_app** and **app_install_url** for MCPs that wrap an external app (e.g. Blender MCP requires Blender); the hub shows "Requires X installed" and a "Get X" link. RoboFang itself is not in the fleet catalog. There is no “market”; everything is catalog or hands.
+
+---
+
+**Fleet registry format:** `fleet-registry.json` lists hands (each with `id`, `name`, `category`, `description`, `repo_url`, etc.). For MCPs that wrap an external application (e.g. Blender MCP requires Blender), add **requires_app** (e.g. `"Blender"`) and **app_install_url** (link to the app install page); the hub shows "Requires X installed" and a "Get X" link in Onboarding and on the Fleet page. RoboFang itself must not appear as an installable hand in the fleet list.
 
 ---
 

@@ -33,6 +33,7 @@ ENV/
 *.swo
 
 # Project Specific
+temp/
 exchange/debates/*
 !exchange/debates/.gitkeep
 sessions/*.json
@@ -55,5 +56,6 @@ memory/
 # Backup / temp (do not commit)
 *.bak
 *_*.md.bak
+*.backup
 llms.txt
 llms-full.txt

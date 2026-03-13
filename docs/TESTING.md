@@ -31,14 +31,14 @@ Use this to verify the full onboarding flow (Installer → clone → register in
 
 **Prerequisites**
 
-- RoboFang bridge and supervisor running (`.\start_all.ps1`)
+- RoboFang bridge and supervisor running (`.\robofang-hub\start.bat` or `.\start_all.ps1`)
 - Hub at http://localhost:10870
 - Fleet registry at `mcp-central-docs/operations/fleet-registry.json` (or supervisor’s `FLEET_REGISTRY_PATH`) containing at least one node with `repo_path` and `id` (e.g. `blender-mcp`)
 
 **Steps**
 
 1. **Start robofang**  
-   `.\start_all.ps1`  
+   `.\robofang-hub\start.bat` or `.\start_all.ps1`  
    Wait until hub and bridge are up.
 
 2. **Open Installer**  
@@ -60,7 +60,7 @@ Use this to verify the full onboarding flow (Installer → clone → register in
      and confirm 200 if the server is already running or starts.
 
 6. **Restart robofang**  
-   Stop (`Ctrl+C` or stop script), then run `.\start_all.ps1` again.  
+   Stop (`Ctrl+C` or stop script), then run `.\robofang-hub\start.bat` or `.\start_all.ps1` again.  
    The connector you installed and registered should auto-start (bridge logs “Fleet Automation: Triggering auto-launch for 'blender'” or similar).
 
 **Quick API checks (PowerShell)**

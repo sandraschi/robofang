@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 // ... other imports
 // I'll just use the existing imports but add React and useEffect if missing.
 import AppLayout from './components/layout/AppLayout';

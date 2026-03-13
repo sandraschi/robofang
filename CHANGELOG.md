@@ -12,6 +12,26 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 
 ---
 
+## [Unreleased] — 2026-03-13
+
+### Added
+- **Dependencies (pyproject.toml)**: `tomli`, `pyyaml`, `requests`, `watchdog`, `structlog` so bridge and repo_watcher import without missing-module failures. CI guard: `tests/test_bridge_import.py` imports hand_manifest, installer, skills, repo_watcher.
+- **Bridge crash logging**: Supervisor writes bridge stdout/stderr to `temp/bridge_stdout.log`; on bridge crash, supervisor logs ERROR with last 30 lines. Start.ps1 shows that log and supervisor stderr when bridge does not respond.
+- **Run bridge in console**: `run_bridge_console.bat` / `run_bridge_console.ps1` at repo root to run the bridge in the foreground and see tracebacks.
+
+### Changed
+- **Start entry points**: Primary start is `.\robofang-hub\start.bat`. Root `.\start.bat` also works (calls `start_all.ps1`, which runs setup if needed then hub start). Both documented in README and INSTALLATION.md.
+- **Setup / start and pip**: `setup.ps1` and `robofang-hub\start.ps1` use `python -m ensurepip` / `python -m pip` so they work when `.venv` has no `pip.exe`. Setup ensures pip exists before `pip install -e .`.
+- **Error handling**: No silent failures—pip install errors surface; port-clear logs what was killed; bridge wait loop shows last error every 5s; bridge startup and main() catch exceptions, log traceback, exit 1. Supervisor sets `PYTHONUNBUFFERED=1` for the bridge so tracebacks appear immediately in logs.
+- **Hub only after bridge**: Start.ps1 does not launch the hub until the bridge responds; on failure it exits 1 and prints last 50 lines of `temp/bridge_stdout.log` and last 20 of supervisor stderr.
+
+### Fixed
+- **Bridge crash on start**: Missing `tomli` (hand_manifest) and optional missing `pyyaml` (installer/skills) caused bridge to exit 1. All required deps are now in pyproject.toml and covered by import tests.
+- **Venv without pip**: If `.venv` existed but had no `pip.exe`, setup and “ensure deps” failed. Scripts now use `python -m pip` and setup runs `ensurepip` when needed.
+- **Root start.bat**: Root `start.bat` now does `cd /d "%~dp0"` so it works from any current directory; `start_all.ps1` sets `Set-Location $RepoRoot` before invoking the hub script.
+
+---
+
 ## [Unreleased] — 2026-03-12
 
 ### Added

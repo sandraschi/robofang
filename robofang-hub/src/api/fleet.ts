@@ -101,16 +101,41 @@ export const fleetApi = {
         const response = await fetch(`${SUPERVISOR_URL}/fleet/onboard/${agentId}`, { method: 'POST' });
         return await response.json();
     },
-    /** Catalog of installable MCP servers (bridge returns list with id, name, port, repo_path, etc.). */
+    /** Catalog of installable MCP servers. Uses GET /api/fleet/catalog (returns hands + catalog with port, repo_path). */
     getCatalog: async () => {
         try {
-            const res = await fetch(`${BRIDGE_URL}/api/fleet/installer-catalog`);
-            const data = await res.json();
-            const list = res.ok && data.catalog ? data.catalog : [];
-            return { success: res.ok && data.success !== false, catalog: list };
-        } catch {
-            console.error('Failed to fetch catalog');
-            return { success: false, catalog: [] };
+            const res = await fetch(`${BRIDGE_URL}/api/fleet/catalog`);
+            const text = await res.text();
+            let data: { success?: boolean; hands?: unknown[]; catalog?: unknown[]; error?: string; detail?: string | { msg: string }[] } = {};
+            if (text && text.trim()) {
+                try {
+                    data = JSON.parse(text) as typeof data;
+                } catch {
+                    return {
+                        success: false,
+                        catalog: [],
+                        error: `Bridge returned non-JSON (status ${res.status}). Check bridge logs.`
+                    };
+                }
+            } else {
+                return {
+                    success: false,
+                    catalog: [],
+                    error: `Bridge returned empty response (status ${res.status}). Restart bridge and retry.`
+                };
+            }
+            const list = (res.ok && data.catalog && Array.isArray(data.catalog) ? data.catalog : []) as { id: string; name: string; description: string; port: number; repo_path: string; icon: string; category: string }[];
+            const success = res.ok && data.success !== false;
+            const detail = typeof data.detail === 'string' ? data.detail : Array.isArray(data.detail) && data.detail[0]?.msg ? (data.detail as { msg: string }[]).map(d => d.msg).join('; ') : null;
+            const errorMessage = data.error ?? detail ?? (success ? undefined : 'Bridge returned an error.');
+            return {
+                success,
+                catalog: list,
+                error: errorMessage ?? undefined
+            };
+        } catch (e) {
+            console.error('Failed to fetch catalog', e);
+            return { success: false, catalog: [], error: (e as Error)?.message ?? 'Request failed' };
         }
     },
     /** Install selected hand(s) via bridge onboard (clone + deps + install script). Returns full response with results array. */

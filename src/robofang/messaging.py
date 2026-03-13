@@ -70,6 +70,119 @@ def _get_smtp_config() -> dict:
     return out
 
 
+def _get_imap_config() -> dict:
+    """IMAP config from storage then env. Keys: host, port, user, password, folder."""
+    out = {}
+    if _comms_storage:
+        for k in ("host", "port", "user", "password", "folder"):
+            v = _comms_storage.get_secret(f"comms_imap_{k}")
+            if v:
+                out[k] = v
+    for k, env in (
+        ("host", "ROBOFANG_IMAP_HOST"),
+        ("port", "ROBOFANG_IMAP_PORT"),
+        ("user", "ROBOFANG_IMAP_USER"),
+        ("password", "ROBOFANG_IMAP_PASSWORD"),
+        ("folder", "ROBOFANG_IMAP_FOLDER"),
+    ):
+        if k not in out and os.getenv(env):
+            out[k] = os.getenv(env)
+    if out.get("port"):
+        out["port"] = int(out["port"])
+    if "folder" not in out or not out["folder"]:
+        out["folder"] = "INBOX"
+    return out
+
+
+def is_email_comms_configured() -> tuple[bool, bool]:
+    """Return (smtp_ok, imap_ok) for reply and poll."""
+    smtp = _get_smtp_config()
+    imap = _get_imap_config()
+    return (
+        bool(smtp.get("host") and smtp.get("user")),
+        bool(imap.get("host") and imap.get("user")),
+    )
+
+
+def fetch_unseen_emails() -> list[dict]:
+    """
+    Sync IMAP fetch: connect, get UNSEEN, return list of {from_addr, subject, body, uid}.
+    Returns [] if not configured or on error. Caller must mark seen after processing.
+    """
+    import email
+    import imaplib
+
+    cfg = _get_imap_config()
+    if not cfg.get("host") or not cfg.get("user"):
+        return []
+    port = int(cfg.get("port") or 993)
+    folder = cfg.get("folder", "INBOX")
+    out = []
+    try:
+        with imaplib.IMAP4_SSL(cfg["host"], port=port) as imap:
+            imap.login(cfg["user"], cfg.get("password") or "")
+            imap.select(folder, readonly=False)
+            _, nums = imap.search(None, "UNSEEN")
+            if not nums[0]:
+                return []
+            for uid in nums[0].split():
+                uid = uid.decode() if isinstance(uid, bytes) else uid
+                _, data = imap.fetch(uid, "(RFC822)")
+                if not data or data[0] is None:
+                    continue
+                raw = data[0][1]
+                msg = (
+                    email.message_from_bytes(raw)
+                    if isinstance(raw, bytes)
+                    else email.message_from_string(raw)
+                )
+                from_addr = msg.get("From", "")
+                if "<" in from_addr and ">" in from_addr:
+                    from_addr = from_addr.split("<")[1].split(">")[0].strip()
+                subject = msg.get("Subject", "") or ""
+                body = ""
+                if msg.is_multipart():
+                    for part in msg.walk():
+                        if part.get_content_type() == "text/plain":
+                            body = part.get_payload(decode=True)
+                            if body:
+                                body = body.decode(errors="replace")
+                            break
+                else:
+                    body = msg.get_payload(decode=True)
+                    if body:
+                        body = body.decode(errors="replace")
+                body = (body or "").strip()
+                if body:
+                    out.append(
+                        {"from_addr": from_addr, "subject": subject, "body": body, "uid": uid}
+                    )
+    except Exception as e:
+        logger.warning("IMAP fetch failed: %s", e)
+    return out
+
+
+def mark_imap_seen(uid_list: list[str]) -> None:
+    """Mark messages as seen. uid_list from fetch_unseen_emails. No-op if not configured."""
+    import imaplib
+
+    if not uid_list:
+        return
+    cfg = _get_imap_config()
+    if not cfg.get("host") or not cfg.get("user"):
+        return
+    port = int(cfg.get("port") or 993)
+    folder = cfg.get("folder", "INBOX")
+    try:
+        with imaplib.IMAP4_SSL(cfg["host"], port=port) as imap:
+            imap.login(cfg["user"], cfg.get("password") or "")
+            imap.select(folder, readonly=False)
+            for uid in uid_list:
+                imap.store(uid, "+FLAGS", "\\Seen")
+    except Exception as e:
+        logger.warning("IMAP mark seen failed: %s", e)
+
+
 class MessagingBridge:
     """Sends notifications to external platforms. Reads from storage (onboarding) then env."""
 
@@ -146,7 +259,7 @@ class MessagingBridge:
                         s.login(cfg["user"], cfg["password"])
                     s.sendmail(from_addr, [to], msg.as_string())
 
-            await asyncio.get_event_loop().run_in_executor(None, _send)
+            await asyncio.get_running_loop().run_in_executor(None, _send)
             return True
         except Exception as e:
             logger.error("SMTP send failed: %s", e)
@@ -176,13 +289,23 @@ async def notify(message: str):
     return await _bridge.broadcast(message)
 
 
-async def reply_to(channel: str, text: str) -> bool:
-    """Send text to a single channel (telegram or discord). Used for command replies."""
+async def reply_to(channel: str, text: str, **kwargs) -> bool:
+    """Send text to a single channel (telegram, discord, or email). Used for command replies."""
     if channel == "telegram":
         return await _bridge.send_telegram(text)
     if channel == "discord":
         return await _bridge.send_discord(text)
+    if channel == "email":
+        to_addr = kwargs.get("to")
+        subject = kwargs.get("subject", "Re: RoboFang")
+        if to_addr:
+            return await _bridge.send_email(to_addr, subject, text)
     return False
+
+
+async def reply_to_email(to_addr: str, subject: str, body: str) -> bool:
+    """Send reply by email. Used for inbound email command replies."""
+    return await _bridge.send_email(to_addr, subject, body)
 
 
 async def reply_to_telegram_chat(chat_id: str, text: str) -> bool:

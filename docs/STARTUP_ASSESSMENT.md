@@ -4,7 +4,7 @@
 
 | Script | Role |
 |--------|------|
-| **start_all.ps1** (repo root) | Starts supervisor (:10872), then **real bridge** (`python -m robofang.main` on :10871), then dashboard (:10870). Single source of truth for the bridge when run from root. |
+| **robofang-hub\\start.bat** or **start_all.ps1** (repo root) | Primary: `.\robofang-hub\start.bat`. Root: `.\start.bat` runs `start_all.ps1` (setup if needed, then hub start). Both start supervisor (:10872), bridge (`python -m robofang.main` on :10871), hub (:10870). Bridge crash output: `temp/bridge_stdout.log`. |
 | **dashboard/start.ps1** | Supervisor-led: starts supervisor only, then POSTs `supervisor/start` so the **supervisor** spawns the bridge. Bridge is the same `robofang.main`. |
 
 ## Bridge identity
@@ -23,4 +23,4 @@
 
 ## Antigravity / IDE hanging
 
-Not addressed here. If Antigravity hangs, run `.\start_all.ps1` from a normal PowerShell terminal from repo root; bridge logs go to `D:\Dev\repos\temp\bridge_*.log`.
+Not addressed here. If startup hangs, run `.\start_all.ps1` or `.\robofang-hub\start.bat` from a normal terminal; bridge stdout/stderr goes to `temp/bridge_stdout.log`. For a live traceback, run `.\run_bridge_console.bat` from repo root.
