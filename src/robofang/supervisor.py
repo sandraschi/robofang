@@ -34,14 +34,34 @@ from pydantic import BaseModel
 
 SUPERVISOR_PORT = 10872
 BRIDGE_PORT = 10871
-FLEET_REGISTRY_PATH = r"D:\Dev\repos\mcp-central-docs\operations\fleet-registry.json"
-REPOS_ROOT = r"D:\Dev\repos"
+_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+REPOS_ROOT = os.environ.get("ROBOFANG_REPOS_ROOT", os.path.dirname(_REPO_ROOT))
+FLEET_REGISTRY_PATH = os.path.join(
+    REPOS_ROOT, "mcp-central-docs", "operations", "fleet-registry.json"
+)
 
-# Command to start the bridge — same as running `python -m RoboFang.main`
-# We use sys.executable so we always get the same Python that ran the supervisor.
-_REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# Command to start the bridge — same as running `python -m robofang.main`
 BRIDGE_CMD = [sys.executable, "-m", "robofang.main"]
 BRIDGE_CWD = _REPO_ROOT
+BRIDGE_STDOUT_LOG = os.path.join(_REPO_ROOT, "temp", "bridge_stdout.log")
+
+
+# Fleet Installer: paths the bridge needs for installer-catalog. Set when spawning bridge so start.bat works.
+def _bridge_env() -> dict:
+    env = {**os.environ}
+    env["PORT"] = str(BRIDGE_PORT)
+    env["PYTHONUNBUFFERED"] = "1"  # so bridge tracebacks appear immediately in bridge_stdout.log
+    if not env.get("ROBOFANG_FLEET_MANIFEST"):
+        env["ROBOFANG_FLEET_MANIFEST"] = os.path.join(_REPO_ROOT, "fleet_manifest.yaml")
+    if not env.get("ROBOFANG_HANDS_DIR"):
+        env["ROBOFANG_HANDS_DIR"] = os.path.join(_REPO_ROOT, "hands")
+    if not env.get("ROBOFANG_FLEET_REGISTRY") and os.path.isfile(FLEET_REGISTRY_PATH):
+        env["ROBOFANG_FLEET_REGISTRY"] = FLEET_REGISTRY_PATH
+    if "PYTHONPATH" not in env or _REPO_ROOT not in env.get("PYTHONPATH", ""):
+        src = os.path.join(_REPO_ROOT, "src")
+        env["PYTHONPATH"] = f"{src};{env.get('PYTHONPATH', '')}".strip(";")
+    return env
+
 
 # Rolling log buffer (stdout + stderr interleaved)
 LOG_BUFFER_SIZE = 500
@@ -260,6 +280,7 @@ class BridgeProcess:
             self._logs.clear()
             self._exit_code = None
             try:
+                os.makedirs(os.path.dirname(BRIDGE_STDOUT_LOG), exist_ok=True)
                 self._proc = subprocess.Popen(
                     BRIDGE_CMD,
                     cwd=BRIDGE_CWD,
@@ -269,7 +290,7 @@ class BridgeProcess:
                     bufsize=1,
                     encoding="utf-8",
                     errors="replace",
-                    env={**os.environ},
+                    env=_bridge_env(),
                 )
                 self._started_at = time.time()
                 self._stopped_at = None
@@ -277,7 +298,7 @@ class BridgeProcess:
                 self._start_reader()
                 return {"ok": True, "pid": self._proc.pid}
             except Exception as e:
-                logger.error(f"Failed to start bridge: {e}")
+                logger.exception("Failed to start bridge: %s", e)
                 return {"ok": False, "reason": str(e)}
 
     def stop(self, timeout: float = 8.0) -> dict:
@@ -356,10 +377,13 @@ class BridgeProcess:
         if not proc or not proc.stdout:
             return
         try:
-            for line in proc.stdout:
-                stripped = line.rstrip("\n")
-                with self._lock:
-                    self._logs.append(stripped)
+            with open(BRIDGE_STDOUT_LOG, "w", encoding="utf-8", errors="replace") as bridge_log:
+                for line in proc.stdout:
+                    stripped = line.rstrip("\n")
+                    bridge_log.write(stripped + "\n")
+                    bridge_log.flush()
+                    with self._lock:
+                        self._logs.append(stripped)
             # stdout closed — process ended
             proc.wait()
             exit_code = proc.returncode
@@ -369,18 +393,26 @@ class BridgeProcess:
                 if exit_code not in (0, -15, None):  # -15 = SIGTERM
                     self._crash_count += 1
                     self._logs.append(f"[supervisor] Bridge exited with code {exit_code}")
-            logger.info(f"Bridge reader loop ended, exit={exit_code}")
+                    crash_tail = list(self._logs)[-30:] if self._logs else []
+                    logger.error(
+                        "BRIDGE CRASHED exit_code=%s. Last 30 lines of bridge output:\n%s",
+                        exit_code,
+                        "\n".join(crash_tail) if crash_tail else "(no output)",
+                    )
+            logger.info("Bridge reader loop ended, exit=%s", exit_code)
 
             # Auto-restart on crash
             if AUTO_RESTART and exit_code not in (0, -15):
                 logger.warning(
-                    f"Bridge crashed (exit {exit_code}), auto-restarting in {AUTO_RESTART_DELAY_S}s"
+                    "Bridge crashed (exit %s), auto-restarting in %ss",
+                    exit_code,
+                    AUTO_RESTART_DELAY_S,
                 )
                 self._logs.append(f"[supervisor] Auto-restarting in {AUTO_RESTART_DELAY_S}s...")
                 time.sleep(AUTO_RESTART_DELAY_S)
                 self.start()
         except Exception as e:
-            logger.error(f"Bridge reader error: {e}")
+            logger.exception("Bridge reader error: %s", e)
 
 
 # Singleton
@@ -511,7 +543,10 @@ def _auto_start_bridge():
     if result.get("ok"):
         logger.info("Bridge auto-started on port %s (PID %s)", BRIDGE_PORT, result.get("pid"))
     else:
-        logger.warning("Bridge auto-start skipped: %s", result.get("reason", "unknown"))
+        logger.error(
+            "Bridge auto-start FAILED: %s (check temp/bridge_stdout.log after bridge exits)",
+            result.get("reason", "unknown"),
+        )
 
 
 app.add_middleware(

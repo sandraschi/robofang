@@ -46,7 +46,7 @@ const Installer: React.FC = () => {
         try {
             const res = await getFleetCatalog();
             if (res.success && res.catalog) setCatalog(res.catalog ?? []);
-            else if (!res.success) setCatalogError('Bridge returned an error.');
+            else if (!res.success) setCatalogError((res as { error?: string }).error ?? 'Bridge returned an error.');
         } catch (e) {
             console.error('Failed to fetch catalog', e);
             setCatalogError('Cannot reach the bridge. Run start_all.ps1 from repo root (starts bridge on :10871).');
@@ -83,7 +83,7 @@ const Installer: React.FC = () => {
                 .then(() => fleetApi.launchConnector(connectorId))
                 .catch((e) => console.error('Post-install register/launch failed', node.id, e));
         });
-    }, [market, statuses]);
+    }, [catalog, statuses]);
 
     const toggleSelect = (id: string) => {
         const next = new Set(selected);
@@ -343,7 +343,7 @@ const Installer: React.FC = () => {
                                 ) : (
                                     <div className="space-y-2 font-mono text-sm">
                                         {installModalResults.map((r) => {
-                                            const name = market.find((n) => n.id === r.hand_id)?.name ?? r.hand_id;
+                                            const name = catalog.find((n) => n.id === r.hand_id)?.name ?? r.hand_id;
                                             return (
                                                 <div key={r.hand_id} className="flex items-start gap-2">
                                                     {r.success ? (

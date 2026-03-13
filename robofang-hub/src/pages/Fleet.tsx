@@ -67,12 +67,16 @@ const StatusBadge: React.FC<{ status: FleetConnector['status'] }> = ({ status })
     );
 };
 
-const ConnectorCard: React.FC<{ item: FleetConnector | FleetAgent }> = ({ item }) => {
+const catalogRequiresApp = (connectorId: string, catalogMeta: Record<string, { requires_app: string; app_install_url?: string }>) =>
+    catalogMeta[connectorId] ?? catalogMeta[connectorId + '-mcp'] ?? catalogMeta[connectorId.replace(/-mcp$/, '')];
+
+const ConnectorCard: React.FC<{ item: FleetConnector | FleetAgent; catalogMeta: Record<string, { requires_app: string; app_install_url?: string }> }> = ({ item, catalogMeta }) => {
     const isAgent = 'capabilities' in item;
     const connector = isAgent ? null : (item as FleetConnector);
     const [serverStatus, setServerStatus] = useState<string | null | undefined>(undefined);
     const [launching, setLaunching] = useState(false);
     const color = domainColor(item.domain);
+    const requiresApp = connector ? catalogRequiresApp(connector.id, catalogMeta) : undefined;
 
     useEffect(() => {
         if (!connector?.id || connector.status !== 'online') return;
@@ -183,7 +187,7 @@ const ConnectorCard: React.FC<{ item: FleetConnector | FleetAgent }> = ({ item }
     );
 };
 
-const DomainSection: React.FC<{ domain: string; items: (FleetConnector | FleetAgent)[] }> = ({ domain, items }) => {
+const DomainSection: React.FC<{ domain: string; items: (FleetConnector | FleetAgent)[]; catalogMeta: Record<string, { requires_app: string; app_install_url?: string }> }> = ({ domain, items, catalogMeta }) => {
     const meta = DOMAIN_META[domain] ?? { label: domain, icon: <Layers size={15} />, color: 'slate' };
     const online = items.filter(i => i.status === 'online').length;
 
@@ -202,7 +206,7 @@ const DomainSection: React.FC<{ domain: string; items: (FleetConnector | FleetAg
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 <AnimatePresence>
                     {items.map((item) => (
-                        <ConnectorCard key={item.id} item={item} />
+                        <ConnectorCard key={item.id} item={item} catalogMeta={catalogMeta} />
                     ))}
                 </AnimatePresence>
             </div>
@@ -210,12 +214,15 @@ const DomainSection: React.FC<{ domain: string; items: (FleetConnector | FleetAg
     );
 };
 
+type CatalogMeta = Record<string, { requires_app: string; app_install_url?: string }>;
+
 const Fleet: React.FC = () => {
     const [data, setData] = useState<FleetData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [search, setSearch] = useState('');
     const [activeTab, setActiveTab] = useState<string>('all');
+    const [catalogMeta, setCatalogMeta] = useState<CatalogMeta>({});
 
     const fetch = useCallback(async () => {
         setLoading(true);
@@ -235,6 +242,19 @@ const Fleet: React.FC = () => {
     }, []);
 
     useEffect(() => { fetch(); }, [fetch]);
+
+    useEffect(() => {
+        fetch('/api/fleet/catalog')
+            .then((r) => r.ok ? r.json() : { hands: [] })
+            .then((d: { hands?: { id: string; requires_app?: string; app_install_url?: string }[] }) => {
+                const meta: CatalogMeta = {};
+                (d.hands || []).forEach((h) => {
+                    if (h.requires_app) meta[h.id] = { requires_app: h.requires_app, app_install_url: h.app_install_url };
+                });
+                setCatalogMeta(meta);
+            })
+            .catch(() => {});
+    }, []);
 
     const allItems: (FleetConnector | FleetAgent)[] = data
         ? [...data.connectors, ...data.agents]
@@ -358,10 +378,10 @@ const Fleet: React.FC = () => {
                 <div className="grid gap-16">
                     {activeTab === 'all'
                         ? activeDomains.map(domain => (
-                            <DomainSection key={domain} domain={domain} items={grouped[domain]} />
+                            <DomainSection key={domain} domain={domain} items={grouped[domain]} catalogMeta={catalogMeta} />
                         ))
                         : (
-                            <DomainSection domain={activeTab} items={filtered} />
+                            <DomainSection domain={activeTab} items={filtered} catalogMeta={catalogMeta} />
                         )
                     }
                 </div>

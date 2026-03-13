@@ -248,17 +248,32 @@ class OrchestrationClient:
     async def start(self):
         self.logger.info("Starting RoboFang Orchestrator...")
         self.running = True
+        t0 = time.perf_counter()
+        n_conn = len(self.connectors)
         for name, connector in self.connectors.items():
             try:
                 await connector.connect()
             except Exception as e:
-                self.logger.error(f"Connector '{name}' failed to connect: {e}")
+                self.logger.error("Connector '%s' failed to connect: %s", name, e)
+        self.logger.info(
+            "Orchestrator: %d connector(s) connect attempted (%.2fs)",
+            n_conn,
+            time.perf_counter() - t0,
+        )
 
         # Start periodic loops: fast (reconnect/pulse) and slow (inbox, etc.)
         self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         self.slow_task = asyncio.create_task(self._slow_loop())
+        t1 = time.perf_counter()
         await self.hands.start()
+        self.logger.info("Orchestrator: hands.start done (%.2fs)", time.perf_counter() - t1)
+        t2 = time.perf_counter()
         await self.lifecycle.start()
+        self.logger.info(
+            "Orchestrator: lifecycle.start done (%.2fs total start %.2fs)",
+            time.perf_counter() - t2,
+            time.perf_counter() - t0,
+        )
 
     async def stop(self):
         self.logger.info("Stopping Orchestrator...")
@@ -484,17 +499,23 @@ class OrchestrationClient:
         return await self.reasoning.ask(full_prompt)
 
     def _log_reasoning(self, agent: str, event_type: str, content: str):
-        """Pushes a cognitive event to the reasoning log."""
-        self.reasoning_log.append(
-            {
-                "id": int(time.time() * 1000),
-                "timestamp": time.strftime("%H:%M:%S"),
-                "agent": agent,
-                "type": event_type,
-                "content": content,
-            }
+        """Pushes a cognitive event to the reasoning log and to the bridge log stream (Grafana/Loki)."""
+        entry = {
+            "id": int(time.time() * 1000),
+            "timestamp": time.strftime("%H:%M:%S"),
+            "agent": agent,
+            "type": event_type,
+            "content": content,
+        }
+        self.reasoning_log.append(entry)
+        # Emit to root logger so bridge file + ring buffer get it (Council / Operations stream in Grafana)
+        self.logger.info(
+            "[Council] %s | %s | %s: %s",
+            entry["timestamp"],
+            event_type,
+            agent,
+            content[:500] + ("..." if len(content) > 500 else ""),
         )
-        self.logger.debug(f"Reasoning Log [{event_type}]: {agent} -> {content[:50]}...")
 
     async def execute_tool(
         self, tool_name: str, approval_gate: bool = True, **kwargs

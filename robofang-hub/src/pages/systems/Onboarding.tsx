@@ -15,7 +15,7 @@ const Onboarding: React.FC = () => {
   const steps = [
     { id: 'welcome', title: 'Get started', icon: Rocket, summary: 'Set up RoboFang.' },
     { id: 'nodes', title: 'Fleet', icon: Cpu, summary: 'Connect MCP servers and webapps.' },
-    { id: 'comms', title: 'Comms', icon: MessageSquare, summary: 'Discord and Telegram (optional).' },
+    { id: 'comms', title: 'Comms', icon: MessageSquare, summary: 'Discord, Telegram, Email (optional).' },
     { id: 'finish', title: 'Done', icon: Shield, summary: "You're all set." },
   ];
 
@@ -75,11 +75,7 @@ const Onboarding: React.FC = () => {
           >
             {activeStep === 0 && <WelcomeStep onNext={() => setActiveStep(1)} />}
             {activeStep === 1 && <NodeRegistrationStep onNext={() => setActiveStep(2)} setSuccess={setSuccess} />}
-            {activeStep === 2 && <CommsSetupStep 
-                onNext={() => setActiveStep(3)} 
-                setIsSubmitting={setIsSubmitting}
-                setSuccess={setSuccess}
-            />}
+            {activeStep === 2 && <CommsSetupStep onNext={() => setActiveStep(3)} setSuccess={setSuccess} />}
             {activeStep === 3 && <FinishStep />}
           </motion.div>
         </AnimatePresence>
@@ -116,6 +112,9 @@ const WelcomeStep = ({ onNext }: { onNext: () => void }) => (
         <div className="space-y-4 text-zinc-400 text-sm leading-relaxed">
           <p>
             Welcome to RoboFang. This wizard walks you through connecting MCP servers and optional Discord/Telegram. Everything runs locally; nothing is sent to the cloud unless you add external services.
+          </p>
+          <p className="text-amber-400/90 font-medium">
+            All configuration is done here. You do not need to edit any config files.
           </p>
           <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.05] space-y-3">
             <h4 className="text-xs font-black text-amber-400 uppercase tracking-[0.2em]">How it works</h4>
@@ -158,6 +157,8 @@ interface CatalogHand {
   category: string;
   description: string;
   repo_url?: string;
+  requires_app?: string;
+  app_install_url?: string;
 }
 
 interface InstallResult {
@@ -175,6 +176,8 @@ const NodeRegistrationStep = ({ onNext, setSuccess }: any) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
   const [modalResults, setModalResults] = useState<InstallResult[]>([]);
+  const [githubOwner, setGithubOwner] = useState('');
+  const [fleetSaveStatus, setFleetSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
 
   const fetchCatalog = React.useCallback(() => {
     setLoadError(false);
@@ -195,7 +198,37 @@ const NodeRegistrationStep = ({ onNext, setSuccess }: any) => {
       .finally(() => setLoading(false));
   }, []);
 
+  React.useEffect(() => {
+    fetch('/api/settings/fleet')
+      .then((r) => r.ok ? r.json() : {})
+      .then((data) => {
+        if (data.github_owner != null) setGithubOwner(data.github_owner || '');
+      })
+      .catch(() => {});
+  }, []);
+
   React.useEffect(() => { fetchCatalog(); }, [fetchCatalog]);
+
+  const saveFleetSettings = async () => {
+    setFleetSaveStatus('saving');
+    try {
+      const r = await fetch('/api/settings/fleet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ github_owner: githubOwner.trim() || undefined }),
+      });
+      const data = await r.json();
+      if (data.success) {
+        setFleetSaveStatus('saved');
+        fetchCatalog();
+        setTimeout(() => setFleetSaveStatus('idle'), 2000);
+      } else {
+        setFleetSaveStatus('idle');
+      }
+    } catch {
+      setFleetSaveStatus('idle');
+    }
+  };
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -246,6 +279,27 @@ const NodeRegistrationStep = ({ onNext, setSuccess }: any) => {
 
   return (
     <GlassCard className="p-10 space-y-8">
+      <div className="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-3">
+        <h3 className="text-sm font-black text-white uppercase tracking-widest">Fleet settings</h3>
+        <p className="text-zinc-500 text-xs">Catalog source: the GitHub username or organization that owns the MCP server repos. Repos are cloned from <code className="bg-black/40 px-1 rounded">github.com/&lt;this value&gt;/&lt;repo-name&gt;</code>. Default <code className="bg-black/40 px-1 rounded">sandraschi</code> gives you the built-in catalog; change only if you use your own fork.</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            placeholder="Default: sandraschi"
+            value={githubOwner}
+            onChange={(e) => setGithubOwner(e.target.value)}
+            className="bg-black/40 border border-white/10 rounded-xl px-4 py-2 text-sm text-white font-mono outline-none focus:border-amber-500/50 w-48"
+          />
+          <button
+            type="button"
+            onClick={saveFleetSettings}
+            disabled={fleetSaveStatus === 'saving'}
+            className="px-4 py-2 rounded-xl bg-amber-500/20 text-amber-400 text-xs font-bold uppercase tracking-widest hover:bg-amber-500/30 disabled:opacity-50"
+          >
+            {fleetSaveStatus === 'saving' ? 'Saving…' : fleetSaveStatus === 'saved' ? 'Saved' : 'Save'}
+          </button>
+        </div>
+      </div>
       <header className="flex items-center justify-between flex-wrap gap-4">
         <div className="space-y-1">
           <h2 className="text-2xl font-black text-white tracking-tight">Add to fleet</h2>
@@ -289,6 +343,14 @@ const NodeRegistrationStep = ({ onNext, setSuccess }: any) => {
                     <div className="min-w-0 flex-1">
                       <span className="text-sm font-bold text-white block">{h.name}</span>
                       {h.description && <span className="text-xs text-zinc-500 line-clamp-2">{h.description}</span>}
+                      {h.requires_app && (
+                        <p className="text-xs text-amber-400/90 mt-1">
+                          Requires {h.requires_app} installed.
+                          {h.app_install_url ? (
+                            <a href={h.app_install_url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} className="ml-1 underline hover:text-amber-300">Get {h.requires_app}</a>
+                          ) : null}
+                        </p>
+                      )}
                     </div>
                   </label>
                 ))}
@@ -363,8 +425,18 @@ const NodeRegistrationStep = ({ onNext, setSuccess }: any) => {
 const CommsSetupStep = ({ onNext, setSuccess }: any) => {
   const [comms, setComms] = useState({
     telegram_token: '',
-    discord_token: '',
-    discord_channel: ''
+    telegram_chat_id: '',
+    discord_webhook: '',
+    smtp_host: '',
+    smtp_port: '587',
+    smtp_user: '',
+    smtp_password: '',
+    smtp_from: '',
+    imap_host: '',
+    imap_port: '993',
+    imap_user: '',
+    imap_password: '',
+    imap_folder: 'INBOX'
   });
 
   const handleSave = async () => {
@@ -386,21 +458,37 @@ const CommsSetupStep = ({ onNext, setSuccess }: any) => {
 
   return (
     <GlassCard className="p-10 space-y-8">
-      <h2 className="text-2xl font-black text-white tracking-tight">Discord & Telegram</h2>
+      <h2 className="text-2xl font-black text-white tracking-tight">Comms (optional)</h2>
+      <p className="text-zinc-400 text-sm">
+        Only needed if you want alerts or commands via Telegram, Discord, or Email. You can skip and set later in Settings.
+      </p>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
           <div className="p-6 rounded-2xl bg-sky-500/5 border border-sky-500/20 space-y-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-sky-500/20 text-sky-400"><MessageSquare size={20} /></div>
-              <h4 className="text-sm font-black text-white uppercase tracking-widest">Telegram Bridge</h4>
+              <h4 className="text-sm font-black text-white uppercase tracking-widest">Telegram</h4>
             </div>
+            <p className="text-zinc-500 text-xs leading-relaxed">
+              Message <a href="https://t.me/BotFather" target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">@BotFather</a>, send <code className="bg-black/40 px-1 rounded">/newbot</code>, then paste the bot token below. Get your chat ID by messaging <a href="https://t.me/userinfobot" target="_blank" rel="noreferrer" className="text-sky-400 hover:underline">@userinfobot</a>.
+            </p>
             <div className="space-y-2">
-              <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Bot Token</label>
+              <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Bot token</label>
               <input 
                 type="password" 
-                placeholder="BOT_TOKEN"
+                placeholder="From @BotFather"
                 value={comms.telegram_token}
                 onChange={(e) => setComms({...comms, telegram_token: e.target.value})}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-sky-500/50 font-mono"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Your chat ID</label>
+              <input 
+                type="text" 
+                placeholder="From @userinfobot"
+                value={comms.telegram_chat_id}
+                onChange={(e) => setComms({...comms, telegram_chat_id: e.target.value})}
                 className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-sky-500/50 font-mono"
               />
             </div>
@@ -408,48 +496,33 @@ const CommsSetupStep = ({ onNext, setSuccess }: any) => {
           <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 space-y-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-indigo-500/20 text-indigo-400"><Shield size={20} /></div>
-              <h4 className="text-sm font-black text-white uppercase tracking-widest">Discord Bridge</h4>
+              <h4 className="text-sm font-black text-white uppercase tracking-widest">Discord</h4>
             </div>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Bot Token</label>
-                <input 
-                  type="password" 
-                  placeholder="BOT_TOKEN"
-                  value={comms.discord_token}
-                  onChange={(e) => setComms({...comms, discord_token: e.target.value})}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500/50 font-mono"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Primary Channel ID</label>
-                <input 
-                  type="text" 
-                  placeholder="CHANNEL_ID"
-                  value={comms.discord_channel}
-                  onChange={(e) => setComms({...comms, discord_channel: e.target.value})}
-                  className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500/50 font-mono"
-                />
-              </div>
+            <p className="text-zinc-500 text-xs leading-relaxed">
+              In your server: Server Settings &rarr; Integrations &rarr; Webhooks &rarr; New Webhook. Copy the webhook URL and paste below.
+            </p>
+            <div className="space-y-2">
+              <label className="text-xs font-black text-zinc-500 uppercase tracking-widest ml-1">Webhook URL</label>
+              <input 
+                type="password" 
+                placeholder="https://discord.com/api/webhooks/..."
+                value={comms.discord_webhook}
+                onChange={(e) => setComms({...comms, discord_webhook: e.target.value})}
+                className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-xs text-white outline-none focus:border-indigo-500/50 font-mono"
+              />
             </div>
           </div>
         </div>
         <div className="space-y-6">
           <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.05] space-y-4">
-            <h4 className="text-sm font-black text-white uppercase tracking-widest">Optional</h4>
+            <h4 className="text-sm font-black text-white uppercase tracking-widest">Nothing to prepare in advance</h4>
             <p className="text-zinc-500 text-xs leading-relaxed">
-              Connect Telegram or Discord so RoboFang can send you alerts and accept commands from chat.
+              You get the Telegram token and chat ID in a few minutes from Telegram. The Discord webhook is one URL from your server settings. All optional; skip if you only use the hub in the browser.
             </p>
-            <div className="flex flex-col gap-2">
-              <a href="#" className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-2 mt-2">
-                <ExternalLink size={12} />
-                Get Telegram Bot Token
-              </a>
-              <a href="#" className="text-xs font-bold text-amber-400 hover:underline flex items-center gap-2">
-                <ExternalLink size={12} />
-                Discord Developer Portal
-              </a>
-            </div>
+            <ul className="text-zinc-500 text-xs space-y-2 list-disc list-inside">
+              <li>Telegram: @BotFather &rarr; /newbot &rarr; token; @userinfobot &rarr; chat ID</li>
+              <li>Discord: Server &rarr; Integrations &rarr; Webhooks &rarr; copy URL</li>
+            </ul>
           </div>
         </div>
       </div>

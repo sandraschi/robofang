@@ -797,7 +797,7 @@ class RingConnector(BaseConnector):
         email = self.config.get("email", "")
         password = self.config.get("password", "")
         token_file = self.config.get("token_file", "ring_token.cache")
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def _connect():
             token_data = None
@@ -851,7 +851,7 @@ class RingConnector(BaseConnector):
         """Return recent motion/doorbell events."""
         if not self._ring:
             return []
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
 
             def _events():
@@ -906,7 +906,7 @@ class PlexConnector(BaseConnector):
         except ImportError:
             self.logger.error("plexapi not installed. pip install plexapi")
             return False
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
             self._server = await loop.run_in_executor(
                 None, lambda: PlexServer(self._url, self._token)
@@ -931,7 +931,7 @@ class PlexConnector(BaseConnector):
         """
         if not self._server:
             return False
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         cmd = content.strip().lower()
 
         def _control():
@@ -960,7 +960,7 @@ class PlexConnector(BaseConnector):
         """Return recently added media items."""
         if not self._server:
             return []
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         try:
 
             def _recent():
@@ -1015,7 +1015,7 @@ class CalibreConnector(BaseConnector):
         return cmd
 
     async def connect(self) -> bool:
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def _check():
             r = subprocess.run(
@@ -1049,7 +1049,7 @@ class CalibreConnector(BaseConnector):
         content — file path (add) or book_id (set_metadata)
         kwargs  — for set_metadata: field, value
         """
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         def _run():
             if target == "add":
@@ -1080,7 +1080,7 @@ class CalibreConnector(BaseConnector):
 
     async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Return recently added books from the Calibre library."""
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         import json as _json
 
         def _list():
@@ -1671,7 +1671,7 @@ class MCPBridgeConnector(BaseConnector):
 
         env = _os.environ.copy()
         env.update(self._env)
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
         proc = await loop.run_in_executor(
             None,
             lambda: subprocess.Popen(

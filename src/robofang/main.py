@@ -4,7 +4,9 @@ import json
 import logging
 import os
 import subprocess
+import sys
 import time
+import traceback
 from datetime import datetime
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional
@@ -14,6 +16,7 @@ import psutil
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastmcp import FastMCP
 from pydantic import BaseModel
 
@@ -28,9 +31,27 @@ from robofang.core.installer import HandManifestItem
 from robofang.core.orchestrator import OrchestrationClient
 from robofang.diagnostics import router as diagnostics_router
 from robofang.mcp_server import get_help_content, register_mcp
-from robofang.messaging import reply_to as messaging_reply_to
-from robofang.messaging import reply_to_telegram_chat as messaging_reply_to_telegram_chat
-from robofang.messaging import set_comms_storage
+from robofang.messaging import (
+    fetch_unseen_emails as messaging_fetch_unseen_emails,
+)
+from robofang.messaging import (
+    is_email_comms_configured as messaging_is_email_configured,
+)
+from robofang.messaging import (
+    mark_imap_seen as messaging_mark_imap_seen,
+)
+from robofang.messaging import (
+    reply_to as messaging_reply_to,
+)
+from robofang.messaging import (
+    reply_to_email as messaging_reply_to_email,
+)
+from robofang.messaging import (
+    reply_to_telegram_chat as messaging_reply_to_telegram_chat,
+)
+from robofang.messaging import (
+    set_comms_storage,
+)
 from robofang.plugins.collector_hand import CollectorHand
 from robofang.plugins.robotics_hand import RoboticsHand
 from robofang.plugins.routine_runner_hand import RoutineRunnerHand
@@ -95,11 +116,33 @@ _ring_handler = _RingHandler()
 _ring_handler.setFormatter(logging.Formatter("%(message)s"))
 logging.getLogger().addHandler(_ring_handler)
 
+# Optional file log for Grafana/Loki (logs/robofang-bridge.log). Same format as console.
+_log_file_handler: Optional[logging.Handler] = None
+_log_path: Optional[Path] = None
+try:
+    _repo_root = Path(__file__).resolve().parent.parent.parent
+    _logs_dir = _repo_root / "logs"
+    _logs_dir.mkdir(parents=True, exist_ok=True)
+    _log_path = _logs_dir / "robofang-bridge.log"
+    _log_file_handler = logging.FileHandler(_log_path, encoding="utf-8")
+    _log_file_handler.setFormatter(
+        logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s")
+    )
+    logging.getLogger().addHandler(_log_file_handler)
+except OSError:
+    _log_path = None
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 logger = logging.getLogger("robofang.main")
+if _log_path is not None:
+    logger.info("File logging active: %s (Promtail/Loki: mount this dir as /logs)", _log_path)
+else:
+    logger.warning(
+        "File logging disabled: logs dir not writable; Loki will not receive bridge logs"
+    )
 
 # Global orchestrator instance
 orchestrator = OrchestrationClient()
@@ -198,6 +241,11 @@ MCP_BACKENDS: Dict[str, str] = {
     "hands": "http://localhost:10837",
 }
 
+# Overlay from federation_map so config overrides defaults
+for _cid, _cfg in orchestrator.topology.get("connectors", {}).items():
+    if isinstance(_cfg, dict) and _cfg.get("mcp_backend"):
+        MCP_BACKENDS[_cid] = _cfg["mcp_backend"]
+
 
 # ---------------------------------------------------------------------------
 # Repository Mapping for SOTA Launch Logic
@@ -209,29 +257,100 @@ app = FastAPI(
     version="0.3.0",
 )
 
+try:
+    from prometheus_fastapi_instrumentator import Instrumentator
+
+    Instrumentator().instrument(app).expose(app)
+except ImportError:
+    pass  # optional: prometheus-fastapi-instrumentator not installed
+
+_email_poll_task: Optional[asyncio.Task[None]] = None
+
+
+async def _email_poll_loop() -> None:
+    """Background: poll IMAP for unseen emails, process as commands, reply by SMTP. Runs when SMTP+IMAP configured."""
+    loop = asyncio.get_event_loop()
+    while True:
+        try:
+            await asyncio.sleep(60)
+            smtp_ok, imap_ok = messaging_is_email_configured()
+            if not smtp_ok or not imap_ok:
+                continue
+            items = await loop.run_in_executor(None, messaging_fetch_unseen_emails)
+            if not items:
+                continue
+            uids = []
+            for item in items:
+                try:
+                    reply_text = await _process_inbox_message(item["body"])
+                    if reply_text and item.get("from_addr"):
+                        subj = (item.get("subject") or "Re: RoboFang").strip()
+                        if not subj.lower().startswith("re:"):
+                            subj = f"Re: {subj}"
+                        await messaging_reply_to_email(item["from_addr"], subj, reply_text)
+                    uids.append(item["uid"])
+                except Exception as e:
+                    logger.exception("Email poll process failed for uid %s: %s", item.get("uid"), e)
+            if uids:
+                await loop.run_in_executor(None, lambda: messaging_mark_imap_seen(uids))
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.warning("Email poll loop error: %s", e)
+
 
 @app.on_event("startup")
 async def startup_event():
     """Manage orchestrator lifecycle and auto-launch enabled fleet nodes."""
-    logger.info("RoboFang Bridge starting up...")
-    mp = getattr(orchestrator.installer, "manifest_path", None)
-    hb = getattr(orchestrator.installer, "hands_base_dir", None)
-    if mp is not None and hb is not None:
-        logger.info(
-            "Fleet Installer: manifest=%s hands_dir=%s (set ROBOFANG_FLEET_MANIFEST/ROBOFANG_HANDS_DIR to override)",
-            mp,
-            hb,
-        )
-    orchestrator.storage.log_event("info", "bridge", "startup_initiated")
-    orchestrator._connector_invoker = _invoke_connector_tool
-    from robofang import messaging as _messaging
+    global _email_poll_task
+    try:
+        t0 = time.perf_counter()
+        logger.info("RoboFang Bridge starting up...")
+        mp = getattr(orchestrator.installer, "manifest_path", None)
+        hb = getattr(orchestrator.installer, "hands_base_dir", None)
+        if mp is not None and hb is not None:
+            logger.info(
+                "Fleet Installer: manifest=%s hands_dir=%s (set ROBOFANG_FLEET_MANIFEST/ROBOFANG_HANDS_DIR to override)",
+                mp,
+                hb,
+            )
+        orchestrator.storage.log_event("info", "bridge", "startup_initiated")
+        orchestrator._connector_invoker = _invoke_connector_tool
+        t1 = time.perf_counter()
+        logger.info("Bridge startup: wiring invoker and messaging (%.2fs)", t1 - t0)
+        from robofang import messaging as _messaging
 
-    orchestrator._email_sender = _messaging._bridge.send_email
-    orchestrator._inbox_processor = _process_inbox_message
-    await auto_launch_enabled_connectors()
-    await asyncio.sleep(8)
-    await orchestrator.start()
-    orchestrator.storage.log_event("info", "bridge", "startup_complete")
+        orchestrator._email_sender = _messaging._bridge.send_email
+        orchestrator._inbox_processor = _process_inbox_message
+        await auto_launch_enabled_connectors()
+        t2 = time.perf_counter()
+        logger.info("Bridge startup: auto_launch_enabled_connectors done (%.2fs)", t2 - t1)
+        await orchestrator.start()
+        t3 = time.perf_counter()
+        logger.info("Bridge startup: orchestrator.start done (%.2fs total %.2fs)", t3 - t2, t3 - t0)
+        orchestrator.storage.log_event("info", "bridge", "startup_complete")
+        smtp_ok, imap_ok = messaging_is_email_configured()
+        if smtp_ok and imap_ok:
+            _email_poll_task = asyncio.create_task(_email_poll_loop())
+            logger.info("Email comms: IMAP poll started (inbox commands -> SMTP reply)")
+    except Exception as e:
+        logger.exception("Bridge startup FAILED: %s", e)
+        traceback.print_exc()
+        raise
+
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Manage orchestrator lifecycle."""
+    global _email_poll_task
+    if _email_poll_task is not None:
+        _email_poll_task.cancel()
+        try:
+            await _email_poll_task
+        except asyncio.CancelledError:
+            pass
+    logger.info("RoboFang Bridge shutting down...")
+    await orchestrator.stop()
 
 
 async def auto_launch_enabled_connectors():
@@ -267,59 +386,66 @@ async def auto_launch_enabled_connectors():
                 logger.error("Fleet Automation: Auto-launch failed for '%s': %s", name, e)
 
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Manage orchestrator lifecycle."""
-    logger.info("RoboFang Bridge shutting down...")
-    await orchestrator.stop()
-
-
 # ---------------------------------------------------------------------------
 # Repository Mapping for SOTA Launch Logic
+# Only populated when ROBOFANG_REPOS_ROOT is set and dirs exist (e.g. D:/Dev/repos).
+# Fresh install: REPO_MAP stays empty; installs go to hands_dir, launch uses hands_dir.
 # ---------------------------------------------------------------------------
 
-REPO_MAP: Dict[str, str] = {
-    # Home / Media
-    "plex": "d:/Dev/repos/plex-mcp",
-    "calibre": "d:/Dev/repos/calibre-mcp",
-    "home-assistant": "d:/Dev/repos/home-assistant-mcp",
-    "tapo": "d:/Dev/repos/tapo-mcp",
-    "netatmo": "d:/Dev/repos/netatmo-weather-mcp",
-    "ring": "d:/Dev/repos/ring-mcp",
-    "notion": "d:/Dev/repos/notion-mcp",
-    # Creative Hub
-    "blender": "d:/Dev/repos/blender-mcp",
-    "gimp": "d:/Dev/repos/gimp-mcp",
-    "obs": "d:/Dev/repos/obs-mcp",
-    "davinci-resolve": "d:/Dev/repos/davinci-resolve-mcp",
-    "reaper": "d:/Dev/repos/reaper-mcp",
-    "resolume": "d:/Dev/repos/resolume-mcp",
-    "vrchat": "d:/Dev/repos/vrchat-mcp",
-    # Infra Hub
-    "virtualization": "d:/Dev/repos/virtualization-mcp",
-    "docker": "d:/Dev/repos/docker-mcp",
-    "windows-operations": "d:/Dev/repos/windows-operations-mcp",
-    "monitoring": "d:/Dev/repos/monitoring-mcp",
-    "tailscale": "d:/Dev/repos/tailscale-mcp",
-    # Knowledge Hub
-    "advanced-memory": "d:/Dev/repos/advanced-memory-mcp",
-    "fastsearch": "d:/Dev/repos/fastsearch-mcp",
-    "immich": "d:/Dev/repos/immich-mcp",
-    "readly": "d:/Dev/repos/readly-mcp",
-    # Comms & Dev
-    "email": "d:/Dev/repos/email-mcp",
-    "alexa": "d:/Dev/repos/alexa-mcp",
-    "rustdesk": "d:/Dev/repos/rustdesk-mcp",
-    "bookmarks": "d:/Dev/repos/bookmarks-mcp",
-    "git-github": "d:/Dev/repos/git-github-mcp",
-    "pywinauto": "d:/Dev/repos/pywinauto-mcp",
-    # Robotics & Hands
-    "unitree": "d:/Dev/repos/unitree-robotics",
-    "yahboom": "d:/Dev/repos/yahboom-mcp",
-    "dreame": "d:/Dev/repos/dreame-mcp",
-    "hands": "d:/Dev/repos/hands-mcp",
-    "robotics": "d:/Dev/repos/robotics-mcp",
+_REPO_MAP_TEMPLATE: Dict[str, str] = {
+    "plex": "plex-mcp",
+    "calibre": "calibre-mcp",
+    "home-assistant": "home-assistant-mcp",
+    "tapo": "tapo-mcp",
+    "netatmo": "netatmo-weather-mcp",
+    "ring": "ring-mcp",
+    "notion": "notion-mcp",
+    "blender": "blender-mcp",
+    "gimp": "gimp-mcp",
+    "obs": "obs-mcp",
+    "davinci-resolve": "davinci-resolve-mcp",
+    "reaper": "reaper-mcp",
+    "resolume": "resolume-mcp",
+    "vrchat": "vrchat-mcp",
+    "virtualization": "virtualization-mcp",
+    "docker": "docker-mcp",
+    "windows-operations": "windows-operations-mcp",
+    "monitoring": "monitoring-mcp",
+    "tailscale": "tailscale-mcp",
+    "advanced-memory": "advanced-memory-mcp",
+    "fastsearch": "fastsearch-mcp",
+    "immich": "immich-mcp",
+    "readly": "readly-mcp",
+    "email": "email-mcp",
+    "alexa": "alexa-mcp",
+    "rustdesk": "rustdesk-mcp",
+    "bookmarks": "bookmarks-mcp",
+    "git-github": "git-github-mcp",
+    "pywinauto": "pywinauto-mcp",
+    "unitree": "unitree-robotics",
+    "yahboom": "yahboom-mcp",
+    "dreame": "dreame-mcp",
+    "hands": "hands-mcp",
+    "robotics": "robotics-mcp",
 }
+
+
+def _build_repo_map() -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    root = (os.getenv("ROBOFANG_REPOS_ROOT") or "").strip()
+    if not root:
+        return out
+    base = Path(root)
+    if not base.is_dir():
+        return out
+    for name, rel in _REPO_MAP_TEMPLATE.items():
+        path = base / rel
+        if path.is_dir():
+            out[name] = str(path.resolve())
+    return out
+
+
+REPO_MAP: Dict[str, str] = _build_repo_map()
 
 
 @app.post("/api/connector/launch/{name}")
@@ -544,6 +670,23 @@ app.include_router(webhooks_router)
 app.include_router(diagnostics_router)
 
 
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    """Log every uncaught exception with traceback and return JSON. HTTPException is left to FastAPI."""
+    if isinstance(exc, HTTPException):
+        return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
+    logger.exception(
+        "Uncaught exception path=%s method=%s: %s",
+        request.url.path,
+        request.method,
+        exc,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": str(exc), "error": str(exc)},
+    )
+
+
 # ---------------------------------------------------------------------------
 # Inbox: process message (try schedule phrase -> routine, else ask). Used by hooks and email poll.
 # ---------------------------------------------------------------------------
@@ -649,24 +792,30 @@ class InboxWebhookRequest(BaseModel):
     """Generic inbox: message from email gateway, bot, etc."""
 
     message: str
-    reply_to: Optional[str] = None  # "telegram" | "discord"
+    reply_to: Optional[str] = None  # "telegram" | "discord" | "email"
     telegram_chat_id: Optional[str] = (
         None  # When reply_to=telegram, use this chat for reply (overrides default)
     )
+    reply_email: Optional[str] = None  # When set, reply by email to this address
 
 
 @app.post("/hooks/inbox")
 async def hook_inbox(req: InboxWebhookRequest):
     """
     Process one inbound message (e.g. from email-to-webhook or a bot). Tries schedule then ask; optionally replies.
-    Use reply_to + telegram_chat_id to send the reply to a specific Telegram chat (inbound Telegram).
+    Use reply_to + telegram_chat_id for Telegram; reply_email for email reply.
     """
     try:
         reply_text = await _process_inbox_message(req.message)
         if req.telegram_chat_id and reply_text:
             await messaging_reply_to_telegram_chat(req.telegram_chat_id, reply_text)
+        elif req.reply_email and reply_text:
+            await messaging_reply_to_email(req.reply_email, "Re: RoboFang", reply_text)
         elif req.reply_to and reply_text:
-            await messaging_reply_to(req.reply_to, reply_text)
+            if req.reply_to == "email" and req.reply_email:
+                await messaging_reply_to_email(req.reply_email, "Re: RoboFang", reply_text)
+            else:
+                await messaging_reply_to(req.reply_to, reply_text)
         return {"success": True, "message": reply_text}
     except Exception as e:
         logger.exception("Inbox webhook failed")
@@ -697,6 +846,33 @@ async def hook_telegram(request: Request):
     return {"ok": True}
 
 
+class EmailWebhookRequest(BaseModel):
+    """Payload from a mail-to-webhook gateway (e.g. SendGrid Inbound Parse, Mailgun)."""
+
+    from_addr: str  # sender email for reply
+    subject: Optional[str] = None
+    body: str  # plain text body (command)
+
+
+@app.post("/hooks/email")
+async def hook_email(req: EmailWebhookRequest):
+    """
+    Email webhook: receive command from mail-to-webhook gateway. Process body, reply by email to from_addr.
+    Configure your provider to POST here with from_addr, subject, body (e.g. parsed from incoming email).
+    """
+    try:
+        reply_text = await _process_inbox_message((req.body or "").strip())
+        if reply_text and req.from_addr:
+            subject = (req.subject or "Re: RoboFang").strip()
+            if not subject.lower().startswith("re:"):
+                subject = f"Re: {subject}"
+            await messaging_reply_to_email(req.from_addr, subject, reply_text)
+        return {"success": True, "message": reply_text or ""}
+    except Exception as e:
+        logger.exception("Email webhook failed")
+        return {"success": False, "message": str(e)}
+
+
 # ---------------------------------------------------------------------------
 # Onboarding / Comms settings (stored in orchestrator.storage secrets)
 # ---------------------------------------------------------------------------
@@ -705,27 +881,44 @@ async def hook_telegram(request: Request):
 class CommsSettingsResponse(BaseModel):
     telegram_configured: bool
     discord_configured: bool
+    email_configured: bool
 
 
 class CommsSettingsRequest(BaseModel):
     telegram_token: Optional[str] = None
     telegram_chat_id: Optional[str] = None
     discord_webhook: Optional[str] = None
+    smtp_host: Optional[str] = None
+    smtp_port: Optional[str] = None
+    smtp_user: Optional[str] = None
+    smtp_password: Optional[str] = None
+    smtp_from: Optional[str] = None
+    imap_host: Optional[str] = None
+    imap_port: Optional[str] = None
+    imap_user: Optional[str] = None
+    imap_password: Optional[str] = None
+    imap_folder: Optional[str] = None
 
 
 @app.get("/api/settings/comms", response_model=CommsSettingsResponse)
 async def get_comms_settings():
     """Return whether comms are configured (masked). Used by onboarding/settings UI."""
     storage = orchestrator.storage
+    telegram_env_configured = bool(
+        (os.getenv("ROBOFANG_TELEGRAM_TOKEN") or "").strip()
+        and (os.getenv("ROBOFANG_TELEGRAM_CHAT_ID") or "").strip()
+    )
+    smtp_ok, _ = messaging_is_email_configured()
     return CommsSettingsResponse(
         telegram_configured=bool(
             storage.get_secret("comms_telegram_token")
             and storage.get_secret("comms_telegram_chat_id")
         )
-        or (os.getenv("ROBOFANG_TELEGRAM_TOKEN") and os.getenv("ROBOFANG_TELEGRAM_CHAT_ID")),
+        or telegram_env_configured,
         discord_configured=bool(
             storage.get_secret("comms_discord_webhook") or os.getenv("ROBOFANG_DISCORD_WEBHOOK")
         ),
+        email_configured=smtp_ok,
     )
 
 
@@ -739,6 +932,20 @@ async def save_comms_settings(req: CommsSettingsRequest):
         storage.save_secret("comms_telegram_chat_id", req.telegram_chat_id.strip())
     if req.discord_webhook is not None and req.discord_webhook.strip():
         storage.save_secret("comms_discord_webhook", req.discord_webhook.strip())
+    for key, val in (
+        ("comms_smtp_host", req.smtp_host),
+        ("comms_smtp_port", req.smtp_port),
+        ("comms_smtp_user", req.smtp_user),
+        ("comms_smtp_password", req.smtp_password),
+        ("comms_smtp_from", req.smtp_from),
+        ("comms_imap_host", req.imap_host),
+        ("comms_imap_port", req.imap_port),
+        ("comms_imap_user", req.imap_user),
+        ("comms_imap_password", req.imap_password),
+        ("comms_imap_folder", req.imap_folder),
+    ):
+        if val is not None and str(val).strip():
+            storage.save_secret(key, str(val).strip())
 
     orchestrator.storage.log_event("info", "settings", "comms_updated")
     return {"success": True}
@@ -1593,10 +1800,38 @@ def _load_fleet_analysis() -> Dict[str, Any]:
         if path.exists():
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
-            return data.get("hands", {})
+            raw = data.get("hands", {})
+            if isinstance(raw, dict):
+                return raw
+            if isinstance(raw, list):
+                return {item.get("id", ""): item for item in raw if item.get("id")}
+            return {}
     except (OSError, json.JSONDecodeError):
         pass
     return {}
+
+
+def _load_fleet_registry() -> List[Dict[str, Any]]:
+    """Load fleet from registry JSON. Tries: (1) ROBOFANG_FLEET_REGISTRY, (2) repo configs/fleet-registry.json, (3) package-bundled configs. No dependency on mcp-central-docs."""
+    paths_to_try: List[Path] = []
+    env_path = (os.getenv("ROBOFANG_FLEET_REGISTRY") or "").strip()
+    if env_path:
+        paths_to_try.append(Path(env_path))
+    mp = getattr(orchestrator.installer, "manifest_path", None)
+    if mp is not None:
+        paths_to_try.append(Path(mp).resolve().parent / "configs" / "fleet-registry.json")
+    paths_to_try.append(Path(__file__).resolve().parent / "configs" / "fleet-registry.json")
+    for path in paths_to_try:
+        if path.exists() and path.is_file():
+            try:
+                with open(path, encoding="utf-8") as f:
+                    data = json.load(f)
+                fleet = data.get("fleet")
+                if isinstance(fleet, list):
+                    return fleet
+            except (OSError, json.JSONDecodeError):
+                continue
+    return []
 
 
 def _read_repo_metadata(repo_path: Path) -> Dict[str, Any]:
@@ -1631,8 +1866,8 @@ def _read_repo_metadata(repo_path: Path) -> Dict[str, Any]:
     return out
 
 
-# Curated MCP servers installable from GitHub. repo_url is built from settings fleet_github_owner + id.
-# Merged with fleet_manifest for GET /api/fleet/catalog. Install = gh repo clone owner/repo.
+# Fallback when ROBOFANG_FLEET_REGISTRY is not set: curated MCP servers. Set ROBOFANG_FLEET_REGISTRY
+# to path to fleet-registry.json (e.g. mcp-central-docs/operations/fleet-registry.json) for full fleet.
 FLEET_CATALOG_GITHUB: List[Dict[str, Any]] = [
     {
         "id": "blender-mcp",
@@ -1715,14 +1950,185 @@ FLEET_CATALOG_GITHUB: List[Dict[str, Any]] = [
         "category": "Creative",
         "description": "Digital audio workstations.",
     },
+    {
+        "id": "home-assistant-mcp",
+        "name": "Home Assistant",
+        "category": "Home",
+        "description": "Home automation and IoT.",
+    },
+    {
+        "id": "notion-mcp",
+        "name": "Notion",
+        "category": "Knowledge",
+        "description": "Notion workspace and docs.",
+    },
+    {
+        "id": "obs-mcp",
+        "name": "OBS",
+        "category": "Creative",
+        "description": "Streaming and recording.",
+    },
+    {
+        "id": "davinci-resolve-mcp",
+        "name": "DaVinci Resolve",
+        "category": "Creative",
+        "description": "Video editing and color.",
+    },
+    {
+        "id": "reaper-mcp",
+        "name": "REAPER",
+        "category": "Creative",
+        "description": "DAW and audio production.",
+    },
+    {
+        "id": "resolume-mcp",
+        "name": "Resolume",
+        "category": "Creative",
+        "description": "VJ and live visual performance.",
+    },
+    {
+        "id": "netatmo-weather-mcp",
+        "name": "Netatmo Weather",
+        "category": "Home",
+        "description": "Netatmo weather stations.",
+    },
+    {
+        "id": "fastsearch-mcp",
+        "name": "FastSearch",
+        "category": "Knowledge",
+        "description": "Fast local search and indexing.",
+    },
+    {
+        "id": "database-operations-mcp",
+        "name": "Database Operations",
+        "category": "Infrastructure",
+        "description": "DB admin and operations.",
+    },
+    {
+        "id": "meta-mcp",
+        "name": "Meta MCP",
+        "category": "Infrastructure",
+        "description": "MCP registry and meta tools.",
+    },
+    {
+        "id": "vbox-mcp",
+        "name": "VirtualBox",
+        "category": "Infrastructure",
+        "description": "VirtualBox VM management.",
+    },
+    {
+        "id": "docker-mcp",
+        "name": "Docker",
+        "category": "Infrastructure",
+        "description": "Docker containers and images.",
+    },
+    {
+        "id": "tailscale-mcp",
+        "name": "Tailscale",
+        "category": "Infrastructure",
+        "description": "Tailscale VPN and mesh.",
+    },
+    {
+        "id": "monitoring-mcp",
+        "name": "Monitoring",
+        "category": "Infrastructure",
+        "description": "Prometheus, Grafana, Loki.",
+    },
 ]
 
 
 def _fleet_catalog() -> List[Dict[str, Any]]:
-    """Manifest hands (with repo_url) plus curated GitHub list; dedupe by id. Enrich from robofang.json/llm.txt when installed."""
+    """Catalog = full fleet from registry (one JSON read) + manifest-only entries; dedupe by id. Enrich from disk only when installed."""
     seen: set = set()
     out: List[Dict[str, Any]] = []
     base = _hands_base_dir()
+    owner = _fleet_github_owner()
+    registry = _load_fleet_registry()
+
+    if registry:
+        analysis = _load_fleet_analysis()
+        for r in registry:
+            hand_id = (r.get("id") or "").strip()
+            if not hand_id or hand_id in seen:
+                continue
+            seen.add(hand_id)
+            path = base / hand_id
+            installed = path.exists() and path.is_dir()
+            repo_path = (r.get("repo_path") or "").strip()
+            entry = {
+                "id": hand_id,
+                "name": (r.get("name") or hand_id)[:100],
+                "category": (r.get("category") or "Other")[:50],
+                "description": (r.get("description") or "")[:200],
+                "port": r.get("port", 0),
+                "repo_path": repo_path,
+                "repo_url": f"https://github.com/{owner}/{hand_id}",
+                "installed": installed,
+                "icon": (r.get("icon") or "")[:50],
+            }
+            if r.get("requires_app"):
+                entry["requires_app"] = str(r["requires_app"])[:80]
+            if r.get("app_install_url"):
+                entry["app_install_url"] = str(r["app_install_url"])[:500]
+            if installed:
+                meta = _read_repo_metadata(path)
+                if meta.get("name"):
+                    entry["name"] = str(meta["name"])[:100]
+                if meta.get("category"):
+                    entry["category"] = str(meta["category"])[:50]
+                if meta.get("description"):
+                    entry["description"] = str(meta["description"])[:200]
+                if meta.get("integration_summary"):
+                    entry["integration_summary"] = meta["integration_summary"]
+                if meta.get("webapp_script"):
+                    entry["webapp_script"] = meta["webapp_script"]
+                if meta.get("ports"):
+                    entry["ports"] = meta["ports"]
+                if not entry.get("repo_path") and path:
+                    entry["repo_path"] = str(path)
+            a = analysis.get(hand_id, {})
+            if a.get("fastmcp_version") and a["fastmcp_version"] != "not_scanned":
+                entry["fastmcp_version"] = a["fastmcp_version"]
+            entry["mcpb_present"] = a.get("mcpb_present", False)
+            out.append(entry)
+        manifest = orchestrator.installer.get_manifest()
+        for h in manifest:
+            if h.id in seen:
+                continue
+            seen.add(h.id)
+            path = base / h.id
+            installed = path.exists() and path.is_dir()
+            entry = {
+                "id": h.id,
+                "name": h.name,
+                "category": h.category or "Other",
+                "description": (h.description or "")[:200],
+                "port": 0,
+                "repo_path": str(path) if installed else "",
+                "repo_url": h.repo_url,
+                "installed": installed,
+            }
+            if installed:
+                meta = _read_repo_metadata(path)
+                if meta.get("name"):
+                    entry["name"] = str(meta["name"])[:100]
+                if meta.get("category"):
+                    entry["category"] = str(meta["category"])[:50]
+                if meta.get("description"):
+                    entry["description"] = str(meta["description"])[:200]
+                if meta.get("integration_summary"):
+                    entry["integration_summary"] = meta["integration_summary"]
+                if meta.get("webapp_script"):
+                    entry["webapp_script"] = meta["webapp_script"]
+                if meta.get("ports"):
+                    entry["ports"] = meta["ports"]
+            a = analysis.get(h.id, {})
+            if a.get("fastmcp_version") and a["fastmcp_version"] != "not_scanned":
+                entry["fastmcp_version"] = a["fastmcp_version"]
+            entry["mcpb_present"] = a.get("mcpb_present", False)
+            out.append(entry)
+        return out
+
     analysis = _load_fleet_analysis()
     for h in orchestrator.installer.get_manifest():
         entry = {
@@ -1754,13 +2160,10 @@ def _fleet_catalog() -> List[Dict[str, Any]]:
         entry["installed"] = path.exists() and path.is_dir()
         out.append(entry)
         seen.add(h.id)
-    analysis = _load_fleet_analysis()
-    owner = _fleet_github_owner()
     for c in FLEET_CATALOG_GITHUB:
         if c["id"] in seen:
             continue
         seen.add(c["id"])
-        base = _hands_base_dir()
         installed_path = (base / c["id"]).exists() and (base / c["id"]).is_dir()
         repo_url = f"https://github.com/{owner}/{c['id']}"
         entry = {
@@ -1857,19 +2260,19 @@ def _port_from_url(url: str) -> int:
 
 
 def _fleet_installer_catalog() -> List[Dict[str, Any]]:
-    """Installer catalog: manifest + curated entries with port and repo_path for Fleet Installer UI. Installed hands use hands/ path."""
+    """Installer catalog: full fleet with port and repo_path for Fleet Installer UI. Uses registry port/repo_path when present."""
     catalog = []
     base = _hands_base_dir()
     for entry in _fleet_catalog():
         hand_id = entry.get("id", "")
         conn_id = _hand_id_to_connector(hand_id)
-        backend_url = MCP_BACKENDS.get(conn_id) or ""
-        port = _port_from_url(backend_url)
+        port = entry.get("port", 0) or _port_from_url(MCP_BACKENDS.get(conn_id) or "")
         if not port and isinstance(entry.get("ports"), dict):
             port = entry["ports"].get("backend") or entry["ports"].get("mcp") or 0
-        if entry.get("installed") and (base / hand_id).exists():
+        repo_path = (entry.get("repo_path") or "").strip()
+        if not repo_path and entry.get("installed") and (base / hand_id).exists():
             repo_path = str(base / hand_id)
-        else:
+        if not repo_path:
             repo_path = REPO_MAP.get(conn_id) or ""
         catalog.append(
             {
@@ -1878,23 +2281,35 @@ def _fleet_installer_catalog() -> List[Dict[str, Any]]:
                 "description": (entry.get("description") or "")[:300],
                 "port": port,
                 "repo_path": repo_path,
-                "icon": "",
+                "icon": entry.get("icon") or "",
                 "category": entry.get("category") or "Other",
             }
         )
     return catalog
 
 
-@app.get("/api/fleet/installer-catalog")
-async def fleet_installer_catalog():
-    """Installer catalog for Fleet Installer page (id, name, description, port, repo_path, icon, category). Uses bridge catalog + MCP_BACKENDS/REPO_MAP."""
-    return {"success": True, "catalog": _fleet_installer_catalog()}
-
-
 @app.get("/api/fleet/catalog")
-async def fleet_catalog():
-    """Catalog of MCP servers installable from GitHub (manifest + curated). Each has repo_url; install = clone from GitHub."""
-    return {"success": True, "hands": _fleet_catalog()}
+async def fleet_catalog() -> JSONResponse:
+    """Catalog from fleet registry (ROBOFANG_FLEET_REGISTRY) when set, else manifest + fallback list. One JSON read + minimal I/O. Always 200 + JSON."""
+    try:
+        hands = _fleet_catalog()
+        catalog = _fleet_installer_catalog()
+        return JSONResponse(
+            status_code=200,
+            content={"success": True, "hands": hands, "catalog": catalog},
+        )
+    except Exception as e:
+        err_msg = str(e)
+        logger.exception("Fleet catalog failed: %s", err_msg)
+        return JSONResponse(
+            status_code=200,
+            content={
+                "success": False,
+                "hands": [],
+                "catalog": [],
+                "error": err_msg,
+            },
+        )
 
 
 @app.get("/api/fleet/installer-paths")
@@ -2456,10 +2871,14 @@ async def get_doc(slug: str):
 
 def main():
     """Entry point for the robofang-bridge script."""
-    port = int(os.getenv("PORT", 10871))
-    # Default 0.0.0.0 for dev/Tailscale; set ROBOFANG_BRIDGE_HOST=127.0.0.1 for localhost-only (production).
-    host = os.getenv("ROBOFANG_BRIDGE_HOST", "0.0.0.0")
-    uvicorn.run("robofang.main:app", host=host, port=port, reload=False)
+    try:
+        port = int(os.getenv("PORT", 10871))
+        host = os.getenv("ROBOFANG_BRIDGE_HOST", "0.0.0.0")
+        uvicorn.run("robofang.main:app", host=host, port=port, reload=False)
+    except Exception:
+        traceback.print_exc(file=sys.stderr)
+        sys.stderr.flush()
+        sys.exit(1)
 
 
 if __name__ == "__main__":
