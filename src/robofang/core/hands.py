@@ -46,6 +46,16 @@ class HandsManager:
                 if os.path.exists(toml_path):
                     try:
                         definition = load_hand_definition(toml_path)
+                        # OpenFang-compatible: load SKILL.md from same dir if present
+                        skill_path = os.path.join(entry.path, "SKILL.md")
+                        if os.path.exists(skill_path):
+                            try:
+                                with open(skill_path, "r", encoding="utf-8") as f:
+                                    definition = definition.model_copy(
+                                        update={"skill_content": f.read()}
+                                    )
+                            except Exception as e:
+                                logger.warning(f"Could not load SKILL.md for {definition.id}: {e}")
 
                         # Dynamic Factory Pattern: Check for hand.py in the same dir
                         implementation_path = os.path.join(entry.path, "hand.py")

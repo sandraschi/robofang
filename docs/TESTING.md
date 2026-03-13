@@ -45,7 +45,7 @@ Use this to verify the full onboarding flow (Installer → clone → register in
    Hub → Fleet → Installer (or navigate to the Installer page).
 
 3. **Install one node**  
-   Select a single market node (e.g. Blender MCP if present).  
+   Select a single catalog entry (e.g. Blender MCP if present).  
    Click **Install**.  
    Wait until the install log shows “Installation complete” and the card shows completed (green check).
 

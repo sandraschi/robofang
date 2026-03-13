@@ -1,0 +1,17 @@
+{
+  "web_search": { "connector": "fastsearch", "tool": "search" },
+  "web_fetch": { "connector": "fileops", "tool": "read_url" },
+  "file_read": { "connector": "fileops", "tool": "file_read" },
+  "file_write": { "connector": "fileops", "tool": "file_write" },
+  "file_list": { "connector": "fileops", "tool": "list_dir" },
+  "shell_exec": { "connector": "fileops", "tool": "run_command" },
+  "memory_store": { "connector": "advanced-memory", "tool": "store" },
+  "memory_recall": { "connector": "advanced-memory", "tool": "recall" },
+  "knowledge_add_entity": { "connector": "advanced-memory", "tool": "knowledge_add_entity" },
+  "knowledge_add_relation": { "connector": "advanced-memory", "tool": "knowledge_add_relation" },
+  "knowledge_query": { "connector": "advanced-memory", "tool": "knowledge_query" },
+  "schedule_create": { "connector": "advanced-memory", "tool": "schedule_create" },
+  "schedule_list": { "connector": "advanced-memory", "tool": "schedule_list" },
+  "schedule_delete": { "connector": "advanced-memory", "tool": "schedule_delete" },
+  "event_publish": { "connector": "advanced-memory", "tool": "event_publish" }
+}

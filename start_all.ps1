@@ -16,6 +16,9 @@ $SrcDir = Join-Path $RepoRoot "src"
 
 # -- Setup Environment ---------------------------------------------------------
 $env:PYTHONPATH = "$SrcDir;$env:PYTHONPATH"
+# Fleet installer: clone to repo/hands, manifest at repo root (so install works without env)
+$env:ROBOFANG_FLEET_MANIFEST = Join-Path $RepoRoot "fleet_manifest.yaml"
+$env:ROBOFANG_HANDS_DIR     = Join-Path $RepoRoot "hands"
 
 # -- Temp dir for logs ---------------------------------------------------------
 $TempDir = "D:\Dev\repos\temp"

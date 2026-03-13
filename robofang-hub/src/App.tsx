@@ -18,6 +18,9 @@ import KnowledgeHub from './pages/KnowledgeHub';
 import LLM from './pages/LLM';
 import Timeline from './pages/Timeline';
 import Agents from './pages/Agents';
+import Schedule from './pages/Schedule';
+import Hands from './pages/Hands';
+import Inbox from './pages/Inbox';
 
 // Intel Pages
 import Scraper from './pages/intel/Scraper';
@@ -74,6 +77,9 @@ function App() {
           <Route path="/chat" element={<ChatHub />} />
           <Route path="/timeline" element={<Timeline />} />
           <Route path="/agents" element={<Agents />} />
+          <Route path="/schedule" element={<Schedule />} />
+          <Route path="/hands" element={<Hands />} />
+          <Route path="/inbox" element={<Inbox />} />
 
           {/* Intel */}
           <Route path="/scraper" element={<Scraper />} />
@@ -99,7 +105,7 @@ function App() {
           <Route path="/notifications" element={<Notifications />} />
           <Route path="/docs/:slug" element={<DocViewer />} />
           <Route path="/mcp-docs" element={<McpDocs />} />
-          <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/onboarding" element={<Navigate to="/installer" replace />} />
 
           <Route path="*" element={<Dashboard />} />
         </Routes>

@@ -76,6 +76,8 @@ cd robofang-hub; npm install; npm run build; cd ..
 # Hub: http://localhost:10870
 ```
 
+**Tailscale / LAN access:** The bridge defaults to `127.0.0.1` (localhost only). To reach it from another device by hostname (e.g. `http://goliath:10871` with goliath a Tailscale machine name), set `ROBOFANG_BRIDGE_HOST=0.0.0.0` before starting so it listens on all interfaces. Tailscale encrypts and authenticates; avoid exposing the port to the wider internet.
+
 ---
 
 ## Architecture
