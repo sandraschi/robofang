@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "robofang"
-version = "0.3.0"
-description = "RoboFang Sovereign Orchestration Hub"
+version = "0.1.0a1"
+description = "RoboFang MCP & robotics orchestration hub"
 requires-python = ">=3.11"
 dependencies = [
     # Core runtime

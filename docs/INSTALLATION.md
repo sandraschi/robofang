@@ -15,6 +15,16 @@ graph TD
 
 No manual config file editing. Clone, run one script, then configure everything in the web app.
 
+**Steve just cloned the repo — what now?**
+
+1. Open a terminal in the repo root.
+2. Run: `.\robofang-hub\start.bat` (or `.\start_all.ps1` from root). First run runs setup (venv, pip install, hub build, .env from example); then the bridge and hub start.
+3. Open **http://localhost:10870** in a browser. If the hub says "Bridge not ready yet", wait 60–90 s and click Retry.
+4. Complete the **Onboarding** wizard: set GitHub owner for the fleet catalog, install any MCP hands you want, optionally add Telegram/Discord.
+5. Use **Dashboard**, **Fleet**, **Chat**, and **Settings** from the hub. No config files to edit.
+
+Optional: install [just](https://just.systems) and run `just` to see tasks (test, build, run, etc.). See [JUST.md](JUST.md).
+
 ```powershell
 git clone https://github.com/sandraschi/robofang
 cd robofang
@@ -54,7 +64,7 @@ Optional: you can override or set values via `.env` (e.g. for headless or automa
 - **Dashboard** — One clear next step (run setup wizard or open Fleet page). No config files.
 - **Fleet page** — Your installed MCP servers: status, launch web apps, install more from the catalog.
 - **Settings** — LLM (Ollama/API), optional Telegram/Discord, and other options.
-- **Chat** — Talk to the sovereign; it uses your fleet and hands.
+- **Chat** — Talk to the agent; it uses your fleet and hands.
 
 ## 5. How to start RoboFang and give it commands
 
@@ -63,7 +73,7 @@ Optional: you can override or set values via `.env` (e.g. for headless or automa
 **Give commands in two ways:**
 
 - **From the webapp (primary)**  
-  In the hub, open **Chat** (Neural Interface). Type your message and send. The hub calls the bridge `POST /ask`; the sovereign (and optional Council) runs and the reply appears in the chat. Toggle **Council Active** for multi-agent reasoning.
+  In the hub, open **Chat** (Neural Interface). Type your message and send. The hub calls the bridge `POST /ask`; the agent (and optional Council) runs and the reply appears in the chat. Toggle **Council Active** for multi-agent reasoning.
 
 - **From Telegram (inbound)**  
   If you configured Telegram in Onboarding/Settings (bot token + chat ID), you can also command RoboFang by messaging your bot. Set the bot’s **webhook** to your bridge URL: `https://<your-host>/hooks/telegram` (e.g. via Tailscale or a tunnel; Telegram requires HTTPS). When a user sends a message to the bot, the bridge receives it, runs the same processing as `/ask`, and replies in that Telegram chat.

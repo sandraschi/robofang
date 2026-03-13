@@ -118,8 +118,7 @@
         },
         "virtualization": {
             "enabled": true,
-            "mcp_backend": "http://localhost:10700",
-            "description": "VirtualBox \u2014 VM lifecycle, snapshots, network config"
+            "mcp_backend": "http://localhost:10700"
         },
         "dark-app-factory": {
             "enabled": false,
@@ -204,6 +203,10 @@
         "suno": {
             "enabled": false,
             "description": "AI Music Generation \u2014 [PLACEHOLDER] awaiting integration"
+        },
+        "osc": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10766"
         }
     },
     "domains": {

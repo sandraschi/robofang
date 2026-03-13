@@ -29,7 +29,9 @@ Releases are created by the [Release](https://github.com/sandraschi/robofang/act
 - **Lint** (ruff check), **format check** (ruff format --check), **test** (pytest).
 - **Build** wheel and sdist (`python -m build`).
 - **Generate changelog**: commits from previous tag to HEAD (or full history if no previous tag).
-- **Create GitHub Release**: title "RoboFang vX.Y.Z", body with changelog and install instructions, attach `dist/*.whl` and `dist/*.tar.gz`. Versions containing `alpha`, `beta`, or `rc` are marked as prerelease.
+- **Create GitHub Release**: title "RoboFang vX.Y.Z", body with changelog and install instructions, attach `dist/*.whl`, `dist/*.tar.gz`, and **dist/robofang-bridge.exe** (single-file Windows build from a Windows runner + PyInstaller). Versions containing `alpha`, `beta`, or `rc` are marked as prerelease.
+
+**Tasks**: Use `just` (see repo root `justfile`): `just release` prints tag/push instructions; `just exe` builds the Windows exe locally.
 
 ## Versioning
 

@@ -77,7 +77,7 @@ const Chat: React.FC = () => {
              <MessageSquare className="text-indigo-400" />
              Neural Interface
           </h2>
-          <p className="text-text-secondary text-sm mt-1">Direct synthesis line to the Sovereign Hub.</p>
+          <p className="text-text-secondary text-sm mt-1">Direct line to the RoboFang hub (MCP & robots).</p>
         </div>
         <div className="flex items-center gap-4">
            <button 
@@ -150,7 +150,7 @@ const Chat: React.FC = () => {
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Query the sovereign hub..."
+              placeholder="Query the MCP & robots hub..."
               disabled={sending}
               className="flex-1 bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm focus:border-indigo-500/50 outline-none transition-all placeholder:text-text-secondary/50 font-medium"
             />

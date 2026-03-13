@@ -2,7 +2,7 @@
     "manifest_version": "0.2",
     "name": "robofang",
     "version": "0.3.0",
-    "description": "RoboFang Sovereign Orchestration Hub",
+    "description": "RoboFang MCP & robotics orchestration hub",
     "author": {
         "name": "Sandra Schipal"
     },
@@ -35,7 +35,7 @@
         },
         {
             "name": "orchestrate_mission",
-            "description": "Trigger a multi-step sovereign mission across selected fleet nodes."
+            "description": "Trigger a multi-step mission across selected MCP/fleet nodes."
         }
     ]
 }

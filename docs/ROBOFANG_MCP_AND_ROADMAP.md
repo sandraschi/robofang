@@ -1,6 +1,6 @@
 # RoboFang Architecture, MCP Integration & Roadmap
 
-Thorough overview of the Sovereign Orchestration Hub, the role of **robofang-mcp**, and concrete suggestions to expand and improve the system.
+Thorough overview of the RoboFang MCP & robotics hub, the role of **robofang-mcp**, and concrete suggestions to expand and improve the system.
 
 ---
 
@@ -24,7 +24,7 @@ Thorough overview of the Sovereign Orchestration Hub, the role of **robofang-mcp
 | **ReasoningEngine** | Ollama-based ReAct loop; tool bridge built from skills + connectors. | `core/reasoning.py`, `core/orchestrator.py` (`_build_tool_bridge`). |
 | **Safety** | DTU (Dark Twin Universe) sandbox proxy, Bastion (CPU/RAM quotas), Bastio (policy gate). | `docs/SAFETY.md`, sandbox dispatcher, `LocalBastionManager`. |
 | **Hands System** | Autonomous background agents (Collector, Robotics, etc.) pulsing at scheduled intervals. | `src/robofang/core/hands.py`, `src/robofang/plugins/*_hand.py`. |
-| **Sovereign Dashboard** | React/Vite UI on port 10864: fleet, hands, showrooms, deliberations. | `dashboard/`, `start.bat`. |
+| **RoboFang Hub / Dashboard** | React/Vite UI on port 10864: fleet, hands, showrooms, deliberations. | `dashboard/`, `start.bat`. |
 
 ### 1.2 Data flow (high level)
 

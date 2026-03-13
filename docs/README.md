@@ -8,4 +8,5 @@ This directory contains detailed technical specifications, architectural diagram
 - **Architecture**: [COGNITIVE_ARCHITECTURE.md](COGNITIVE_ARCHITECTURE.md), [ROBOFANG_MCP_AND_ROADMAP.md](ROBOFANG_MCP_AND_ROADMAP.md).
 - **Comms & onboarding**: [COMMAND_VIA_EMAIL_TELEGRAM.md](COMMAND_VIA_EMAIL_TELEGRAM.md), [ONBOARDING_AND_COMMS_CREDENTIALS.md](ONBOARDING_AND_COMMS_CREDENTIALS.md).
 - **Safety / startup**: [SAFETY.md](SAFETY.md), [STARTUP_ASSESSMENT.md](STARTUP_ASSESSMENT.md), [BRIDGE_ANALYSIS.md](BRIDGE_ANALYSIS.md).
+- **Tasks & speed**: [JUST.md](JUST.md) — just recipe runner. [SPEEDUPS.md](SPEEDUPS.md) — Python compilation, when to use Rust.
 - **Apple / iOS**: [apple/README.md](apple/README.md) — iOS app plan and notes.
