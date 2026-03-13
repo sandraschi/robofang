@@ -41,8 +41,11 @@ sessions/*.json
 logs/
 *.log
 
-# Windows Sandbox
+# Windows Sandbox (drop these in infra/sandbox; do not commit)
 *.wsb.log
+*.msixbundle
+*.msix
+DesktopAppInstaller_Dependencies.zip
 
 # RoboFang Runtime & Data
 exchange/sandbox/
