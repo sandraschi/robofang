@@ -1,0 +1,24 @@
+<Configuration>
+  <!--
+    Example Windows Sandbox config for RoboFang.
+
+    - Assumes this repo is cloned at: D:\Dev\repos\robofang
+    - Maps infra\sandbox into C:\Assets inside the Sandbox
+    - Runs Setup-RoboFangSandbox.ps1 automatically on logon
+
+    If your clone path is different, edit <HostFolder> accordingly.
+  -->
+  <MappedFolders>
+    <MappedFolder>
+      <HostFolder>D:\Dev\repos\robofang\infra\sandbox</HostFolder>
+      <SandboxFolder>C:\Assets</SandboxFolder>
+      <ReadOnly>false</ReadOnly>
+    </MappedFolder>
+  </MappedFolders>
+  <LogonCommand>
+    <Command>powershell -ExecutionPolicy Bypass -File C:\Assets\Setup-RoboFangSandbox.ps1</Command>
+  </LogonCommand>
+  <VGpu>Default</VGpu>
+  <Networking>Enable</Networking>
+</Configuration>
+

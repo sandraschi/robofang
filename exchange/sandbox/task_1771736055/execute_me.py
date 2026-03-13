@@ -1,1 +1,0 @@
-import os; print('Hello from Sandbox'); import json; with open('result.json', 'w') as f: json.dump({'status': 'SUCCESS', 'output': 'Sandbox Verified'}, f)
