@@ -1,6 +1,6 @@
 # API Reference
 
-Detailed documentation for the RoboFang Sovereign Bridge REST API.
+Detailed documentation for the RoboFang Bridge (MCP & robots) REST API.
 
 ## Core Endpoints
 

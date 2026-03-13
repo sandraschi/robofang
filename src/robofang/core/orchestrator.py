@@ -23,6 +23,12 @@ from robofang.core.routines import (
     create_routine as _create_routine,
 )
 from robofang.core.routines import (
+    delete_routine as _delete_routine,
+)
+from robofang.core.routines import (
+    get_routine as _get_routine,
+)
+from robofang.core.routines import (
     list_routines as _list_routines,
 )
 from robofang.core.routines import (
@@ -30,6 +36,9 @@ from robofang.core.routines import (
 )
 from robofang.core.routines import (
     should_run_now as _routine_should_run_now,
+)
+from robofang.core.routines import (
+    update_routine as _update_routine,
 )
 from robofang.core.security import SecurityManager
 from robofang.core.security_secrets import SecretsManager
@@ -747,6 +756,9 @@ class OrchestrationClient:
     def list_routines(self) -> List[Dict[str, Any]]:
         return _list_routines(self.storage)
 
+    def get_routine(self, routine_id: str) -> Optional[Dict[str, Any]]:
+        return _get_routine(self.storage, routine_id)
+
     def create_routine(
         self,
         name: str,
@@ -774,6 +786,31 @@ class OrchestrationClient:
         if result.get("success"):
             _mark_routine_run(self.storage, routine_id)
         return result
+
+    def update_routine(
+        self,
+        routine_id: str,
+        *,
+        name: Optional[str] = None,
+        time_local: Optional[str] = None,
+        recurrence: Optional[str] = None,
+        action_type: Optional[str] = None,
+        params: Optional[Dict[str, Any]] = None,
+        enabled: Optional[bool] = None,
+    ) -> Optional[Dict[str, Any]]:
+        return _update_routine(
+            self.storage,
+            routine_id,
+            name=name,
+            time_local=time_local,
+            recurrence=recurrence,
+            action_type=action_type,
+            params=params,
+            enabled=enabled,
+        )
+
+    def delete_routine(self, routine_id: str) -> bool:
+        return _delete_routine(self.storage, routine_id)
 
     async def _run_dawn_patrol(self, routine: Dict[str, Any]) -> Dict[str, Any]:
         """

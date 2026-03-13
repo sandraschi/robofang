@@ -107,7 +107,7 @@ const Status: React.FC = () => {
             <h1 className="text-3xl font-black text-white tracking-tight">System Status</h1>
           </div>
           <p className="text-zinc-400 text-sm max-w-xl font-medium">
-            Real-time bridge observability and sovereign substrate heartbeat.
+            Real-time bridge observability and MCP/robots heartbeat.
           </p>
         </div>
         

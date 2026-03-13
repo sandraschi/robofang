@@ -12,7 +12,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 
 ---
 
-## [Unreleased] — 2026-03-13
+## [0.1.0-alpha.1] — 2026-03-13
+
+First alpha release. MCP & robots hub: bridge, supervisor, hub (Vite), fleet installer, startup and error-handling fixes.
 
 ### Added
 - **Dependencies (pyproject.toml)**: `tomli`, `pyyaml`, `requests`, `watchdog`, `structlog` so bridge and repo_watcher import without missing-module failures. CI guard: `tests/test_bridge_import.py` imports hand_manifest, installer, skills, repo_watcher.

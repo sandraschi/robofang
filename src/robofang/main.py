@@ -253,7 +253,7 @@ for _cid, _cfg in orchestrator.topology.get("connectors", {}).items():
 
 
 app = FastAPI(
-    title="RoboFang Sovereign Bridge",
+    title="RoboFang Bridge (MCP & robots)",
     version="0.3.0",
 )
 
@@ -2767,13 +2767,14 @@ async def api_list_routines():
 class RoutineFromPhraseRequest(BaseModel):
     phrase: str
     report_email: Optional[str] = None
+    run_now: Optional[bool] = False
 
 
 @app.post("/api/routines/from-phrase")
 async def api_routines_from_phrase(req: RoutineFromPhraseRequest):
     """
-    Parse natural language (e.g. 'dawn patrol 7am daily') and create a routine.
-    Agents figure out: time, recurrence, action (yahboom patrol + video + analyze + email report).
+    Parse natural language (e.g. 'dawn patrol 7am daily', 'yahboom robot patrol and report anomalies') and create a routine.
+    If run_now=true, run the routine immediately and return run result (e.g. patrol report).
     """
     prompt = (
         "Extract a scheduled routine from this user message. Reply with ONLY a JSON object, no markdown.\n"
@@ -2814,6 +2815,9 @@ async def api_routines_from_phrase(req: RoutineFromPhraseRequest):
             action_type=action_type,
             params=params,
         )
+        if req.run_now:
+            run_result = await orchestrator.run_routine(routine["id"])
+            return {"success": True, "routine": routine, "run_result": run_result}
         return {"success": True, "routine": routine}
     except json.JSONDecodeError as e:
         logger.warning("Routine parse JSON failed: %s", e)
@@ -2821,6 +2825,49 @@ async def api_routines_from_phrase(req: RoutineFromPhraseRequest):
     except Exception as e:
         logger.exception("Routines from-phrase failed")
         return {"success": False, "error": str(e)}
+
+
+@app.get("/api/routines/{routine_id}")
+async def api_get_routine(routine_id: str):
+    """Get a single routine by id."""
+    routine = orchestrator.get_routine(routine_id)
+    if not routine:
+        raise HTTPException(status_code=404, detail=f"Routine {routine_id} not found")
+    return {"success": True, "routine": routine}
+
+
+class RoutineUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    time_local: Optional[str] = None
+    recurrence: Optional[str] = None
+    action_type: Optional[str] = None
+    params: Optional[Dict[str, Any]] = None
+    enabled: Optional[bool] = None
+
+
+@app.patch("/api/routines/{routine_id}")
+async def api_update_routine(routine_id: str, req: RoutineUpdateRequest):
+    """Update a routine (partial)."""
+    routine = orchestrator.update_routine(
+        routine_id,
+        name=req.name,
+        time_local=req.time_local,
+        recurrence=req.recurrence,
+        action_type=req.action_type,
+        params=req.params,
+        enabled=req.enabled,
+    )
+    if not routine:
+        raise HTTPException(status_code=404, detail=f"Routine {routine_id} not found")
+    return {"success": True, "routine": routine}
+
+
+@app.delete("/api/routines/{routine_id}")
+async def api_delete_routine(routine_id: str):
+    """Delete a routine by id."""
+    if not orchestrator.delete_routine(routine_id):
+        raise HTTPException(status_code=404, detail=f"Routine {routine_id} not found")
+    return {"success": True, "message": f"Routine {routine_id} deleted"}
 
 
 @app.post("/api/routines/{routine_id}/run")

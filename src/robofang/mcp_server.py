@@ -42,7 +42,7 @@ def register_mcp(mcp: Any, orchestrator: Any) -> None:
 _HELP: Dict[str, Any] = {
     "categories": {
         "tools": {
-            "description": "MCP tools exposed by RoboFang Sovereign Hub.",
+            "description": "MCP tools exposed by RoboFang (MCP & robots hub).",
             "topics": {
                 "robofang_status": "Health and fleet summary. Returns bridge status, connector counts, version.",
                 "robofang_help": "Multi-level help: call with no args for categories, category= for topics, category+topic= for detail.",
@@ -66,7 +66,7 @@ _HELP: Dict[str, Any] = {
             "topics": {
                 "bridge": "Bridge runs on PORT (default 10871). Health: GET /health, fleet: GET /fleet.",
                 "mcp_sse": "MCP over SSE: connect to http://localhost:PORT/sse for Cursor/Claude. Same process as Bridge.",
-                "dashboard": "Sovereign Dashboard: port 10864 (or 10870). Real-time logs, deliberations, fleet control.",
+                "dashboard": "RoboFang Hub: port 10864 (or 10870). Real-time logs, deliberations, fleet control.",
             },
         },
         "skills": {
@@ -121,7 +121,7 @@ async def robofang_help(
     cats = _HELP["categories"]
     if not category:
         return {
-            "help": "RoboFang Sovereign Hub MCP Help",
+            "help": "RoboFang MCP & robots hub — MCP Help",
             "usage": "Call with category= to drill down, then category= + topic= for full detail.",
             "categories": {k: v["description"] for k, v in cats.items()},
         }
@@ -285,7 +285,7 @@ async def robofang_agentic_workflow(goal: str, ctx: Context) -> str:
         return str(out.get("deliberations", out))
 
     system_prompt = (
-        "You are an operator for the RoboFang Sovereign Hub. You have sub-tools: "
+        "You are an operator for the RoboFang MCP & robots hub. You have sub-tools: "
         "status() for health and connector count; ask(message, use_council) to send a message (use_council=True for Council of Dozens); "
         "fleet() for full fleet registry; deliberations(limit) for recent reasoning log. "
         "Plan a short sequence of steps to achieve the user's goal. Execute the steps and then summarize what was done and the outcome."
@@ -308,11 +308,11 @@ async def robofang_agentic_workflow(goal: str, ctx: Context) -> str:
 
 
 def robofang_quick_start(bridge_url: str = "http://localhost:10871") -> str:
-    """Get step-by-step instructions to connect and use the RoboFang Sovereign Hub (Bridge + MCP)."""
-    return f"""You are helping set up the RoboFang Sovereign Hub.
+    """Get step-by-step instructions to connect and use the RoboFang hub (Bridge + MCP)."""
+    return f"""You are helping set up the RoboFang MCP & robots hub.
 
 1. Start the Bridge: from the RoboFang repo run `uv run python -m robofang.main` or `robofang-bridge` (default port 10871). Or set PORT=10867 and run the same.
-2. The Sovereign Dashboard runs separately on port 10864 (or 10870). It talks to the Bridge for fleet, logs, and deliberations.
+2. The RoboFang Hub runs separately on port 10864 (or 10870). It talks to the Bridge for fleet, logs, and deliberations.
 3. MCP clients (Cursor, Claude Desktop): connect via SSE to {bridge_url}/sse so the hub appears as an MCP server with tools robofang_status, robofang_help, robofang_ask, robofang_fleet, robofang_deliberations, robofang_agentic_workflow.
 4. Use robofang_status first to confirm the Bridge is up and connectors are online. Use robofang_ask for single questions; set use_council=True for Council of Dozens synthesis. Use robofang_agentic_workflow for multi-step goals.
 5. Help: robofang_help() for categories; robofang_help(category="tools") for tool list; robofang_help(category="council", topic="use_council") for detail."""

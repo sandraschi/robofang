@@ -5,17 +5,15 @@ $RepoRoot = Split-Path -Parent $PSScriptRoot
 $VenvPython = Join-Path $RepoRoot ".venv\Scripts\python.exe"
 if (Test-Path $VenvPython) { $Python = $VenvPython } else { $Python = "python" }
 
-# 0. Ensure venv and deps so bridge can start (fixes missing e.g. tomli)
-if (Test-Path $VenvPython) {
-    Write-Host "[0/4] Ensuring Python deps (pip install -e .) ..." -ForegroundColor Cyan
-    $pipResult = & $VenvPython -m pip install -e $RepoRoot --quiet 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        Write-Host "  pip install failed:" -ForegroundColor Red
-        $pipResult | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkRed }
-        exit 1
-    }
-    Write-Host "  Deps OK." -ForegroundColor DarkGray
+# 0. Ensure deps so bridge can start (fixes missing e.g. tomli)
+Write-Host "[0/4] Ensuring Python deps (pip install -e .) ..." -ForegroundColor Cyan
+$pipResult = & $Python -m pip install -e $RepoRoot --quiet 2>&1
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "  pip install failed:" -ForegroundColor Red
+    $pipResult | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkRed }
+    exit 1
 }
+Write-Host "  Deps OK." -ForegroundColor DarkGray
 
 # 1. Clear ports (hub, bridge, supervisor). Use a short timeout so Get-NetTCPConnection cannot hang.
 Write-Host "[1/4] Clearing ports ($WebPort, 10871, $SupervisorPort) ..." -ForegroundColor Yellow

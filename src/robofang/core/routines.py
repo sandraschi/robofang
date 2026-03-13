@@ -86,3 +86,54 @@ def mark_run(storage: Any, routine_id: str) -> None:
             r["last_run"] = _today_iso()
             break
     save_routines(storage, routines)
+
+
+def get_routine(storage: Any, routine_id: str) -> Optional[Dict[str, Any]]:
+    """Return a routine by id or None."""
+    for r in list_routines(storage):
+        if r.get("id") == routine_id:
+            return r
+    return None
+
+
+def update_routine(
+    storage: Any,
+    routine_id: str,
+    *,
+    name: Optional[str] = None,
+    time_local: Optional[str] = None,
+    recurrence: Optional[str] = None,
+    action_type: Optional[str] = None,
+    params: Optional[Dict[str, Any]] = None,
+    enabled: Optional[bool] = None,
+) -> Optional[Dict[str, Any]]:
+    """Update a routine by id. Returns updated routine or None if not found."""
+    routines = list_routines(storage)
+    for r in routines:
+        if r.get("id") == routine_id:
+            if name is not None:
+                r["name"] = name
+            if time_local is not None:
+                r["time_local"] = time_local
+            if recurrence is not None:
+                r["recurrence"] = recurrence
+            if action_type is not None:
+                r["action_type"] = action_type
+            if params is not None:
+                r["params"] = params
+            if enabled is not None:
+                r["enabled"] = enabled
+            save_routines(storage, routines)
+            return r
+    return None
+
+
+def delete_routine(storage: Any, routine_id: str) -> bool:
+    """Remove a routine by id. Returns True if found and removed."""
+    routines = list_routines(storage)
+    new_list = [r for r in routines if r.get("id") != routine_id]
+    if len(new_list) == len(routines):
+        return False
+    save_routines(storage, new_list)
+    logger.info("Routine deleted: %s", routine_id)
+    return True

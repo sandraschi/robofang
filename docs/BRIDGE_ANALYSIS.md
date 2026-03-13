@@ -2,7 +2,7 @@
 
 ## Verdict: **Correct and functional**
 
-The bridge (`src/robofang/main.py`) is the real Sovereign Bridge: FastAPI app + FastMCP 3.1 unified gateway, orchestrator lifecycle, SOTA launch, proxy, and dashboard API. No mock or placeholder.
+The bridge (`src/robofang/main.py`) is the RoboFang Bridge (MCP & robots): FastAPI app + FastMCP 3.1 unified gateway, orchestrator lifecycle, SOTA launch, proxy, and dashboard API. No mock or placeholder.
 
 ---
 

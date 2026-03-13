@@ -2,7 +2,7 @@
 
 <p align="center">
   <strong>Your AI. Your hardware. Your data. Nobody else's.</strong><br>
-  Sovereign agentic orchestration — with hands, legs, senses, and a voice.
+  MCP & robots — with hands, legs, senses, and a voice.
 </p>
 
 <p align="center">
@@ -22,7 +22,7 @@ Every major cloud agent — Manus, Gemini Live, Claude computer use — shares t
 
 They are impressive. They are also not yours.
 
-Robofang is a **sovereign orchestration hub** for local AI with physical and virtual embodiment: you are the architect, inference runs on your hardware at zero per-token cost, and the agent has genuine reach into the physical and virtual world — not just a browser tab. Custom MCP fleet, Council of Dozens, and virtual-first robotics validation; no cloud lock-in.
+Robofang is an **orchestration hub for MCP & robots**: local AI with physical and virtual embodiment. You are the architect; inference runs on your hardware at zero per-token cost, and the agent has genuine reach into the physical and virtual world — not just a browser tab. Custom MCP fleet, Council of Dozens, and virtual-first robotics validation; no cloud lock-in.
 
 ---
 
@@ -80,6 +80,8 @@ To only set up without starting: `.\setup.ps1`.
 
 **Tailscale / LAN access:** The bridge defaults to `127.0.0.1` (localhost only). To reach it from another device by hostname (e.g. `http://goliath:10871` with goliath a Tailscale machine name), set `ROBOFANG_BRIDGE_HOST=0.0.0.0` before starting so it listens on all interfaces. Tailscale encrypts and authenticates; avoid exposing the port to the wider internet.
 
+**Cursor / Antigrav:** To have Cursor or Antigrav (or any MCP client) converse with RoboFang, use the thin **robofang-mcp** server in this repo: `pip install -e robofang-mcp` then run `robofang-mcp` (stdio). It forwards all tools to the bridge; FastMCP 3.1, sampling, prompts, and a small operator skill. See [robofang-mcp/README.md](robofang-mcp/README.md). No extra webapp — the main hub stays the single UI.
+
 ---
 
 ## Architecture
@@ -103,11 +105,11 @@ The Council pattern — Foreman (architect) → Labor (executor) → Satisficer 
 
 ---
 
-## The philosophy: Human as Sovereign
+## The philosophy: Human in control
 
 In the current industry default, the human is a prompt engineer — a data source for someone else's oracle.
 
-In the Robofang architecture, **the Human is the Master of Puppets.** The agent is the **Loyal Guardian** — think Benny, our German Shepherd. Its job is dexterity in service of human intent. The human sets strategy. The agent handles execution across digital, virtual, and physical substrates.
+In the Robofang architecture, **the human is in control.** MCP & robots do the work. The agent is the **Loyal Guardian** — think Benny, our German Shepherd. Its job is dexterity in service of human intent. The human sets strategy. The agent handles execution across digital, virtual, and physical substrates.
 
 <p align="center">
   <img src="assets/bumi_step2.png" alt="The Robofang Bros: Benny and Bumi" width="600">
@@ -123,7 +125,7 @@ In the Robofang architecture, **the Human is the Master of Puppets.** The agent 
 - [x] **Fleet Discovery**: Automated MCP server mapping and health monitoring.
 - [x] **Virtual Embodiment**: Resonite + OSC 30Hz joint control.
 - [/] **Physical Hands**: ROS 2 bridging for Yahboom and Noetix Bumi.
-- [ ] **Sovereign Voice**: Local ElevenLabs-style TTS/STT via RTX 4090.
+- [ ] **Local voice**: ElevenLabs-style TTS/STT via RTX 4090.
 - [ ] **Multi-Agent Memory**: ADN graph persistence across reset cycles.
 
 ---
@@ -148,7 +150,7 @@ In the Robofang architecture, **the Human is the Master of Puppets.** The agent 
 
 ### Why Star? ⭐
 
-If you believe that the era of "Cloud Oracle" AI is a dead end—and that true intelligence requires **dexterity, sovereignty, and local hardware**—join the grid. 
+If you believe that the era of "Cloud Oracle" AI is a dead end—and that true intelligence requires **MCP, robots, and local hardware**—join the grid. 
 
 Robofang is built for the developers who want to own their substrate. Every star helps us signal to the hardware community that there is a demand for open, agentic robotics.
 
