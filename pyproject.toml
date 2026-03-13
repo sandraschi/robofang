@@ -87,3 +87,7 @@ line-ending = "auto"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
+markers = [
+    "github: marks tests that clone from GitHub (deselect with -m 'not github')",
+    "integration: marks tests that need network or external services (deselect with -m 'not integration')",
+]

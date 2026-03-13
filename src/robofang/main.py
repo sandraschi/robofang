@@ -29,9 +29,11 @@ from robofang.core.orchestrator import OrchestrationClient
 from robofang.diagnostics import router as diagnostics_router
 from robofang.mcp_server import get_help_content, register_mcp
 from robofang.messaging import reply_to as messaging_reply_to
+from robofang.messaging import reply_to_telegram_chat as messaging_reply_to_telegram_chat
 from robofang.messaging import set_comms_storage
 from robofang.plugins.collector_hand import CollectorHand
 from robofang.plugins.robotics_hand import RoboticsHand
+from robofang.plugins.routine_runner_hand import RoutineRunnerHand
 from robofang.webhooks import router as webhooks_router
 
 # Bridge start time (epoch seconds)
@@ -134,6 +136,21 @@ orchestrator.hands.register_hand(
         )
     )
 )
+orchestrator.hands.register_hand(
+    RoutineRunnerHand(
+        HandDefinition(
+            id="routine_runner",
+            name="Routine Runner",
+            description="Runs scheduled routines (e.g. dawn patrol 7am daily).",
+            category="system",
+            agent=HandAgentConfig(
+                name="RoutineRunner",
+                description="Wall-clock scheduler for routines",
+                system_prompt="Run user routines at scheduled time.",
+            ),
+        )
+    )
+)
 
 # ---------------------------------------------------------------------------
 # MCP backend port map
@@ -149,6 +166,7 @@ MCP_BACKENDS: Dict[str, str] = {
     "ring": "http://localhost:10728",
     # Wave 2 — Creative Tools
     "blender": "http://localhost:10849",
+    "gimp": "http://localhost:10747",
     "obs": "http://localhost:10819",
     "davinci-resolve": "http://localhost:10843",
     "reaper": "http://localhost:10797",
@@ -196,7 +214,20 @@ app = FastAPI(
 async def startup_event():
     """Manage orchestrator lifecycle and auto-launch enabled fleet nodes."""
     logger.info("RoboFang Bridge starting up...")
+    mp = getattr(orchestrator.installer, "manifest_path", None)
+    hb = getattr(orchestrator.installer, "hands_base_dir", None)
+    if mp is not None and hb is not None:
+        logger.info(
+            "Fleet Installer: manifest=%s hands_dir=%s (set ROBOFANG_FLEET_MANIFEST/ROBOFANG_HANDS_DIR to override)",
+            mp,
+            hb,
+        )
     orchestrator.storage.log_event("info", "bridge", "startup_initiated")
+    orchestrator._connector_invoker = _invoke_connector_tool
+    from robofang import messaging as _messaging
+
+    orchestrator._email_sender = _messaging._bridge.send_email
+    orchestrator._inbox_processor = _process_inbox_message
     await auto_launch_enabled_connectors()
     await asyncio.sleep(8)
     await orchestrator.start()
@@ -204,23 +235,36 @@ async def startup_event():
 
 
 async def auto_launch_enabled_connectors():
-    """Iterates through topology and triggers launch for enabled connectors."""
+    """Launch enabled connectors only when ROBOFANG_AUTO_LAUNCH_CONNECTORS=1 (default: off to avoid many shells)."""
+    if os.getenv("ROBOFANG_AUTO_LAUNCH_CONNECTORS", "").strip().lower() not in ("1", "true", "yes"):
+        logger.info(
+            "Fleet Automation: Auto-launch disabled (set ROBOFANG_AUTO_LAUNCH_CONNECTORS=1 to enable)."
+        )
+        return
     logger.info("Fleet Automation: Identifying enabled connectors for auto-launch...")
     topology = orchestrator.topology
     connectors = topology.get("connectors", {})
 
     for name, cfg in connectors.items():
         if isinstance(cfg, dict) and cfg.get("enabled"):
-            if name in REPO_MAP:
-                logger.info(f"Fleet Automation: Triggering auto-launch for '{name}'")
-                try:
-                    await launch_connector(name)
-                except Exception as e:
-                    logger.error(f"Fleet Automation: Auto-launch failed for '{name}': {e}")
-            else:
+            if name not in REPO_MAP:
                 logger.warning(
-                    f"Fleet Automation: Connector '{name}' is enabled but no REPO_MAP entry found."
+                    "Fleet Automation: Connector '%s' is enabled but no REPO_MAP entry found.", name
                 )
+                continue
+            repo_path = Path(REPO_MAP[name])
+            if not repo_path.exists() or not repo_path.is_dir():
+                logger.info(
+                    "Fleet Automation: Skipping '%s' (not installed at %s). Install from Fleet Installer first.",
+                    name,
+                    repo_path,
+                )
+                continue
+            logger.info("Fleet Automation: Triggering auto-launch for '%s'", name)
+            try:
+                await launch_connector(name)
+            except Exception as e:
+                logger.error("Fleet Automation: Auto-launch failed for '%s': %s", name, e)
 
 
 @app.on_event("shutdown")
@@ -280,15 +324,26 @@ REPO_MAP: Dict[str, str] = {
 
 @app.post("/api/connector/launch/{name}")
 async def launch_connector(name: str):
-    """Launch an MCP sub-server via its start.ps1 script."""
+    """Launch an MCP sub-server via its start.ps1 script. Requires the server to be installed (repo at REPO_MAP or hands/)."""
     repo_path = REPO_MAP.get(name)
-    if not repo_path:
-        raise HTTPException(status_code=404, detail=f"No repository mapping for connector: {name}")
+    path = Path(repo_path) if repo_path else None
+    if not path or not path.exists() or not path.is_dir():
+        hands_base = _hands_base_dir()
+        fallback = hands_base / f"{name}-mcp"
+        if fallback.exists() and fallback.is_dir():
+            path = fallback
+            repo_path = str(path)
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail="MCP server '%s' not installed. Install it from the Fleet Installer first."
+                % name,
+            )
 
-    start_ps1 = Path(repo_path) / "start.ps1"
+    start_ps1 = path / "start.ps1"
     if not start_ps1.exists():
         # Try .bat as fallback
-        start_bat = Path(repo_path) / "start.bat"
+        start_bat = path / "start.bat"
         if start_bat.exists():
             subprocess.Popen(
                 [str(start_bat)],
@@ -297,7 +352,7 @@ async def launch_connector(name: str):
             )
             return {"success": True, "message": f"Launched {name} via {start_bat}"}
 
-        raise HTTPException(status_code=404, detail=f"Launch script not found in {repo_path}")
+        raise HTTPException(status_code=404, detail="Launch script not found in %s" % repo_path)
 
     try:
         subprocess.Popen(
@@ -305,7 +360,7 @@ async def launch_connector(name: str):
             cwd=repo_path,
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
-        logger.info(f"SOTA Trigger: Launched {name} from {repo_path}")
+        logger.info("SOTA Trigger: Launched %s from %s", name, repo_path)
         orchestrator.storage.log_event(
             "info",
             "fleet",
@@ -314,7 +369,7 @@ async def launch_connector(name: str):
         )
         return {"success": True, "message": f"Launched {name} via {start_ps1}"}
     except Exception as e:
-        logger.error(f"Failed to launch connector {name}: {e}")
+        logger.error("Failed to launch connector %s: %s", name, e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -408,6 +463,61 @@ async def get_connector_status(connector_id: str):
             return {"success": False, "server_status": None}
 
 
+# ---------------------------------------------------------------------------
+# Autonomous Hands API (for hub Hands page and OpenFang adapter)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/api/hands")
+async def api_hands_list():
+    """List registered autonomous hands (from orchestrator.hands)."""
+    hands = []
+    for hid, hand in orchestrator.hands.hands.items():
+        d = hand.definition
+        hands.append(
+            {
+                "id": d.id,
+                "name": d.name,
+                "description": d.description,
+                "category": d.category,
+                "active": hand.active,
+                "last_run": hand.last_run,
+                "next_run": hand.next_run,
+                "pulse_interval": hand.pulse_interval,
+                "has_skill_content": bool(getattr(d, "skill_content", None)),
+            }
+        )
+    return {"success": True, "hands": hands}
+
+
+@app.post("/api/hands/{hand_id}/activate")
+async def api_hand_activate(hand_id: str):
+    """Activate an autonomous hand."""
+    hand = orchestrator.hands.hands.get(hand_id)
+    if not hand:
+        raise HTTPException(status_code=404, detail=f"Hand not found: {hand_id}")
+    hand.activate()
+    return {"success": True, "id": hand_id, "active": True}
+
+
+@app.post("/api/hands/{hand_id}/pause")
+async def api_hand_pause(hand_id: str):
+    """Pause an autonomous hand."""
+    hand = orchestrator.hands.hands.get(hand_id)
+    if not hand:
+        raise HTTPException(status_code=404, detail=f"Hand not found: {hand_id}")
+    hand.pause()
+    return {"success": True, "id": hand_id, "active": False}
+
+
+@app.get("/api/hands/tool-mapping")
+async def api_hands_tool_mapping():
+    """Return OpenFang tool name -> connector + tool mapping (for UI)."""
+    from robofang.core.openfang_adapter import get_mapping
+
+    return {"success": True, "mapping": get_mapping()}
+
+
 # Enable CORS for dashboard on port 10864
 app.add_middleware(
     CORSMiddleware,
@@ -435,7 +545,81 @@ app.include_router(diagnostics_router)
 
 
 # ---------------------------------------------------------------------------
-# Command webhook: inbound from email/Telegram/etc. -> run /ask, optional reply
+# Inbox: process message (try schedule phrase -> routine, else ask). Used by hooks and email poll.
+# ---------------------------------------------------------------------------
+
+
+async def _process_inbox_message(message: str) -> str:
+    """
+    Process one inbound message. Tries to create a routine from phrase; else runs ask().
+    Returns reply text for the user.
+    """
+    message = (message or "").strip()
+    if not message:
+        return "No message received."
+    # Try parse as schedule (e.g. "dawn patrol 7am daily", "bug bash Friday 2pm weekly")
+    prompt = (
+        "Extract a scheduled routine from this user message. Reply with ONLY a JSON object, no markdown.\n"
+        "Fields: name (short label), time_local (HH:MM 24h), recurrence (daily|weekly), "
+        "action_type (use 'dawn_patrol' for patrol with video and report, or 'general' if not a schedule).\n"
+        "If the message is NOT about scheduling a recurring task, set action_type to 'general' and omit time_local.\n"
+        'Example schedule: {"name": "dawn patrol", "time_local": "07:00", "recurrence": "daily", "action_type": "dawn_patrol"}\n'
+        f"User message: {message}"
+    )
+    try:
+        result = await orchestrator.ask(
+            prompt,
+            use_council=False,
+            use_rag=False,
+            subject="guest",
+            persona="sovereign",
+        )
+        if not result.get("success"):
+            raise ValueError(result.get("error", "Parse failed"))
+        raw = result.get("response", "").strip()
+        for start in ("{", "```json"):
+            if start in raw:
+                raw = raw[raw.index(start) :]
+                break
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0]
+        data = json.loads(raw)
+        action_type = (data.get("action_type") or "").strip().lower()
+        if action_type and action_type != "general" and data.get("time_local"):
+            name = data.get("name") or "routine"
+            time_local = data.get("time_local") or "07:00"
+            recurrence = data.get("recurrence") or "daily"
+            orchestrator.create_routine(
+                name=name,
+                time_local=time_local,
+                recurrence=recurrence,
+                action_type=action_type or "dawn_patrol",
+                params={},
+            )
+            return f"Scheduled: {name} at {time_local} {recurrence}. Activate the Routine Runner hand in Schedule if needed."
+    except (json.JSONDecodeError, ValueError, KeyError):
+        pass
+    except Exception as e:
+        logger.debug("Inbox routine parse skipped: %s", e)
+    # Not a schedule or parse failed: run as normal command
+    try:
+        result = await orchestrator.ask(
+            message,
+            use_council=False,
+            use_rag=True,
+            subject="guest",
+            persona="sovereign",
+        )
+        if result.get("success"):
+            return result.get("response", "") or "Done."
+        return result.get("error", "Command failed.") or "Command failed."
+    except Exception as e:
+        logger.exception("Inbox ask failed")
+        return f"Error: {e}"
+
+
+# ---------------------------------------------------------------------------
+# Command webhook: inbound from email/Telegram/etc. -> process inbox, optional reply
 # ---------------------------------------------------------------------------
 
 
@@ -447,29 +631,70 @@ class CommandWebhookRequest(BaseModel):
 @app.post("/hooks/command")
 async def hook_command(req: CommandWebhookRequest):
     """
-    Run a natural-language command and optionally send the reply to Telegram/Discord.
-    Wire email-to-webhook or a Telegram bot to POST here: body.message = user text,
+    Process a natural-language command (schedule phrase or general ask) and optionally send the reply.
+    Wire email-to-webhook or a bot to POST here: body.message = user text,
     body.reply_to = "telegram" or "discord" to send the reply back.
     """
     try:
-        result = await orchestrator.ask(
-            req.message,
-            use_council=False,
-            use_rag=True,
-            subject="guest",
-            persona="sovereign",
-        )
-        reply_text = (
-            result.get("response", "")
-            if result.get("success")
-            else result.get("error", "Command failed.")
-        )
+        reply_text = await _process_inbox_message(req.message)
         if req.reply_to and reply_text:
             await messaging_reply_to(req.reply_to, reply_text)
-        return {"success": result.get("success", False), "message": reply_text}
+        return {"success": True, "message": reply_text}
     except Exception as e:
         logger.exception("Command webhook failed")
         return {"success": False, "message": str(e)}
+
+
+class InboxWebhookRequest(BaseModel):
+    """Generic inbox: message from email gateway, bot, etc."""
+
+    message: str
+    reply_to: Optional[str] = None  # "telegram" | "discord"
+    telegram_chat_id: Optional[str] = (
+        None  # When reply_to=telegram, use this chat for reply (overrides default)
+    )
+
+
+@app.post("/hooks/inbox")
+async def hook_inbox(req: InboxWebhookRequest):
+    """
+    Process one inbound message (e.g. from email-to-webhook or a bot). Tries schedule then ask; optionally replies.
+    Use reply_to + telegram_chat_id to send the reply to a specific Telegram chat (inbound Telegram).
+    """
+    try:
+        reply_text = await _process_inbox_message(req.message)
+        if req.telegram_chat_id and reply_text:
+            await messaging_reply_to_telegram_chat(req.telegram_chat_id, reply_text)
+        elif req.reply_to and reply_text:
+            await messaging_reply_to(req.reply_to, reply_text)
+        return {"success": True, "message": reply_text}
+    except Exception as e:
+        logger.exception("Inbox webhook failed")
+        return {"success": False, "message": str(e)}
+
+
+@app.post("/hooks/telegram")
+async def hook_telegram(request: Request):
+    """
+    Telegram webhook: receives Update from Telegram, processes message, replies to the same chat.
+    Set Telegram bot webhook URL to this endpoint (e.g. https://your-host/hooks/telegram). Requires HTTPS in production.
+    """
+    try:
+        body = await request.json()
+        message = body.get("message") or body.get("edited_message")
+        if not message:
+            return {"ok": True}
+        text = (message.get("text") or "").strip()
+        chat = message.get("chat", {})
+        chat_id = chat.get("id")
+        if not text or chat_id is None:
+            return {"ok": True}
+        reply_text = await _process_inbox_message(text)
+        if reply_text:
+            await messaging_reply_to_telegram_chat(str(chat_id), reply_text)
+    except Exception:
+        logger.exception("Telegram webhook failed")
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------------------
@@ -516,6 +741,37 @@ async def save_comms_settings(req: CommsSettingsRequest):
         storage.save_secret("comms_discord_webhook", req.discord_webhook.strip())
 
     orchestrator.storage.log_event("info", "settings", "comms_updated")
+    return {"success": True}
+
+
+# Fleet / GitHub owner (for catalog repo_urls and gh clone). Settings or ROBOFANG_GITHUB_OWNER.
+def _fleet_github_owner() -> str:
+    owner = (orchestrator.storage.get_secret("fleet_github_owner") or "").strip() or (
+        os.getenv("ROBOFANG_GITHUB_OWNER") or ""
+    ).strip()
+    return owner or "sandraschi"
+
+
+class FleetSettingsResponse(BaseModel):
+    github_owner: str
+
+
+class FleetSettingsRequest(BaseModel):
+    github_owner: Optional[str] = None
+
+
+@app.get("/api/settings/fleet", response_model=FleetSettingsResponse)
+async def get_fleet_settings():
+    """Return fleet settings (GitHub owner for catalog and installs). Used by settings UI."""
+    return FleetSettingsResponse(github_owner=_fleet_github_owner())
+
+
+@app.post("/api/settings/fleet")
+async def save_fleet_settings(req: FleetSettingsRequest):
+    """Save fleet GitHub owner. Stored in bridge storage; empty string = leave unchanged."""
+    if req.github_owner is not None and req.github_owner.strip():
+        orchestrator.storage.save_secret("fleet_github_owner", req.github_owner.strip())
+        orchestrator.storage.log_event("info", "settings", "fleet_github_owner_updated")
     return {"success": True}
 
 
@@ -787,13 +1043,20 @@ async def get_fleet():
     # 2. Federation map: connectors section — enrich with backend_url, frontend_url
     topology = orchestrator.topology
     conn_cfg: dict = topology.get("connectors", {})
+    hands_base = _hands_base_dir()
     for name, cfg in conn_cfg.items():
         backend_url = cfg.get("mcp_backend") or MCP_BACKENDS.get(name) or ""
         frontend_url = cfg.get("mcp_frontend") or ""
+        repo_path = REPO_MAP.get(name) or ""
+        if not repo_path or not Path(repo_path).exists():
+            hands_path = hands_base / f"{name}-mcp"
+            if hands_path.exists() and hands_path.is_dir():
+                repo_path = str(hands_path)
         if name in live:
             live[name]["enabled"] = cfg.get("enabled", False)
             live[name]["backend_url"] = backend_url
             live[name]["frontend_url"] = frontend_url
+            live[name]["repo_path"] = repo_path or live[name].get("repo_path") or ""
             continue
         live[name] = {
             "id": name,
@@ -805,7 +1068,7 @@ async def get_fleet():
             "domain": "connectors",
             "backend_url": backend_url,
             "frontend_url": frontend_url,
-            "repo_path": REPO_MAP.get(name) or "",
+            "repo_path": repo_path,
         }
     # Backfill backend_url, repo_path, frontend_url for live connectors not in conn_cfg
     for name in list(live.keys()):
@@ -813,8 +1076,12 @@ async def get_fleet():
             live[name]["backend_url"] = MCP_BACKENDS.get(name) or ""
         if live[name].get("frontend_url") is None:
             live[name]["frontend_url"] = conn_cfg.get(name, {}).get("mcp_frontend") or ""
-        if live[name].get("repo_path") is None or live[name].get("repo_path") == "":
-            live[name]["repo_path"] = REPO_MAP.get(name) or ""
+        rp = live[name].get("repo_path") or REPO_MAP.get(name) or ""
+        if not rp or not Path(rp).exists():
+            hands_path = hands_base / f"{name}-mcp"
+            if hands_path.exists() and hands_path.is_dir():
+                rp = str(hands_path)
+        live[name]["repo_path"] = rp
 
     # 3. Federation map: domains section
     domain_agents: list = []
@@ -968,6 +1235,31 @@ def _all_backend_urls() -> Dict[str, str]:
         if url:
             out[name] = url
     return out
+
+
+async def _invoke_connector_tool(
+    connector_id: str, tool_name: str, params: Dict[str, Any]
+) -> Dict[str, Any]:
+    """Call a tool on an MCP backend (e.g. yahboom patrol_with_recording). Used by routines."""
+    base = _backend_url_for_connector(connector_id)
+    if not base:
+        return {"success": False, "error": f"Unknown connector: {connector_id}"}
+    url = f"{base.rstrip('/')}/tool"
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            r = await client.post(
+                url,
+                json={"name": tool_name, "arguments": params or {}},
+            )
+            r.raise_for_status()
+            out = r.json()
+            return out if isinstance(out, dict) else {"success": True, "data": out}
+    except httpx.ConnectError as e:
+        return {"success": False, "error": f"Backend unreachable: {e}"}
+    except httpx.TimeoutException as e:
+        return {"success": False, "error": f"Backend timeout: {e}"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 # ---------------------------------------------------------------------------
@@ -1339,121 +1631,89 @@ def _read_repo_metadata(repo_path: Path) -> Dict[str, Any]:
     return out
 
 
-# Curated MCP servers installable from GitHub (id, name, category, description, repo_url).
-# Merged with fleet_manifest for GET /api/fleet/catalog. Install = clone repo + run install script.
-# TODO: replace with autodetect from GitHub org/user (e.g. sandraschi) via API; filter by topic *-mcp or name pattern.
+# Curated MCP servers installable from GitHub. repo_url is built from settings fleet_github_owner + id.
+# Merged with fleet_manifest for GET /api/fleet/catalog. Install = gh repo clone owner/repo.
 FLEET_CATALOG_GITHUB: List[Dict[str, Any]] = [
     {
         "id": "blender-mcp",
         "name": "Blender",
         "category": "Creative",
         "description": "3D creation and scene control.",
-        "repo_url": "https://github.com/sandraschi/blender-mcp",
     },
     {
         "id": "gimp-mcp",
         "name": "GIMP",
         "category": "Creative",
         "description": "Image editing and assets.",
-        "repo_url": "https://github.com/sandraschi/gimp-mcp",
     },
-    {
-        "id": "svg-mcp",
-        "name": "SVG",
-        "category": "Creative",
-        "description": "Vector graphics.",
-        "repo_url": "https://github.com/sandraschi/svg-mcp",
-    },
+    {"id": "svg-mcp", "name": "SVG", "category": "Creative", "description": "Vector graphics."},
     {
         "id": "vrchat-mcp",
         "name": "VRChat",
         "category": "Creative",
         "description": "VRChat world and avatar control.",
-        "repo_url": "https://github.com/sandraschi/vrchat-mcp",
     },
     {
         "id": "avatar-mcp",
         "name": "Avatar / Resonite",
         "category": "Creative",
         "description": "Resonite and avatar OSC.",
-        "repo_url": "https://github.com/sandraschi/avatar-mcp",
     },
     {
         "id": "plex-mcp",
         "name": "Plex",
         "category": "Media",
         "description": "Media library and playback.",
-        "repo_url": "https://github.com/sandraschi/plex-mcp",
     },
-    {
-        "id": "caliber-mcp",
-        "name": "Calibre",
-        "category": "Media",
-        "description": "Ebook library.",
-        "repo_url": "https://github.com/sandraschi/calibre-mcp",
-    },
+    {"id": "caliber-mcp", "name": "Calibre", "category": "Media", "description": "Ebook library."},
     {
         "id": "robotics-mcp",
         "name": "Robotics",
         "category": "Robotics",
         "description": "ROS 2, Yahboom, Unitree, Dreame.",
-        "repo_url": "https://github.com/sandraschi/robotics-mcp",
     },
     {
         "id": "noetix-bumi-mcp",
         "name": "Noetix Bumi",
         "category": "Robotics",
         "description": "Humanoid ROS 2.",
-        "repo_url": "https://github.com/sandraschi/noetix-bumi-mcp",
     },
     {
         "id": "virtualization-mcp",
         "name": "Virtualization",
         "category": "Infrastructure",
         "description": "VirtualBox / VM management.",
-        "repo_url": "https://github.com/sandraschi/virtualization-mcp",
     },
     {
         "id": "advanced-memory-mcp",
         "name": "Advanced Memory",
         "category": "Knowledge",
         "description": "RAG and knowledge graph.",
-        "repo_url": "https://github.com/sandraschi/advanced-memory-mcp",
     },
     {
         "id": "rustdesk-mcp",
         "name": "RustDesk",
         "category": "Infrastructure",
         "description": "Remote desktop.",
-        "repo_url": "https://github.com/sandraschi/rustdesk-mcp",
     },
-    {
-        "id": "osc-mcp",
-        "name": "OSC",
-        "category": "Creative",
-        "description": "Open Sound Control.",
-        "repo_url": "https://github.com/sandraschi/osc-mcp",
-    },
+    {"id": "osc-mcp", "name": "OSC", "category": "Creative", "description": "Open Sound Control."},
     {
         "id": "ring-mcp",
         "name": "Ring",
         "category": "Home",
         "description": "Ring doorbell and cameras.",
-        "repo_url": "https://github.com/sandraschi/ring-mcp",
     },
     {
         "id": "tapo-camera-mcp",
         "name": "Tapo Camera",
         "category": "Home",
         "description": "TP-Link Tapo devices.",
-        "repo_url": "https://github.com/sandraschi/tapo-camera-mcp",
     },
     {
         "id": "daw-mcp",
         "name": "DAW",
         "category": "Creative",
         "description": "Digital audio workstations.",
-        "repo_url": "https://github.com/sandraschi/daw-mcp",
     },
 ]
 
@@ -1495,11 +1755,20 @@ def _fleet_catalog() -> List[Dict[str, Any]]:
         out.append(entry)
         seen.add(h.id)
     analysis = _load_fleet_analysis()
+    owner = _fleet_github_owner()
     for c in FLEET_CATALOG_GITHUB:
         if c["id"] in seen:
             continue
         seen.add(c["id"])
-        entry = {**c, "description": (c.get("description") or "")[:200], "installed": False}
+        base = _hands_base_dir()
+        installed_path = (base / c["id"]).exists() and (base / c["id"]).is_dir()
+        repo_url = f"https://github.com/{owner}/{c['id']}"
+        entry = {
+            **c,
+            "repo_url": repo_url,
+            "description": (c.get("description") or "")[:200],
+            "installed": installed_path,
+        }
         a = analysis.get(c["id"], {})
         if a.get("fastmcp_version") and a["fastmcp_version"] != "not_scanned":
             entry["fastmcp_version"] = a["fastmcp_version"]
@@ -1565,10 +1834,100 @@ async def fleet_manifest():
     }
 
 
+def _hand_id_to_connector(hand_id: str) -> str:
+    """Map fleet catalog hand_id (e.g. blender-mcp) to connector id (e.g. blender) for MCP_BACKENDS/REPO_MAP."""
+    if hand_id.endswith("-mcp"):
+        return hand_id[:-4]
+    return hand_id
+
+
+def _port_from_url(url: str) -> int:
+    """Extract port from http://host:port or http://host. Default 0."""
+    if not url:
+        return 0
+    try:
+        from urllib.parse import urlparse as _urlparse
+
+        parsed = _urlparse(url)
+        if parsed.port is not None:
+            return parsed.port
+        return 80 if parsed.scheme == "http" else 443
+    except Exception:
+        return 0
+
+
+def _fleet_installer_catalog() -> List[Dict[str, Any]]:
+    """Installer catalog: manifest + curated entries with port and repo_path for Fleet Installer UI. Installed hands use hands/ path."""
+    catalog = []
+    base = _hands_base_dir()
+    for entry in _fleet_catalog():
+        hand_id = entry.get("id", "")
+        conn_id = _hand_id_to_connector(hand_id)
+        backend_url = MCP_BACKENDS.get(conn_id) or ""
+        port = _port_from_url(backend_url)
+        if not port and isinstance(entry.get("ports"), dict):
+            port = entry["ports"].get("backend") or entry["ports"].get("mcp") or 0
+        if entry.get("installed") and (base / hand_id).exists():
+            repo_path = str(base / hand_id)
+        else:
+            repo_path = REPO_MAP.get(conn_id) or ""
+        catalog.append(
+            {
+                "id": hand_id,
+                "name": entry.get("name", hand_id),
+                "description": (entry.get("description") or "")[:300],
+                "port": port,
+                "repo_path": repo_path,
+                "icon": "",
+                "category": entry.get("category") or "Other",
+            }
+        )
+    return catalog
+
+
+@app.get("/api/fleet/installer-catalog")
+async def fleet_installer_catalog():
+    """Installer catalog for Fleet Installer page (id, name, description, port, repo_path, icon, category). Uses bridge catalog + MCP_BACKENDS/REPO_MAP."""
+    return {"success": True, "catalog": _fleet_installer_catalog()}
+
+
 @app.get("/api/fleet/catalog")
 async def fleet_catalog():
     """Catalog of MCP servers installable from GitHub (manifest + curated). Each has repo_url; install = clone from GitHub."""
     return {"success": True, "hands": _fleet_catalog()}
+
+
+@app.get("/api/fleet/installer-paths")
+async def fleet_installer_paths():
+    """Debug: where Fleet Installer writes manifest and clones repos. Use ROBOFANG_FLEET_MANIFEST/ROBOFANG_HANDS_DIR if installs fail."""
+    mp = getattr(orchestrator.installer, "manifest_path", None)
+    hb = getattr(orchestrator.installer, "hands_base_dir", None)
+    manifest_path = str(mp) if mp else ""
+    hands_dir = str(hb) if hb else ""
+    manifest_exists = mp is not None and mp.exists()
+    manifest_writable = False
+    if mp is not None:
+        try:
+            mp.parent.mkdir(parents=True, exist_ok=True)
+            if mp.exists():
+                with open(mp, "a", encoding="utf-8"):
+                    pass
+                manifest_writable = True
+            else:
+                test = mp.parent / ".write_test_robofang"
+                test.write_text("", encoding="utf-8")
+                test.unlink(missing_ok=True)
+                manifest_writable = True
+        except OSError:
+            pass
+    return {
+        "success": True,
+        "manifest_path": manifest_path,
+        "hands_dir": hands_dir,
+        "manifest_exists": manifest_exists,
+        "manifest_writable": manifest_writable,
+        "hint": "If installs fail, set ROBOFANG_FLEET_MANIFEST and ROBOFANG_HANDS_DIR to writable paths (e.g. repo root) and restart the bridge.",
+    }
 
 
 class CatalogItemForInstall(BaseModel):
@@ -1630,14 +1989,89 @@ class OnboardRequest(BaseModel):
     hand_ids: List[str]
 
 
+def _install_preflight() -> Optional[str]:
+    """Return None if OK, else an error message (gh missing or paths not writable)."""
+    import shutil
+
+    if shutil.which("gh") is None:
+        return "GitHub CLI (gh) not found in PATH. Install from https://cli.github.com/ and ensure gh is on PATH."
+    mp = getattr(orchestrator.installer, "manifest_path", None)
+    hb = getattr(orchestrator.installer, "hands_base_dir", None)
+    if mp is None:
+        return "Installer not configured (no manifest path). Run start_all.ps1 from repo root."
+    try:
+        mp.parent.mkdir(parents=True, exist_ok=True)
+        if mp.exists():
+            with open(mp, "a", encoding="utf-8"):
+                pass
+        else:
+            (mp.parent / ".robofang_write_test").write_text("", encoding="utf-8")
+            (mp.parent / ".robofang_write_test").unlink(missing_ok=True)
+    except OSError as e:
+        return (
+            "Manifest path not writable: %s. Run start_all.ps1 from repo root (sets ROBOFANG_FLEET_MANIFEST and ROBOFANG_HANDS_DIR)."
+            % e
+        )
+    if hb is not None:
+        try:
+            hb.mkdir(parents=True, exist_ok=True)
+            test = hb / ".robofang_write_test"
+            test.write_text("", encoding="utf-8")
+            test.unlink(missing_ok=True)
+        except OSError as e:
+            return "Hands dir not writable: %s. Run start_all.ps1 from repo root." % e
+    return None
+
+
 @app.post("/api/fleet/onboard")
 async def fleet_onboard(req: OnboardRequest):
-    """Install selected hands already in fleet manifest (clone + optional install script)."""
+    """Install selected hands (add to manifest from catalog if needed, then clone + optional install script)."""
     if not req.hand_ids:
         return {"success": True, "results": [], "message": "No hands selected."}
+    preflight = _install_preflight()
+    if preflight:
+        return {
+            "success": False,
+            "results": [
+                {"hand_id": hid.strip(), "success": False, "message": preflight}
+                for hid in req.hand_ids
+            ],
+            "message": preflight,
+        }
+    manifest_ids = {h.id for h in orchestrator.installer.get_manifest()}
     results = []
     for hand_id in req.hand_ids:
-        result = await orchestrator.onboard_hand(hand_id.strip())
+        hand_id = hand_id.strip()
+        if hand_id not in manifest_ids:
+            catalog_entry = next((c for c in FLEET_CATALOG_GITHUB if c.get("id") == hand_id), None)
+            if not catalog_entry:
+                results.append(
+                    {
+                        "hand_id": hand_id,
+                        "success": False,
+                        "message": "Hand not in catalog. Refresh the Installer list.",
+                    }
+                )
+                continue
+            owner = _fleet_github_owner()
+            repo_url = f"https://github.com/{owner}/{hand_id}"
+            try:
+                orchestrator.installer.add_hand_to_manifest(
+                    HandManifestItem(
+                        id=hand_id,
+                        name=catalog_entry.get("name", hand_id),
+                        category=catalog_entry.get("category", "Other"),
+                        description=catalog_entry.get("description", ""),
+                        repo_url=repo_url,
+                        install_script="start.ps1",
+                        tags=["catalog"],
+                    )
+                )
+                manifest_ids.add(hand_id)
+            except (ValueError, OSError) as e:
+                results.append({"hand_id": hand_id, "success": False, "message": str(e)})
+                continue
+        result = await orchestrator.onboard_hand(hand_id)
         results.append(
             {
                 "hand_id": hand_id,
@@ -1645,6 +2079,22 @@ async def fleet_onboard(req: OnboardRequest):
                 "message": result.get("message") or result.get("error"),
             }
         )
+        if result.get("success"):
+            conn_id = _hand_id_to_connector(hand_id)
+            try:
+                orchestrator.update_topology(
+                    {
+                        "connectors": {
+                            conn_id: {
+                                "enabled": True,
+                                "mcp_backend": MCP_BACKENDS.get(conn_id) or "",
+                            }
+                        }
+                    }
+                )
+                logger.info("Registered connector %s in topology after install.", conn_id)
+            except Exception as e:
+                logger.warning("Failed to register connector %s after install: %s", conn_id, e)
     return {"success": True, "results": results}
 
 
@@ -1890,6 +2340,81 @@ async def pause_hand(hand_id: str):
     return {"success": True, "message": f"Hand {hand_id} paused"}
 
 
+# ── Routines API (e.g. "dawn patrol 7am daily") ──────────────────────────
+
+
+@app.get("/api/routines")
+async def api_list_routines():
+    """List all stored routines (scheduled actions)."""
+    return {"success": True, "routines": orchestrator.list_routines()}
+
+
+class RoutineFromPhraseRequest(BaseModel):
+    phrase: str
+    report_email: Optional[str] = None
+
+
+@app.post("/api/routines/from-phrase")
+async def api_routines_from_phrase(req: RoutineFromPhraseRequest):
+    """
+    Parse natural language (e.g. 'dawn patrol 7am daily') and create a routine.
+    Agents figure out: time, recurrence, action (yahboom patrol + video + analyze + email report).
+    """
+    prompt = (
+        "Extract a scheduled routine from this user message. Reply with ONLY a JSON object, no markdown.\n"
+        "Fields: name (short label), time_local (HH:MM 24h), recurrence (daily|weekly), "
+        "action_type (use 'dawn_patrol' for patrol with video and report).\n"
+        'Example: {"name": "dawn patrol", "time_local": "07:00", "recurrence": "daily", "action_type": "dawn_patrol"}\n'
+        f"User message: {req.phrase}"
+    )
+    try:
+        result = await orchestrator.ask(
+            prompt,
+            use_council=False,
+            use_rag=False,
+            subject="guest",
+            persona="sovereign",
+        )
+        if not result.get("success"):
+            return {"success": False, "error": result.get("error", "Parse failed")}
+        raw = result.get("response", "").strip()
+        for start in ("{", "```json"):
+            if start in raw:
+                raw = raw[raw.index(start) :]
+                break
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0]
+        data = json.loads(raw)
+        name = data.get("name") or "routine"
+        time_local = data.get("time_local") or "07:00"
+        recurrence = data.get("recurrence") or "daily"
+        action_type = data.get("action_type") or "dawn_patrol"
+        params = {}
+        if req.report_email:
+            params["report_email"] = req.report_email
+        routine = orchestrator.create_routine(
+            name=name,
+            time_local=time_local,
+            recurrence=recurrence,
+            action_type=action_type,
+            params=params,
+        )
+        return {"success": True, "routine": routine}
+    except json.JSONDecodeError as e:
+        logger.warning("Routine parse JSON failed: %s", e)
+        return {"success": False, "error": f"Could not parse LLM response as JSON: {e}"}
+    except Exception as e:
+        logger.exception("Routines from-phrase failed")
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/routines/{routine_id}/run")
+async def api_run_routine(routine_id: str):
+    """Manually trigger a routine once (e.g. for testing)."""
+    result = await orchestrator.run_routine(routine_id)
+    return result
+
+
 @app.get("/api/docs")
 async def list_docs():
     """List available documentation files from the docs/ directory."""
@@ -1932,7 +2457,9 @@ async def get_doc(slug: str):
 def main():
     """Entry point for the robofang-bridge script."""
     port = int(os.getenv("PORT", 10871))
-    uvicorn.run("robofang.main:app", host="0.0.0.0", port=port, reload=False)
+    # Default 0.0.0.0 for dev/Tailscale; set ROBOFANG_BRIDGE_HOST=127.0.0.1 for localhost-only (production).
+    host = os.getenv("ROBOFANG_BRIDGE_HOST", "0.0.0.0")
+    uvicorn.run("robofang.main:app", host=host, port=port, reload=False)
 
 
 if __name__ == "__main__":

@@ -51,3 +51,9 @@ robofang_test.db
 grafana-data/
 prometheus-data/
 memory/
+
+# Backup / temp (do not commit)
+*.bak
+*_*.md.bak
+llms.txt
+llms-full.txt

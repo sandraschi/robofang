@@ -37,7 +37,10 @@ import {
   ChevronLeft,
   Menu,
   Clock,
-  LayoutDashboard
+  LayoutDashboard,
+  Calendar,
+  Send,
+  Hand
 } from 'lucide-react';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -51,6 +54,7 @@ const navigation = [
     title: 'Get started',
     items: [
       { to: '/onboarding', icon: Rocket, label: 'Onboarding' },
+      { to: '/installer', icon: Boxes, label: 'Fleet Installer' },
     ]
   },
   {
@@ -69,7 +73,9 @@ const navigation = [
     title: 'Management',
     items: [
       { to: '/fleet', icon: Bot, label: 'Fleet Management' },
-      { to: '/installer', icon: Boxes, label: 'Installer' },
+      { to: '/hands', icon: Hand, label: 'Hands' },
+      { to: '/schedule', icon: Calendar, label: 'Schedule' },
+      { to: '/inbox', icon: Send, label: 'Start activity' },
       { to: '/council', icon: Users, label: 'Team' },
       { to: '/deliberations', icon: Scale, label: 'Logic' },
       { to: '/chat', icon: MessageSquare, label: 'Communication Hub' },

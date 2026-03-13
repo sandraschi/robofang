@@ -4,13 +4,13 @@ import {
     Download, CheckCircle2, XCircle, Loader2,
     ChevronRight, ShieldCheck, Box, Terminal, Info
 } from 'lucide-react';
-import { getFleetMarket, installFleetNode, getFleetInstallerStatus, fleetApi } from '../api/fleet';
+import { getFleetCatalog, getFleetInstallerStatus, fleetApi } from '../api/fleet';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface MarketNode {
+interface CatalogNode {
     id: string;
     name: string;
     description: string;
@@ -31,18 +31,25 @@ function registryIdToConnectorId(registryId: string): string {
 }
 
 const Installer: React.FC = () => {
-    const [market, setMarket] = useState<MarketNode[]>([]);
+    const [catalog, setCatalog] = useState<CatalogNode[]>([]);
     const [statuses, setStatuses] = useState<Record<string, InstallStatus>>({});
     const [loading, setLoading] = useState(true);
+    const [catalogError, setCatalogError] = useState<string | null>(null);
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const postInstallDoneRef = useRef<Set<string>>(new Set());
+    const [installModalOpen, setInstallModalOpen] = useState(false);
+    const [installModalLoading, setInstallModalLoading] = useState(false);
+    const [installModalResults, setInstallModalResults] = useState<Array<{ hand_id: string; success: boolean; message?: string }>>([]);
 
-    const fetchMarket = async () => {
+    const fetchCatalog = async () => {
+        setCatalogError(null);
         try {
-            const res = await getFleetMarket();
-            if (res.success && res.market) setMarket(res.market);
+            const res = await getFleetCatalog();
+            if (res.success && res.catalog) setCatalog(res.catalog ?? []);
+            else if (!res.success) setCatalogError('Bridge returned an error.');
         } catch (e) {
-            console.error('Failed to fetch market', e);
+            console.error('Failed to fetch catalog', e);
+            setCatalogError('Cannot reach the bridge. Run start_all.ps1 from repo root (starts bridge on :10871).');
         } finally {
             setLoading(false);
         }
@@ -58,13 +65,13 @@ const Installer: React.FC = () => {
     };
 
     useEffect(() => {
-        fetchMarket();
+        fetchCatalog();
         const timer = setInterval(fetchStatus, 2000);
         return () => clearInterval(timer);
     }, []);
 
     useEffect(() => {
-        market.forEach((node) => {
+        catalog.forEach((node) => {
             const status = statuses[node.id];
             if (status?.status !== 'completed' || postInstallDoneRef.current.has(node.id)) return;
             postInstallDoneRef.current.add(node.id);
@@ -86,10 +93,23 @@ const Installer: React.FC = () => {
     };
 
     const handleInstall = async () => {
-        for (const id of selected) {
-            await installFleetNode(id);
-        }
+        const ids = Array.from(selected);
         setSelected(new Set());
+        setInstallModalOpen(true);
+        setInstallModalLoading(true);
+        setInstallModalResults([]);
+        for (const id of ids) {
+            setStatuses((prev) => ({ ...prev, [id]: { status: 'installing' as const, logs: [] } }));
+        }
+        const { results } = await fleetApi.installMany(ids);
+        setInstallModalLoading(false);
+        setInstallModalResults(results ?? []);
+        (results ?? []).forEach((r) => {
+            const status = r.success ? 'completed' : 'failed';
+            const message = r.message ?? (r.success ? 'Installed' : 'Install failed');
+            setStatuses((prev) => ({ ...prev, [r.hand_id]: { status, logs: [message] } }));
+        });
+        fetchCatalog();
     };
 
     const container = {
@@ -106,9 +126,17 @@ const Installer: React.FC = () => {
     };
 
     const isAnyInstalling = Object.values(statuses).some(s => s.status === 'installing');
+    const failedEntries = Object.entries(statuses).filter(([, s]) => s.status === 'failed');
+    const firstFailedLog = failedEntries[0]?.[1]?.logs?.[0];
 
     return (
         <div className="space-y-10 max-w-7xl mx-auto pb-32">
+            {failedEntries.length > 0 && (
+                <div className="rounded-xl border border-red-500/30 bg-red-950/20 px-4 py-3 text-sm text-red-200">
+                    <p className="font-medium">Install failed: {firstFailedLog ?? "unknown error"}</p>
+                    <p className="mt-1 text-xs text-red-300/80">Ensure the bridge has writable paths. Start the hub with <code className="bg-white/10 px-1 rounded">robofang-hub\start.ps1</code> (it sets ROBOFANG_FLEET_MANIFEST and ROBOFANG_HANDS_DIR). Or check GET /api/fleet/installer-paths on the bridge port.</p>
+                </div>
+            )}
             <header className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
                     <Badge variant="glass" className="bg-indigo-500/10 border-indigo-500/20 text-[9px] font-bold text-indigo-400 uppercase tracking-widest px-3 py-1">
@@ -150,7 +178,18 @@ const Installer: React.FC = () => {
                          <div className="absolute inset-0 rounded-full border-4 border-indigo-500/10" />
                          <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-indigo-500 animate-spin" />
                     </div>
-                    <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.4em] animate-pulse">Querying Central Registry</p>
+                    <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.4em] animate-pulse">Loading server catalog</p>
+                </div>
+            ) : catalog.length === 0 ? (
+                <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 px-6 py-10 text-center space-y-4">
+                    <p className="text-amber-200 font-medium">No server cards to show.</p>
+                    <p className="text-slate-400 text-sm">
+                        {catalogError ?? 'Catalog is empty. Start the RoboFang bridge so the hub can load the installable MCP servers.'}
+                    </p>
+                    <p className="text-slate-500 text-xs">From the repo root run: <code className="bg-black/30 px-1.5 py-0.5 rounded">.\start_all.ps1</code></p>
+                    <Button onClick={() => { setLoading(true); fetchCatalog(); }} variant="outline" className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10">
+                        Retry
+                    </Button>
                 </div>
             ) : (
                 <motion.div
@@ -159,7 +198,7 @@ const Installer: React.FC = () => {
                     animate="show"
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
                 >
-                    {market.map(node => {
+                    {catalog.map(node => {
                         const status = statuses[node.id];
                         const isInstalling = status?.status === 'installing';
                         const isCompleted = status?.status === 'completed';
@@ -264,6 +303,78 @@ const Installer: React.FC = () => {
                                 <span className="text-[9px] text-slate-600 font-bold uppercase tracking-widest">Secure installation active. Do not interrupt substrate link.</span>
                             </CardFooter>
                         </Card>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* Install progress modal: tracks install after Install click, shows exact API error on failure */}
+            <AnimatePresence>
+                {installModalOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+                        onClick={() => !installModalLoading && setInstallModalOpen(false)}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="w-full max-w-lg rounded-2xl border border-slate-700/50 bg-slate-950 shadow-2xl overflow-hidden"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <CardHeader className="px-6 py-4 border-b border-white/[0.06]">
+                                <CardTitle className="text-base font-bold text-white">
+                                    {installModalLoading ? 'Installing...' : 'Install complete'}
+                                </CardTitle>
+                                <CardDescription className="text-xs text-slate-400 mt-1">
+                                    {installModalLoading
+                                        ? 'Cloning and installing dependencies. This may take a few minutes.'
+                                        : 'Review results below.'}
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="px-6 py-4">
+                                {installModalLoading ? (
+                                    <div className="flex items-center gap-4">
+                                        <Loader2 size={24} className="text-indigo-400 animate-spin shrink-0" />
+                                        <span className="text-sm text-slate-300">Running gh clone and dependency install...</span>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-2 font-mono text-sm">
+                                        {installModalResults.map((r) => {
+                                            const name = market.find((n) => n.id === r.hand_id)?.name ?? r.hand_id;
+                                            return (
+                                                <div key={r.hand_id} className="flex items-start gap-2">
+                                                    {r.success ? (
+                                                        <CheckCircle2 size={18} className="text-emerald-400 shrink-0 mt-0.5" />
+                                                    ) : (
+                                                        <XCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
+                                                    )}
+                                                    <div className="min-w-0">
+                                                        <span className="text-white font-medium">{name}</span>
+                                                        <span className={r.success ? ' text-emerald-400' : ' text-red-400'}>
+                                                            {r.success ? ' Success' : ` Failed: ${r.message ?? 'unknown error'}`}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </CardContent>
+                            <CardFooter className="px-6 py-4 border-t border-white/[0.06] flex justify-end">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-slate-600 text-slate-300 hover:bg-slate-800"
+                                    onClick={() => setInstallModalOpen(false)}
+                                    disabled={installModalLoading}
+                                >
+                                    Close
+                                </Button>
+                            </CardFooter>
+                        </motion.div>
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -4,6 +4,7 @@ import asyncio
 import collections
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Set
@@ -14,9 +15,22 @@ from robofang.core.installer import HandInstaller
 from robofang.core.knowledge import KnowledgeEngine
 from robofang.core.lifecycle import LifecycleManager
 from robofang.core.moltbook import MoltbookClient
+from robofang.core.openfang_adapter import resolve as openfang_resolve
 from robofang.core.personality import PersonalityEngine
 from robofang.core.plugins import PluginManager
 from robofang.core.reasoning import ReasoningEngine
+from robofang.core.routines import (
+    create_routine as _create_routine,
+)
+from robofang.core.routines import (
+    list_routines as _list_routines,
+)
+from robofang.core.routines import (
+    mark_run as _mark_routine_run,
+)
+from robofang.core.routines import (
+    should_run_now as _routine_should_run_now,
+)
 from robofang.core.security import SecurityManager
 from robofang.core.security_secrets import SecretsManager
 from robofang.core.skills import SkillManager
@@ -84,9 +98,28 @@ class OrchestrationClient:
         self.hands = HandsManager(self)
 
         # New Core Logic Extensions (RoboFang Evolution)
-        self.installer = HandInstaller(
-            manifest_path=_PKG_ROOT / "fleet_manifest.yaml", hands_base_dir=_PKG_ROOT / "hands"
-        )
+        # Installer paths: env wins; else cwd so install works wherever the bridge is started from.
+        hands_dir_env = os.environ.get("ROBOFANG_HANDS_DIR")
+        manifest_env = os.environ.get("ROBOFANG_FLEET_MANIFEST")
+        if hands_dir_env and manifest_env:
+            manifest_path = Path(manifest_env)
+            hands_base_dir = Path(hands_dir_env)
+            self.logger.info(
+                "Using installer paths from env: manifest=%s hands_dir=%s",
+                manifest_path,
+                hands_base_dir,
+            )
+        else:
+            cwd = Path.cwd()
+            manifest_path = cwd / "fleet_manifest.yaml"
+            hands_base_dir = cwd / "hands"
+            self.logger.info(
+                "Using installer paths from cwd: manifest=%s hands_dir=%s (set ROBOFANG_FLEET_MANIFEST and ROBOFANG_HANDS_DIR to override)",
+                manifest_path,
+                hands_base_dir,
+            )
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        self.installer = HandInstaller(manifest_path=manifest_path, hands_base_dir=hands_base_dir)
         self.lifecycle = LifecycleManager(self)
 
         # Load bundled and specialized hands
@@ -106,6 +139,11 @@ class OrchestrationClient:
         self.journal_bridge = JournalBridge(adn_connector)
         self._tool_registry: Dict[str, Any] = {}
         self._build_tool_bridge()
+        # Optional: set by bridge for routines (yahboom invoke, email send)
+        self._connector_invoker: Optional[Any] = None
+        self._email_sender: Optional[Any] = None
+        # Optional: set by bridge for inbox (process message -> reply text)
+        self._inbox_processor: Optional[Any] = None
 
     def _build_tool_bridge(self):
         """Flattens connectors and skills into a searchable tool registry."""
@@ -314,14 +352,36 @@ class OrchestrationClient:
                 await asyncio.sleep(self.SLOW_INTERVAL_S)
                 if not self.running:
                     break
-                # Inbox check: email connector get_messages if present
+                # Inbox check: email connector get_messages if present; process via bridge processor
                 email_conn = self.connectors.get("email")
                 if email_conn and getattr(email_conn, "active", False):
                     try:
                         messages = await email_conn.get_messages(limit=20)
-                        if messages:
+                        if messages and self._inbox_processor:
+                            for msg in messages:
+                                body = (
+                                    msg.get("body") or msg.get("text")
+                                    if isinstance(msg, dict)
+                                    else str(msg)
+                                )
+                                if not body:
+                                    continue
+                                try:
+                                    reply = await self._inbox_processor(body)
+                                    self.logger.info(
+                                        "[ORCHESTRATOR] Inbox processed, reply: %s", reply[:80]
+                                    )
+                                    if (
+                                        getattr(email_conn, "reply", None)
+                                        and isinstance(msg, dict)
+                                        and msg.get("id")
+                                    ):
+                                        await email_conn.reply(msg["id"], reply)
+                                except Exception as e:
+                                    self.logger.warning("Inbox message process failed: %s", e)
+                        elif messages:
                             self.logger.info(
-                                "[ORCHESTRATOR] Inbox poll: %d message(s).",
+                                "[ORCHESTRATOR] Inbox poll: %d message(s) (no processor).",
                                 len(messages),
                             )
                     except Exception as e:
@@ -347,8 +407,8 @@ class OrchestrationClient:
         result = self.installer.install(hand_id)
         if result["success"]:
             # Reload hands to discover the new one
-            hands_dir = _PKG_ROOT / "hands" / hand_id
-            self.hands.load_hands_from_dir(str(hands_dir.parent))
+            base = self.installer.hands_base_dir
+            self.hands.load_hands_from_dir(str(base))
         return result
 
     async def ask(
@@ -441,6 +501,24 @@ class OrchestrationClient:
     ) -> Dict[str, Any]:
         """Gateway for agentic tool execution with optional Council Approval Gate."""
         if tool_name not in self._tool_registry:
+            # OpenFang adapter: map hand tool names to MCP connector + tool
+            resolved = openfang_resolve(tool_name)
+            if resolved and self._connector_invoker:
+                connector_id, mcp_tool_name = resolved
+                try:
+                    result = await self._connector_invoker(
+                        connector_id, mcp_tool_name, kwargs or {}
+                    )
+                    return result if isinstance(result, dict) else {"success": True, "data": result}
+                except Exception as e:
+                    self.logger.error(
+                        "OpenFang adapter invoke failed (%s -> %s/%s): %s",
+                        tool_name,
+                        connector_id,
+                        mcp_tool_name,
+                        e,
+                    )
+                    return {"success": False, "error": str(e)}
             return {
                 "success": False,
                 "error": f"Tool '{tool_name}' not found in bridge.",
@@ -642,3 +720,123 @@ class OrchestrationClient:
             # Re-build tool bridge
             self._build_tool_bridge()
         return success
+
+    # --- Routines (scheduled actions: dawn patrol, etc.) ---
+
+    def list_routines(self) -> List[Dict[str, Any]]:
+        return _list_routines(self.storage)
+
+    def create_routine(
+        self,
+        name: str,
+        time_local: str,
+        recurrence: str,
+        action_type: str,
+        params: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        return _create_routine(self.storage, name, time_local, recurrence, action_type, params)
+
+    def routine_should_run_now(self, routine: Dict[str, Any]) -> bool:
+        return _routine_should_run_now(routine)
+
+    async def run_routine(self, routine_id: str) -> Dict[str, Any]:
+        """Execute a routine by id. Dispatches by action_type (e.g. dawn_patrol)."""
+        routines = _list_routines(self.storage)
+        routine = next((r for r in routines if r.get("id") == routine_id), None)
+        if not routine:
+            return {"success": False, "error": f"Routine {routine_id} not found"}
+        action_type = routine.get("action_type", "")
+        if action_type == "dawn_patrol":
+            result = await self._run_dawn_patrol(routine)
+        else:
+            result = {"success": False, "error": f"Unknown action_type: {action_type}"}
+        if result.get("success"):
+            _mark_routine_run(self.storage, routine_id)
+        return result
+
+    async def _run_dawn_patrol(self, routine: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Yahboom robocar patrol with video, analyze for unusual activity, email report.
+        Requires _connector_invoker and _email_sender to be set by the bridge.
+        """
+        from datetime import datetime
+
+        params = routine.get("params") or {}
+        report_email = params.get("report_email") or self.storage.get_secret("comms_report_email")
+        started = datetime.utcnow().isoformat() + "Z"
+
+        # 1. Invoke yahboom patrol (with record); connector may expose patrol + record
+        video_path: Optional[str] = None
+        patrol_out: Dict[str, Any] = {}
+        if self._connector_invoker:
+            try:
+                patrol_out = await self._connector_invoker(
+                    "yahboom",
+                    "patrol_with_recording",
+                    {"duration_sec": params.get("duration_sec", 120)},
+                )
+                if isinstance(patrol_out, dict):
+                    video_path = patrol_out.get("video_path") or patrol_out.get("video_url")
+            except Exception as e:
+                self.logger.warning("Yahboom patrol invoker failed: %s", e)
+                patrol_out = {"error": str(e)}
+        else:
+            patrol_out = {"skipped": "no connector invoker configured"}
+
+        # 2. Analyze video for unusual activity (stub or vision LLM)
+        unusual = False
+        analysis_summary = "No analysis available (vision not run)."
+        if video_path and self.reasoning:
+            try:
+                analysis_summary = await self._analyze_patrol_video(video_path)
+                unusual = (
+                    "unusual" in analysis_summary.lower() or "anomaly" in analysis_summary.lower()
+                )
+            except Exception as e:
+                analysis_summary = f"Analysis error: {e}"
+        elif not video_path:
+            analysis_summary = "No video path returned from patrol. Run with connector invoker and yahboom backend."
+
+        # 3. Build report
+        report_lines = [
+            "Dawn Patrol Report",
+            f"Started: {started}",
+            f"Routine: {routine.get('name', 'dawn_patrol')}",
+            "",
+            "Patrol: " + (json.dumps(patrol_out) if patrol_out else "not run"),
+            "",
+            "Analysis: " + analysis_summary,
+            "",
+            f"Unusual activity: {'Yes' if unusual else 'No'}",
+        ]
+        report_body = "\n".join(report_lines)
+
+        # 4. Send email if sender configured
+        if self._email_sender and report_email:
+            try:
+                await self._email_sender(
+                    to=report_email,
+                    subject=f"Dawn Patrol Report {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                    body=report_body,
+                )
+            except Exception as e:
+                self.logger.warning("Email send failed: %s", e)
+                report_body += f"\n\n(Email send failed: {e})"
+        else:
+            self.logger.info("Dawn patrol report (no email): %s", report_body[:200])
+
+        return {
+            "success": True,
+            "started": started,
+            "patrol": patrol_out,
+            "analysis": analysis_summary,
+            "unusual": unusual,
+            "report_sent": bool(self._email_sender and report_email),
+        }
+
+    async def _analyze_patrol_video(self, video_path: str) -> str:
+        """Stub: in production call vision model or motion detector. Returns summary."""
+        # Placeholder: could POST frames to Ollama vision or run opencv motion check
+        return (
+            "Video analysis placeholder. Integrate vision model or motion detector for production."
+        )

@@ -83,6 +83,8 @@ class HandDefinition(BaseModel):
     settings: List[HandSetting] = Field(default_factory=list)
     agent: HandAgentConfig
     dashboard: HandDashboard = Field(default_factory=HandDashboard)
+    # Optional SKILL.md content (OpenFang-compatible); injected into context at runtime
+    skill_content: Optional[str] = None
 
 
 def load_hand_definition(path: str) -> HandDefinition:

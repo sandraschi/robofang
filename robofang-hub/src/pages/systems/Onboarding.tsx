@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Rocket, Shield, Cpu, MessageSquare, 
-  Plus, CheckCircle2, ChevronRight, HelpCircle,
+  CheckCircle2, ChevronRight, Plus, Loader2, XCircle,
   Terminal, Globe, ExternalLink, Zap
 } from 'lucide-react';
 import GlassCard from '../../components/ui/GlassCard';
@@ -74,11 +74,7 @@ const Onboarding: React.FC = () => {
             transition={{ duration: 0.3 }}
           >
             {activeStep === 0 && <WelcomeStep onNext={() => setActiveStep(1)} />}
-            {activeStep === 1 && <NodeRegistrationStep 
-                onNext={() => setActiveStep(2)} 
-                setIsSubmitting={setIsSubmitting}
-                setSuccess={setSuccess}
-            />}
+            {activeStep === 1 && <NodeRegistrationStep onNext={() => setActiveStep(2)} setSuccess={setSuccess} />}
             {activeStep === 2 && <CommsSetupStep 
                 onNext={() => setActiveStep(3)} 
                 setIsSubmitting={setIsSubmitting}
@@ -161,7 +157,7 @@ interface CatalogHand {
   name: string;
   category: string;
   description: string;
-  repo_url: string;
+  repo_url?: string;
 }
 
 interface InstallResult {
@@ -170,14 +166,15 @@ interface InstallResult {
   message?: string;
 }
 
-const NodeRegistrationStep = ({ onNext, setIsSubmitting, setSuccess }: any) => {
-  const [hands, setHands] = useState<CatalogHand[]>([]);
+const NodeRegistrationStep = ({ onNext, setSuccess }: any) => {
+  const [catalog, setCatalog] = useState<CatalogHand[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [installing, setInstalling] = useState(false);
-  const [lastResults, setLastResults] = useState<InstallResult[]>([]);
-  const [launching, setLaunching] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalLoading, setModalLoading] = useState(false);
+  const [modalResults, setModalResults] = useState<InstallResult[]>([]);
 
   const fetchCatalog = React.useCallback(() => {
     setLoadError(false);
@@ -189,7 +186,7 @@ const NodeRegistrationStep = ({ onNext, setIsSubmitting, setSuccess }: any) => {
       })
       .then((data) => {
         if (data.success && Array.isArray(data.hands)) {
-          setHands(data.hands.filter((h: CatalogHand) => h.repo_url));
+          setCatalog(data.hands.filter((h: CatalogHand) => h.repo_url || h.id));
         } else {
           setLoadError(true);
         }
@@ -198,9 +195,7 @@ const NodeRegistrationStep = ({ onNext, setIsSubmitting, setSuccess }: any) => {
       .finally(() => setLoading(false));
   }, []);
 
-  React.useEffect(() => {
-    fetchCatalog();
-  }, [fetchCatalog]);
+  React.useEffect(() => { fetchCatalog(); }, [fetchCatalog]);
 
   const toggle = (id: string) => {
     setSelected((prev) => {
@@ -211,53 +206,38 @@ const NodeRegistrationStep = ({ onNext, setIsSubmitting, setSuccess }: any) => {
     });
   };
 
-  const selectAll = () => setSelected(new Set(hands.map((h) => h.id)));
+  const selectAll = () => setSelected(new Set(catalog.map((h) => h.id)));
   const clearAll = () => setSelected(new Set());
 
   const handleInstall = async () => {
     if (selected.size === 0) return;
+    const ids = Array.from(selected);
+    setModalOpen(true);
+    setModalLoading(true);
+    setModalResults([]);
     setInstalling(true);
     try {
-      const toInstall = hands.filter((h) => selected.has(h.id)).map((h) => ({
-        id: h.id,
-        name: h.name,
-        category: h.category,
-        description: h.description,
-        repo_url: h.repo_url,
-      }));
-      const response = await fetch('/api/fleet/onboard-from-github', {
+      const res = await fetch('/api/fleet/onboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items: toInstall }),
+        body: JSON.stringify({ hand_ids: ids }),
       });
-      const data = await response.json();
-      if (data.success && data.results?.length) {
-        setLastResults(data.results);
-        const ok = data.results.filter((r: { success: boolean }) => r.success).length;
-        setSuccess(`Installed ${ok} of ${selected.size} from GitHub.`);
-        setSelected(new Set());
-      }
+      const data = await res.json();
+      const results = data.results ?? [];
+      setModalLoading(false);
+      setModalResults(results);
+      const ok = results.filter((r: InstallResult) => r.success).length;
+      if (ok > 0) setSuccess(`Installed ${ok} of ${ids.length} MCP servers.`);
+      setSelected(new Set());
     } catch (err) {
-      console.error(err);
+      setModalLoading(false);
+      setModalResults(ids.map((hand_id) => ({ hand_id, success: false, message: (err as Error)?.message ?? 'Request failed' })));
     } finally {
       setInstalling(false);
     }
   };
 
-  const launchWebapp = async (handId: string) => {
-    setLaunching(handId);
-    try {
-      const r = await fetch(`/api/fleet/launch-hand/${encodeURIComponent(handId)}`, { method: 'POST' });
-      const data = await r.json();
-      if (data.success) setSuccess(`Launched webapp: ${handId}`);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLaunching(null);
-    }
-  };
-
-  const byCategory = hands.reduce<Record<string, CatalogHand[]>>((acc, h) => {
+  const byCategory = catalog.reduce<Record<string, CatalogHand[]>>((acc, h) => {
     const c = h.category || 'Other';
     if (!acc[c]) acc[c] = [];
     acc[c].push(h);
@@ -269,7 +249,7 @@ const NodeRegistrationStep = ({ onNext, setIsSubmitting, setSuccess }: any) => {
       <header className="flex items-center justify-between flex-wrap gap-4">
         <div className="space-y-1">
           <h2 className="text-2xl font-black text-white tracking-tight">Add to fleet</h2>
-          <p className="text-zinc-500 text-xs font-medium">Select MCP servers to install from GitHub (clone + setup). You can add more later from Fleet.</p>
+          <p className="text-zinc-500 text-xs font-medium">Select MCP servers to install (clone from GitHub + deps).</p>
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={selectAll} className="text-xs font-bold text-amber-400 hover:underline uppercase tracking-widest">Select all</button>
@@ -280,20 +260,12 @@ const NodeRegistrationStep = ({ onNext, setIsSubmitting, setSuccess }: any) => {
 
       {loading ? (
         <div className="py-12 text-center text-zinc-500 text-sm">Loading catalog…</div>
-      ) : loadError || hands.length === 0 ? (
+      ) : loadError || catalog.length === 0 ? (
         <div className="py-12 px-6 text-center space-y-4">
           <p className="text-sm text-zinc-400">
-            {loadError
-              ? 'Cannot reach the RoboFang bridge. Start the bridge first (e.g. from the repo run the bridge on port 10871), then click Retry.'
-              : 'No catalog entries. The bridge may not have loaded the fleet manifest.'}
+            {loadError ? 'Cannot reach the bridge. Run start_all.ps1 from repo root, then Retry.' : 'No catalog entries.'}
           </p>
-          <button
-            type="button"
-            onClick={fetchCatalog}
-            className="px-4 py-2 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-bold hover:bg-amber-500/30 transition-colors"
-          >
-            Retry
-          </button>
+          <button type="button" onClick={fetchCatalog} className="px-4 py-2 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-bold hover:bg-amber-500/30">Retry</button>
         </div>
       ) : (
         <div className="space-y-6">
@@ -334,40 +306,56 @@ const NodeRegistrationStep = ({ onNext, setIsSubmitting, setSuccess }: any) => {
               {installing ? 'Installing…' : `Install ${selected.size} selected`}
             </button>
           </div>
-
-          {lastResults.length > 0 && (
-            <div className="pt-6 border-t border-white/10 space-y-3">
-              <h3 className="text-sm font-bold text-white">Recently installed</h3>
-              <div className="flex flex-wrap gap-2">
-                {lastResults.filter((r) => r.success).map((r) => (
-                  <div key={r.hand_id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10">
-                    <span className="text-sm text-white">{r.hand_id}</span>
-                    <button
-                      type="button"
-                      onClick={() => launchWebapp(r.hand_id)}
-                      disabled={launching === r.hand_id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-amber-500/20 text-amber-400 text-sm font-bold hover:bg-amber-500/30 disabled:opacity-50"
-                    >
-                      <Globe size={14} />
-                      {launching === r.hand_id ? '…' : 'Webapp'}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       )}
 
       <div className="pt-6 border-t border-white/5 flex justify-end">
-        <button
-          onClick={onNext}
-          className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-widest hover:text-amber-400 transition-colors"
-        >
-          Skip / Continue
-          <ChevronRight size={14} />
+        <button onClick={onNext} className="flex items-center gap-2 text-xs font-black text-white uppercase tracking-widest hover:text-amber-400 transition-colors">
+          Skip / Continue <ChevronRight size={14} />
         </button>
       </div>
+
+      {/* Install progress modal */}
+      <AnimatePresence>
+        {modalOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={() => !modalLoading && setModalOpen(false)}>
+            <motion.div initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} className="w-full max-w-lg rounded-2xl border border-white/10 bg-zinc-950 shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
+              <div className="px-6 py-4 border-b border-white/10">
+                <h3 className="text-base font-bold text-white">{modalLoading ? 'Installing…' : 'Install complete'}</h3>
+                <p className="text-xs text-zinc-400 mt-1">{modalLoading ? 'Cloning and installing dependencies. This may take a few minutes.' : 'Review results below.'}</p>
+              </div>
+              <div className="px-6 py-4">
+                {modalLoading ? (
+                  <div className="flex items-center gap-4">
+                    <Loader2 size={24} className="text-amber-400 animate-spin shrink-0" />
+                    <span className="text-sm text-zinc-300">Running gh clone and dependency install…</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2 font-mono text-sm">
+                    {modalResults.map((r) => {
+                      const name = catalog.find((h) => h.id === r.hand_id)?.name ?? r.hand_id;
+                      return (
+                        <div key={r.hand_id} className="flex items-start gap-2">
+                          {r.success ? <CheckCircle2 size={18} className="text-emerald-400 shrink-0 mt-0.5" /> : <XCircle size={18} className="text-red-400 shrink-0 mt-0.5" />}
+                          <div className="min-w-0">
+                            <span className="text-white font-medium">{name}</span>
+                            <span className={r.success ? ' text-emerald-400' : ' text-red-400'}>
+                              {r.success ? ' Success' : ` Failed: ${r.message ?? 'unknown error'}`}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+              <div className="px-6 py-4 border-t border-white/10 flex justify-end">
+                <button type="button" className="px-4 py-2 rounded-xl border border-white/20 text-zinc-300 text-sm font-bold hover:bg-white/10 disabled:opacity-50" onClick={() => setModalOpen(false)} disabled={modalLoading}>Close</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </GlassCard>
   );
 };

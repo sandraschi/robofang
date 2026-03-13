@@ -16,6 +16,9 @@ foreach ($p in $pids) {
 Write-Host "[2/4] Starting Supervisor (and bridge) ..." -ForegroundColor Cyan
 $env:PYTHONPATH = "$RepoRoot\src;$env:PYTHONPATH"
 $env:PORT = "10871"
+# Force Fleet Installer to use repo paths (fixes 'hands empty' when package root differs)
+$env:ROBOFANG_FLEET_MANIFEST = "$RepoRoot\fleet_manifest.yaml"
+$env:ROBOFANG_HANDS_DIR = "$RepoRoot\hands"
 $SupLog = "D:\Dev\repos\temp\supervisor_hub_$(Get-Date -Format 'HHmmss').log"
 if (-not (Test-Path "D:\Dev\repos\temp")) { New-Item -ItemType Directory -Force -Path "D:\Dev\repos\temp" | Out-Null }
 

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 
 const SUPERVISOR_URL = 'http://localhost:10872';
-const BRIDGE_URL = 'http://localhost:10871';
+/** Same-origin so Vite proxy (/api -> bridge :10871) works; avoids CORS. */
+const BRIDGE_URL = '';
 
 export interface AgentInfo {
   id: string;
@@ -100,27 +101,76 @@ export const fleetApi = {
         const response = await fetch(`${SUPERVISOR_URL}/fleet/onboard/${agentId}`, { method: 'POST' });
         return await response.json();
     },
-    getMarket: async () => {
+    /** Catalog of installable MCP servers (bridge returns list with id, name, port, repo_path, etc.). */
+    getCatalog: async () => {
         try {
-            const res = await fetch(`${SUPERVISOR_URL}/supervisor/fleet/market`);
-            return await res.json();
+            const res = await fetch(`${BRIDGE_URL}/api/fleet/installer-catalog`);
+            const data = await res.json();
+            const list = res.ok && data.catalog ? data.catalog : [];
+            return { success: res.ok && data.success !== false, catalog: list };
         } catch {
-            console.error('Failed to fetch market');
-            return { success: true, market: [] };
+            console.error('Failed to fetch catalog');
+            return { success: false, catalog: [] };
         }
     },
+    /** Install selected hand(s) via bridge onboard (clone + deps + install script). Returns full response with results array. */
     install: async (nodeId: string) => {
-        const res = await fetch(`${SUPERVISOR_URL}/supervisor/fleet/install`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: nodeId })
-        });
-        return await res.json();
+        try {
+            const res = await fetch(`${BRIDGE_URL}/api/fleet/onboard`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hand_ids: [nodeId] })
+            });
+            const data = await res.json();
+            if (!res.ok) return { success: false, error: data?.detail ?? 'Install failed', results: [] };
+            const result = data.results?.[0];
+            return {
+                success: result?.success ?? data.success,
+                message: result?.message ?? data.message,
+                error: result?.success === false ? result?.message : undefined,
+                results: data.results ?? []
+            };
+        } catch (e) {
+            return { success: false, error: (e as Error)?.message ?? 'Request failed', results: [] };
+        }
+    },
+    /** Install multiple hands in one request. Returns { success, results: Array<{ hand_id, success, message }> }. */
+    installMany: async (handIds: string[]) => {
+        try {
+            const res = await fetch(`${BRIDGE_URL}/api/fleet/onboard`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ hand_ids: handIds })
+            });
+            const data = await res.json();
+            const results = data.results ?? [];
+            const allOk = res.ok && data.success && results.every((r: { success?: boolean }) => r.success !== false);
+            return {
+                success: allOk,
+                message: data.message,
+                results: results as Array<{ hand_id: string; success: boolean; message?: string }>
+            };
+        } catch (e) {
+            return {
+                success: false,
+                message: (e as Error)?.message ?? 'Request failed',
+                results: handIds.map(id => ({ hand_id: id, success: false, message: (e as Error)?.message }))
+            };
+        }
     },
     getInstallerStatus: async () => {
         try {
-            const res = await fetch(`${SUPERVISOR_URL}/supervisor/fleet/status`);
-            return await res.json();
+            const res = await fetch(`${BRIDGE_URL}/api/fleet/catalog`);
+            const data = await res.json();
+            if (!res.ok || !data.success) return { success: true, status: {} };
+            const status: Record<string, { status: string; logs: string[] }> = {};
+            for (const h of data.hands ?? []) {
+                status[h.id] = {
+                    status: h.installed ? 'completed' : 'idle',
+                    logs: []
+                };
+            }
+            return { success: true, status };
         } catch {
             console.error('Failed to fetch install status');
             return { success: true, status: {} };
@@ -171,8 +221,7 @@ export const fleetApi = {
     }
 };
 
-// Legacy exports for smoother migration
-export const getFleetMarket = fleetApi.getMarket;
+export const getFleetCatalog = fleetApi.getCatalog;
 export const installFleetNode = fleetApi.install;
 export const getFleetInstallerStatus = fleetApi.getInstallerStatus;
 export const getAgents = fleetApi.getAgents;

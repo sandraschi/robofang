@@ -3,7 +3,7 @@ Bridge fleet and install-flow API tests.
 Uses mocked orchestrator (see conftest); no real config or external services.
 """
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 def test_fleet_returns_200_and_shape(client):
@@ -113,3 +113,60 @@ def test_fleet_add_from_external_docker_returns_501(client):
         json={"source": "docker", "id": "some-image"},
     )
     assert r.status_code == 501
+
+
+# --- MCP server install from GitHub (onboard / onboard-from-github) ---
+
+
+def test_fleet_onboard_empty_hand_ids(client):
+    r = client.post("/api/fleet/onboard", json={"hand_ids": []})
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("success") is True
+    assert data.get("results") == []
+
+
+def test_fleet_onboard_from_github_empty_items(client):
+    r = client.post("/api/fleet/onboard-from-github", json={"items": []})
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("success") is True
+    assert data.get("results") == []
+
+
+def test_fleet_onboard_from_github_with_repo_url(client):
+    """Install MCP from GitHub by repo_url: add to manifest then onboard (mocked)."""
+    r = client.post(
+        "/api/fleet/onboard-from-github",
+        json={
+            "items": [
+                {
+                    "repo_url": "https://github.com/owner/my-mcp",
+                    "id": "my-mcp",
+                    "name": "My MCP",
+                    "category": "Other",
+                }
+            ]
+        },
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("success") is True
+    assert "results" in data
+    assert len(data["results"]) == 1
+    assert data["results"][0].get("hand_id") == "my-mcp"
+    assert data["results"][0].get("success") is True
+
+
+@patch("robofang.main.orchestrator")
+def test_fleet_onboard_catalog_id_adds_then_installs(mock_orch, client):
+    """Onboard with hand_id from catalog: get_manifest empty so add to manifest then onboard (mocked)."""
+    mock_orch.installer = MagicMock()
+    mock_orch.installer.get_manifest.return_value = []
+    mock_orch.installer.add_hand_to_manifest = lambda *a, **k: None
+    mock_orch.onboard_hand = AsyncMock(return_value={"success": True, "message": "Installed"})
+    r = client.post("/api/fleet/onboard", json={"hand_ids": ["ring-mcp"]})
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("success") is True
+    assert any(r.get("hand_id") == "ring-mcp" and r.get("success") for r in data.get("results", []))

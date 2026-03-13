@@ -14,10 +14,10 @@ export default defineConfig({
     port: 10870,
     host: true,
     proxy: {
-      '/api': {
-        target: 'http://127.0.0.1:10871',
-        changeOrigin: true,
-      },
+      '/api': { target: 'http://127.0.0.1:10871', changeOrigin: true },
+      '/fleet': { target: 'http://127.0.0.1:10871', changeOrigin: true },
+      '/topology': { target: 'http://127.0.0.1:10871', changeOrigin: true },
+      '/logs': { target: 'http://127.0.0.1:10871', changeOrigin: true },
     },
   },
 })
