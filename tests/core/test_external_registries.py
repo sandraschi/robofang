@@ -1,6 +1,7 @@
 """Unit tests for external_registries (normalize_github_repo_url, discover_docker)."""
 
 import pytest
+
 from robofang.core.external_registries import discover_docker, normalize_github_repo_url
 
 
