@@ -13,11 +13,14 @@ In the RoboFang ecosystem, **Model Context Protocol (MCP)** is more than just a 
 ## 2. FastMCP 3.1 Standards
 
 All RoboFang MCP servers MUST be built using **FastMCP 3.1**. This standard ensures:
+- **Dual Transport (mandatory)**: One process serves **stdio** (for Cursor/Claude) and **HTTP** (for webapp/bridge) in the same event loop. Run uvicorn in an asyncio task and `await mcp.run_stdio_async()`. No "HTTP-only" or "stdio-only" servers for new builds.
 - **Conversational Tool Returns**: Tools return rich, multi-modal objects (Markdown, Images, JSON) that the agent can reason over in a dialogic loop.
 - **Portmanteau Tool Design**: To prevent tool explosion, we utilize consolidated tools with an `operation` parameter. 
   - *Bad*: `get_battery()`, `get_temperature()`, `get_signal()`.
   - *Good*: `get_telemetry(operation='battery')`.
-- **Sampling Capabilities**: Servers are "sampling-aware," allowing them to orchestrate sub-agents or complex multi-tool workflows autonomously.
+- **Agentic workflow tools (SEP-1577, mandatory)**: Servers MUST expose at least one agentic workflow tool that uses **sampling** (FastMCP 3.1 `ctx.sample()` / sampling with tools). This allows the client LLM to orchestrate multi-step or multi-tool workflows autonomously. Servers are "sampling-aware"; complex operations MUST use sampling where appropriate rather than single-shot tool returns only.
+
+**Canonical build standard:** `docs/standards/AGENT_PROTOCOLS.md` (FastMCP 3.1+ and SOTA requirements). Do not follow outdated 2.14.x-only guides.
 
 ## 3. Fleet Discovery & Mesh Topology
 

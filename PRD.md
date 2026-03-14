@@ -54,7 +54,7 @@ The practical consequence is that sentience research — running thousands of PE
 
 ### Backend Stack
 
-The server layer is built on **FastMCP 2.14.4+** (Python), which provides the sampling, portmanteau, and conversational tool return patterns required for Council orchestration. `pywinauto` handles legacy UI automation for desktop applications (VRoid Studio, Unity Editor) that lack API interfaces. All services expose both stdio (MCP protocol) and HTTP/WebSocket endpoints, with the HTTP surface serving the Sovereign Dashboard and external integrations.
+The server layer is built on **FastMCP 3.1+** (Python), which provides dual transport (stdio + HTTP), sampling, portmanteau, and conversational tool return patterns required for Council orchestration. `pywinauto` handles legacy UI automation for desktop applications (VRoid Studio, Unity Editor) that lack API interfaces. All services expose both stdio (MCP protocol) and HTTP/WebSocket endpoints, with the HTTP surface serving the Sovereign Dashboard and external integrations.
 
 ### Simulation Stack
 

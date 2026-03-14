@@ -89,9 +89,8 @@ Servers using 16 removed `FastMCP()` constructor kwargs (unlikely — most had d
 
 ## Recommended Fleet Upgrade Approach
 
-### Phase 1 — Update SOTA_STANDARDS.md (1 day)
-Update the fleet standard from `fastmcp>=2.14.5` to `fastmcp>=3.0.0`.
-Update WEBAPP_SOTA_STANDARDS.md references.
+### Phase 1 — Update standards (done)
+Fleet standard is **FastMCP 3.1+** with **dual transport** (stdio + HTTP in one process). See `docs/MCP_SERVERS.md` and `standards/AGENT_PROTOCOLS.md`. Use `fastmcp>=3.1` in pyproject.toml.
 
 ### Phase 2 — Gold Standard servers first (1 day each)
 Upgrade and test in order of importance:
