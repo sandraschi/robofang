@@ -17,6 +17,7 @@ import {
   Users,
   Scale,
   MessageSquare,
+  MessageCircle,
   Waves,
   Search,
   Zap,
@@ -79,6 +80,7 @@ const navigation = [
       { to: '/council', icon: Users, label: 'Team' },
       { to: '/deliberations', icon: Scale, label: 'Logic' },
       { to: '/chat', icon: MessageSquare, label: 'Communication Hub' },
+      { to: '/forum', icon: MessageCircle, label: 'Private forum' },
       { to: '/timeline', icon: Clock, label: 'Event History' },
       { to: '/agents', icon: Waves, label: 'Agents' },
     ]

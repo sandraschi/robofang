@@ -32,7 +32,31 @@ class ReasoningEngine:
             self.default_model = "llama3"  # Default if not using ollama env config
 
         self.federation_config = federation_config or {}
+        _lm = (os.getenv("LMSTUDIO_URL") or "").strip()
+        self.lmstudio_url = _lm if _lm else None  # e.g. http://127.0.0.1:1234
         self.client = httpx.AsyncClient(timeout=60.0)
+
+    async def _ask_lmstudio(
+        self, prompt: str, system_prompt: Optional[str], model: str
+    ) -> Dict[str, Any]:
+        """OpenAI-compatible chat completions against LM Studio (when running)."""
+        base = self.lmstudio_url.rstrip("/")
+        url = f"{base}/v1/chat/completions"
+        messages: List[Dict[str, str]] = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+        payload = {"model": model, "messages": messages, "stream": False}
+        try:
+            resp = await self.client.post(url, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+            choice = (data.get("choices") or [None])[0]
+            content = (choice.get("message") or {}).get("content", "") if choice else ""
+            return {"success": True, "response": content, "model": model}
+        except Exception as e:
+            logger.debug(f"LM Studio request failed: {e}")
+            return {"success": False, "error": str(e)}
 
     async def close(self):
         await self.client.aclose()
@@ -83,7 +107,14 @@ class ReasoningEngine:
                     "model": f"{remote_node}:{model}",
                 }
 
-            # Local execution
+            # Local execution: try LM Studio first when configured (glom on when running)
+            if self.lmstudio_url:
+                out = await self._ask_lmstudio(prompt, system_prompt, model)
+                if out.get("success"):
+                    logger.info(f"LLM LM Studio: model={model}")
+                    return out
+                logger.debug(f"LM Studio unavailable, falling back to Ollama: {out.get('error')}")
+
             payload = {
                 "model": model,
                 "prompt": prompt,
@@ -108,28 +139,42 @@ class ReasoningEngine:
             return {"success": False, "error": str(e)}
 
     async def council_synthesis(
-        self, prompt: str, council_members: Optional[List[str]] = None
+        self,
+        prompt: str,
+        council_members: Optional[List[str]] = None,
+        devil_advocate_index: Optional[int] = None,
     ) -> Dict[str, Any]:
         """
         [PHASE 5.2] Multi-agent adjudication/synthesis.
         Runs N parallel agents and synthesises with a Satisficer.
+        If devil_advocate_index is set, that member gets an adversarial prompt (argue against / stress-test).
         """
         # Use environment variable for council members if not provided
         if council_members is None:
             COUNCIL_MEMBERS_RAW = os.getenv("COUNCIL_MEMBERS", "llama3.2:3b,deepseek-r1:8b")
             council_members = [m.strip() for m in COUNCIL_MEMBERS_RAW.split(",")]
 
-        logger.info(f"Council of Dozens invoked with {len(council_members)} members.")
+        logger.info(
+            "Council of Dozens invoked with %s members (devil_advocate_index=%s).",
+            len(council_members),
+            devil_advocate_index,
+        )
 
-        # Resolve node mapping if available
-        # Format: "model@node" or just "model" (local)
+        devil_prompt = (
+            "You are the Advocatus Diaboli (devil's advocate). Your role is to argue *against* the request and stress-test it. "
+            "List risks, counterarguments, and alternative views. Do not simply agree. "
+            "USER REQUEST:\n\n" + prompt
+        )
+
+        # Resolve node mapping if available; optional adversarial prompt for one member
         tasks = []
-        for member in council_members:
+        for i, member in enumerate(council_members):
+            use_prompt = devil_prompt if i == devil_advocate_index else prompt
             if "@" in member:
                 m, n = member.split("@")
-                tasks.append(self.ask(prompt, model=m, node=n))
+                tasks.append(self.ask(use_prompt, model=m, node=n))
             else:
-                tasks.append(self.ask(prompt, model=member))
+                tasks.append(self.ask(use_prompt, model=member))
 
         results = await asyncio.gather(*tasks)
 
@@ -139,13 +184,19 @@ class ReasoningEngine:
                 valid_responses.append(f"AGENT {council_members[i]}:\n{r['response']}")
 
         if not valid_responses:
-            return {"success": False, "error": "All council members failed to respond."}
+            err_parts = ["All council members failed to respond."]
+            if results and any(not r.get("success") for r in results):
+                err_parts.append(
+                    "Ensure Ollama is running (OLLAMA_URL) or LM Studio (LMSTUDIO_URL), and at least one council model is available."
+                )
+            return {"success": False, "error": " ".join(err_parts)}
 
-        # Adjudication/Synthesis step
+        # Adjudication/Synthesis step (one perspective may be devil's advocate)
         synthesis_prompt = (
             "You are the Equilibrium Synthesizer for the Council of Dozens.\n"
             "Below are the perspectives from our federated agents on the user request.\n"
-            "Synthesize them into a single, industrial-grade, sovereign response.\n\n"
+            "One perspective may be the Advocatus Diaboli (arguing against); weigh it for risks and alternatives, then synthesize.\n"
+            "Produce a single, industrial-grade, sovereign response.\n\n"
             f"USER REQUEST: {prompt}\n\n"
             "COUNCIL DEBATE:\n" + "\n\n---\n\n".join(valid_responses)
         )
@@ -181,9 +232,9 @@ class ReasoningEngine:
                     "Use the following XML tags for your internal process:\n"
                     "<thought>: Your reductionist reasoning about the task.\n"
                     "<call name='tool_name'>: Request to execute a tool. Arguments should be in the tag body or as attributes.\n\n"
-                    "AVAILABLE TOOLS:\n"
-                    + json.dumps(tools, indent=2)
-                    + "\n\nAlways close your tags. Output a final answer without tags when complete."
+                    "AVAILABLE TOOLS:\n" + json.dumps(tools, indent=2) + "\n\n"
+                    "For complex multi-step goals in a domain (e.g. VMs, media, robotics), prefer calling that server's agentic_workflow or intelligent_* tool with a clear goal; FastMCP 3.1 servers support sampling and multi-step execution.\n"
+                    "Always close your tags. Output a final answer without tags when complete."
                 ),
             }
         ]
@@ -258,20 +309,39 @@ class ReasoningEngine:
         )
 
         member_roles = member_roles or {}
+        n = len(council_members)
 
-        # 1. Collect Votes with Specialized Personas
+        # 1. Collect Votes with Specialized Personas (one can be Advocatus Diaboli)
         tasks = []
-        for member in council_members:
+        devil_role = "Advocatus Diaboli (argue against approval; list risks and counterarguments)"
+        for i, member in enumerate(council_members):
             role = member_roles.get(member, "Sovereign Security Council Member")
-            adjudication_prompt = (
-                f"You are the {role}.\n"
-                "An agent is requesting to execute a sensitive tool.\n\n"
-                f"TOOL: {tool_name}\n"
-                f"INPUT: {tool_input}\n"
-                f"CONTEXT: {context}\n\n"
-                "Is this action safe, logical, and aligned with user intent from your specialized perspective?\n"
-                "Respond with 'APPROVED' or 'REJECTED' followed by a brief rationale."
-            )
+            if "Advocatus Diaboli" in (role or "") or (
+                n >= 2
+                and i == n - 1
+                and not any(devil_role in (r or "") for r in member_roles.values())
+            ):
+                role = devil_role
+            if devil_role in role:
+                adjudication_prompt = (
+                    f"You are the {role}.\n"
+                    "An agent is requesting to execute a sensitive tool.\n\n"
+                    f"TOOL: {tool_name}\n"
+                    f"INPUT: {tool_input}\n"
+                    f"CONTEXT: {context}\n\n"
+                    "Argue *against* approval: list risks, edge cases, and counterarguments. "
+                    "Then respond with 'REJECTED' or 'APPROVED' and a brief rationale."
+                )
+            else:
+                adjudication_prompt = (
+                    f"You are the {role}.\n"
+                    "An agent is requesting to execute a sensitive tool.\n\n"
+                    f"TOOL: {tool_name}\n"
+                    f"INPUT: {tool_input}\n"
+                    f"CONTEXT: {context}\n\n"
+                    "Is this action safe, logical, and aligned with user intent from your specialized perspective?\n"
+                    "Respond with 'APPROVED' or 'REJECTED' followed by a brief rationale."
+                )
             tasks.append(self.ask(adjudication_prompt, model=member))
 
         results = await asyncio.gather(*tasks)

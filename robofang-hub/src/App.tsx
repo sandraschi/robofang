@@ -12,7 +12,8 @@ import CreativeHub from './pages/CreativeHub';
 import Fleet from './pages/Fleet';
 import Installer from './pages/Installer';
 import Council from './pages/Council';
-import ChatHub from './pages/Chat'; 
+import ChatHub from './pages/Chat';
+import Forum from './pages/Forum';
 import Deliberations from './pages/Deliberations';
 import KnowledgeHub from './pages/KnowledgeHub'; 
 import LLM from './pages/LLM';
@@ -75,6 +76,7 @@ function App() {
           <Route path="/council" element={<Council />} />
           <Route path="/deliberations" element={<Deliberations />} />
           <Route path="/chat" element={<ChatHub />} />
+          <Route path="/forum" element={<Forum />} />
           <Route path="/timeline" element={<Timeline />} />
           <Route path="/agents" element={<Agents />} />
           <Route path="/schedule" element={<Schedule />} />

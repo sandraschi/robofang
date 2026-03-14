@@ -7,9 +7,11 @@ import {
   AlertTriangle, 
   Users,
   Bot,
-  User
+  User,
+  Activity
 } from 'lucide-react';
 import { chatApi } from '../api/chat';
+import { deliberationsApi, type DeliberationStep } from '../api/deliberations';
 import GlassCard from '../components/ui/GlassCard';
 
 interface Message {
@@ -17,6 +19,7 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   model?: string;
+  difficulty?: { level: string; score: number; suggest_council?: boolean };
   error?: string;
 }
 
@@ -25,11 +28,37 @@ const Chat: React.FC = () => {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [useCouncil, setUseCouncil] = useState(false);
+  const [liveSteps, setLiveSteps] = useState<DeliberationStep[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Poll deliberations while a request is in flight so user sees progress
+  useEffect(() => {
+    if (!sending) {
+      setLiveSteps([]);
+      return;
+    }
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const data = await deliberationsApi.get();
+        if (!cancelled && data.deliberations?.length) {
+          setLiveSteps(data.deliberations.slice(-8));
+        }
+      } catch {
+        // ignore
+      }
+    };
+    poll();
+    const interval = setInterval(poll, 2500);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [sending]);
 
   const handleSend = async () => {
     const text = input.trim();
@@ -49,7 +78,12 @@ const Chat: React.FC = () => {
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? { ...m, content: result.message, model: result.data?.model }
+              ? {
+                  ...m,
+                  content: result.message,
+                  model: result.data?.model,
+                  difficulty: result.data?.difficulty,
+                }
               : m,
           ),
         );
@@ -131,8 +165,12 @@ const Chat: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  {m.model && (
-                    <span className="text-[9px] font-mono font-black uppercase text-indigo-400/50 mt-1 tracking-widest">{m.model}</span>
+                  {(m.model || m.difficulty) && (
+                    <span className="text-[9px] font-mono font-black uppercase text-indigo-400/50 mt-1 tracking-widest">
+                      {m.model ?? ''}
+                      {m.model && m.difficulty ? ' · ' : ''}
+                      {m.difficulty ? `${m.difficulty.level} (${m.difficulty.score}/5)` : ''}
+                    </span>
                   )}
                 </div>
               </motion.div>
@@ -140,6 +178,28 @@ const Chat: React.FC = () => {
           </AnimatePresence>
           <div ref={bottomRef} />
         </div>
+
+        {sending && liveSteps.length > 0 && (
+          <div className="px-6 py-3 border-t border-white/5 bg-indigo-500/5">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity size={12} className="text-indigo-400 animate-pulse" />
+              <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400/80">Live reasoning</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {liveSteps.map((s) => (
+                <span
+                  key={s.id}
+                  className="inline-block px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-[10px] font-mono text-text-secondary max-w-[280px] truncate"
+                  title={s.content}
+                >
+                  <span className="text-indigo-400/90">{s.agent}</span>
+                  <span className="mx-1">·</span>
+                  {s.content}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="px-6 py-5 border-t border-white/5 bg-black/20">
           <form 

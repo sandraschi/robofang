@@ -26,7 +26,8 @@
     ],
     "connectors": {
         "discord": {
-            "enabled": false
+            "enabled": false,
+            "agents_channel_id": null
         },
         "slack": {
             "enabled": false
@@ -118,7 +119,9 @@
         },
         "virtualization": {
             "enabled": true,
-            "mcp_backend": "http://localhost:10700"
+            "mcp_backend": "http://localhost:10701",
+            "mcp_frontend": "http://localhost:10700",
+            "description": "Virtualization MCP — VirtualBox, Sandbox, FastMCP 3.1 tools and agentic_workflow"
         },
         "dark-app-factory": {
             "enabled": false,
