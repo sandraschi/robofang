@@ -86,6 +86,17 @@ class RoboFangStorage:
                 )
             """)
 
+            # 6. Private forum (local-only discussion; no Moltbook cloud)
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS forum_posts (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    author TEXT NOT NULL DEFAULT 'guest',
+                    content TEXT NOT NULL,
+                    thread_id INTEGER,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             conn.commit()
 
     # --- Security Policy Operations ---
@@ -238,3 +249,48 @@ class RoboFangStorage:
                     }
                 )
         return logs
+
+    # --- Private forum (local-only discussion) ---
+
+    def save_forum_post(
+        self,
+        content: str,
+        author: str = "guest",
+        thread_id: Optional[int] = None,
+    ) -> int:
+        """Persist a forum post. Returns the new post id."""
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                """
+                INSERT INTO forum_posts (author, content, thread_id)
+                VALUES (?, ?, ?)
+                """,
+                (author, content, thread_id),
+            )
+            conn.commit()
+            return cursor.lastrowid or 0
+
+    def get_forum_feed(self, limit: int = 100) -> List[Dict[str, Any]]:
+        """Retrieve the most recent forum posts (newest first)."""
+        posts = []
+        with self._get_connection() as conn:
+            cursor = conn.execute(
+                """
+                SELECT id, author, content, thread_id, created_at
+                FROM forum_posts
+                ORDER BY created_at DESC
+                LIMIT ?
+                """,
+                (min(max(1, limit), 500),),
+            )
+            for row in cursor.fetchall():
+                posts.append(
+                    {
+                        "id": row[0],
+                        "author": row[1],
+                        "content": row[2],
+                        "thread_id": row[3],
+                        "created_at": row[4],
+                    }
+                )
+        return posts

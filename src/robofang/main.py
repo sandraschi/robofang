@@ -215,8 +215,8 @@ MCP_BACKENDS: Dict[str, str] = {
     "reaper": "http://localhost:10797",
     "resolume": "http://localhost:10770",
     "vrchat": "http://localhost:10712",
-    # Wave 3 — Infrastructure
-    "virtualization": "http://localhost:10700",
+    # Wave 3 — Infrastructure (virtualization-mcp: frontend 10700, backend API 10701 for /mcp/tools)
+    "virtualization": "http://localhost:10701",
     "docker": "http://localhost:10807",
     "windows-operations": "http://localhost:10749",
     "monitoring": "http://localhost:10809",
@@ -328,6 +328,9 @@ async def startup_event():
         await orchestrator.start()
         t3 = time.perf_counter()
         logger.info("Bridge startup: orchestrator.start done (%.2fs total %.2fs)", t3 - t2, t3 - t0)
+        await _refresh_mcp_tools_from_backends()
+        t4 = time.perf_counter()
+        logger.info("Bridge startup: MCP tool discovery done (%.2fs)", t4 - t3)
         orchestrator.storage.log_event("info", "bridge", "startup_complete")
         smtp_ok, imap_ok = messaging_is_email_configured()
         if smtp_ok and imap_ok:
@@ -499,20 +502,27 @@ async def launch_connector(name: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/mcp-tools/refresh")
+async def refresh_mcp_tools():
+    """Refresh MCP tool discovery from all known backends (e.g. after launching a connector)."""
+    await _refresh_mcp_tools_from_backends()
+    count = sum(1 for k in orchestrator._tool_registry if k.startswith("mcp_"))
+    return {"success": True, "message": f"Registered {count} MCP tools.", "count": count}
+
+
 @app.get("/api/connectors/{connector_id}/tools")
 async def get_connector_tools(connector_id: str):
-    """Proxy to connector MCP backend /tools (or equivalent). Returns tool list or 404."""
+    """Proxy to connector MCP backend. Tries GET /tools then GET /mcp/tools (FastMCP 3.1). Returns tool list or 404."""
     base = _backend_url_for_connector(connector_id)
     if not base:
         raise HTTPException(status_code=404, detail=f"Unknown connector: {connector_id}")
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            r = await client.get(f"{base}/tools")
-            if r.status_code >= 400:
-                raise HTTPException(
-                    status_code=r.status_code, detail="Tools endpoint not available"
-                )
-            return r.json()
+            for path in _TOOLS_PATHS:
+                r = await client.get(f"{base.rstrip('/')}{path}")
+                if r.status_code == 200:
+                    return r.json()
+            raise HTTPException(status_code=404, detail="Tools endpoint not available")
     except httpx.ConnectError:
         raise HTTPException(status_code=503, detail="Connector backend unreachable")
     except httpx.TimeoutException:
@@ -554,14 +564,25 @@ async def get_connector_status(connector_id: str):
             except (httpx.ConnectError, httpx.TimeoutException):
                 continue
 
-        # 2. Try POST /tool (Blender-style) with a status tool
+        # 2. Try POST /tool (Blender-style) with a status tool; support FastMCP 3.1 /mcp/tools
         try:
-            tools_r = await client.get(f"{base.rstrip('/')}/tools")
-            if tools_r.status_code != 200:
+            tools_list = []
+            for path in _TOOLS_PATHS:
+                tools_r = await client.get(f"{base.rstrip('/')}{path}")
+                if tools_r.status_code == 200:
+                    tools_data = tools_r.json()
+                    tools_list = (
+                        tools_data
+                        if isinstance(tools_data, list)
+                        else (tools_data.get("tools", []) if isinstance(tools_data, dict) else [])
+                    )
+                    if isinstance(tools_list, list) and tools_list:
+                        break
+            if not tools_list:
                 return {"success": False, "server_status": None}
 
-            tools_data = tools_r.json()
-            tools_list = tools_data if isinstance(tools_data, list) else tools_data.get("tools", [])
+            if isinstance(tools_list[0], str):
+                tools_list = [{"name": t, "title": t} for t in tools_list]
             status_tool_name = None
             for t in tools_list:
                 name = t.get("name") or t.get("title") or ""
@@ -993,6 +1014,7 @@ class AskRequest(BaseModel):
     use_rag: Optional[bool] = True
     subject: Optional[str] = "guest"
     persona: Optional[str] = "sovereign"
+    priority: Optional[str] = "asap"  # asap | background (for future routing)
 
 
 class AskResponse(BaseModel):
@@ -1005,6 +1027,12 @@ class AskResponse(BaseModel):
 class JournalPostRequest(BaseModel):
     content: str
     tags: Optional[str] = None
+
+
+class ForumPostRequest(BaseModel):
+    content: str
+    author: Optional[str] = "guest"
+    thread_id: Optional[int] = None
 
 
 class MoltbookRegisterRequest(BaseModel):
@@ -1423,6 +1451,71 @@ async def get_deliberations(limit: int = 50, since_id: Optional[int] = None):
 
 
 # ---------------------------------------------------------------------------
+# MCP tool discovery (FastMCP 3.1: /tools or /mcp/tools)
+# ---------------------------------------------------------------------------
+
+_TOOLS_PATHS = ("/tools", "/mcp/tools")
+
+
+async def _fetch_mcp_tools(connector_id: str, base_url: str) -> List[Dict[str, Any]]:
+    """Fetch tool list from a FastMCP 3.1 backend. Tries GET /tools then GET /mcp/tools. Returns list of {name, description}."""
+    base = (base_url or "").rstrip("/")
+    if not base:
+        return []
+    out: List[Dict[str, Any]] = []
+    async with httpx.AsyncClient(timeout=8.0) as client:
+        for path in _TOOLS_PATHS:
+            try:
+                r = await client.get(f"{base}{path}")
+                if r.status_code != 200:
+                    continue
+                data = r.json()
+            except (httpx.ConnectError, httpx.TimeoutException, Exception):
+                continue
+            raw_list = (
+                data
+                if isinstance(data, list)
+                else (data.get("tools") if isinstance(data, dict) else None)
+            )
+            if not raw_list:
+                continue
+            for t in raw_list:
+                if isinstance(t, str):
+                    out.append(
+                        {
+                            "name": t,
+                            "description": f"MCP tool {t} ({connector_id}). FastMCP 3.1; use agentic_workflow for multi-step goals.",
+                        }
+                    )
+                elif isinstance(t, dict):
+                    name = t.get("name") or t.get("title")
+                    if name:
+                        desc = (
+                            t.get("description")
+                            or f"MCP tool {name} ({connector_id}). FastMCP 3.1; use agentic_workflow for multi-step goals."
+                        )
+                        out.append({"name": name, "description": desc})
+            break
+    return out
+
+
+async def _refresh_mcp_tools_from_backends() -> None:
+    """Discover tools from all known MCP backends and register them in the orchestrator for the council."""
+    backends = _all_backend_urls()
+    orchestrator.clear_mcp_tools()
+    total = 0
+    for connector_id, url in backends.items():
+        tools = await _fetch_mcp_tools(connector_id, url)
+        if tools:
+            orchestrator.register_mcp_tools(connector_id, tools)
+            total += len(tools)
+    if total:
+        logger.info(
+            "MCP tool discovery: registered %d tools across %d connectors.", total, len(backends)
+        )
+
+
+# ---------------------------------------------------------------------------
 # Backend URL resolution — topology (federation_map) then MCP_BACKENDS
 # ---------------------------------------------------------------------------
 
@@ -1447,20 +1540,34 @@ def _all_backend_urls() -> Dict[str, str]:
 async def _invoke_connector_tool(
     connector_id: str, tool_name: str, params: Dict[str, Any]
 ) -> Dict[str, Any]:
-    """Call a tool on an MCP backend (e.g. yahboom patrol_with_recording). Used by routines."""
+    """Call a tool on an MCP backend. Tries POST /tool then POST /mcp/tools/call (FastMCP 3.1)."""
     base = _backend_url_for_connector(connector_id)
     if not base:
         return {"success": False, "error": f"Unknown connector: {connector_id}"}
-    url = f"{base.rstrip('/')}/tool"
+    payload = {"name": tool_name, "arguments": params or {}}
+    urls_to_try = [f"{base.rstrip('/')}/tool", f"{base.rstrip('/')}/mcp/tools/call"]
+    last_error: Optional[str] = None
     try:
         async with httpx.AsyncClient(timeout=120.0) as client:
-            r = await client.post(
-                url,
-                json={"name": tool_name, "arguments": params or {}},
-            )
-            r.raise_for_status()
-            out = r.json()
-            return out if isinstance(out, dict) else {"success": True, "data": out}
+            for url in urls_to_try:
+                try:
+                    r = await client.post(url, json=payload)
+                    if r.status_code == 404:
+                        last_error = f"{url} returned 404"
+                        continue
+                    r.raise_for_status()
+                    out = r.json()
+                    if isinstance(out, dict) and "result" in out:
+                        return (
+                            out.get("result")
+                            if isinstance(out.get("result"), dict)
+                            else {"success": True, "data": out.get("result")}
+                        )
+                    return out if isinstance(out, dict) else {"success": True, "data": out}
+                except httpx.HTTPStatusError:
+                    last_error = f"{url} HTTP error"
+                    continue
+        return {"success": False, "error": last_error or "No endpoint responded"}
     except httpx.ConnectError as e:
         return {"success": False, "error": f"Backend unreachable: {e}"}
     except httpx.TimeoutException as e:
@@ -1567,12 +1674,16 @@ async def ask_question(req: AskRequest):
             use_rag=req.use_rag,
             subject=req.subject,
             persona=req.persona,
+            priority=(req.priority or "asap"),
         )
         if result.get("success"):
+            data = {"model": result.get("model")}
+            if result.get("difficulty"):
+                data["difficulty"] = result["difficulty"]
             return AskResponse(
                 success=True,
                 message=result.get("response", ""),
-                data={"model": result.get("model")},
+                data=data,
             )
         else:
             return AskResponse(
@@ -1644,6 +1755,37 @@ async def get_feed():
         return res
     except Exception as e:
         logger.error(f"Failed to fetch feed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ---------------------------------------------------------------------------
+# Private forum (local-only discussion; data never leaves the hub)
+# ---------------------------------------------------------------------------
+
+
+@app.post("/forum/post")
+async def post_forum(req: ForumPostRequest):
+    """Post to the private local forum. Stored in SQLite; no Moltbook cloud."""
+    try:
+        post_id = orchestrator.storage.save_forum_post(
+            content=req.content,
+            author=req.author or "guest",
+            thread_id=req.thread_id,
+        )
+        return {"success": True, "id": post_id}
+    except Exception as e:
+        logger.error(f"Forum post failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/forum/feed")
+async def get_forum_feed(limit: int = 100):
+    """Get recent private forum posts (newest first)."""
+    try:
+        posts = orchestrator.storage.get_forum_feed(limit=min(max(1, limit), 500))
+        return {"success": True, "posts": posts}
+    except Exception as e:
+        logger.error(f"Forum feed failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

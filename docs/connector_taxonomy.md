@@ -19,7 +19,7 @@ OpenClaw routes messages. robofang controls things.
 |---------------|---------|------------------|------------------------------------|
 | moltbook      | REAL    | httpx (internal) | Sovereign journal + social         |
 | email         | REAL    | stdlib only      | SMTP send + IMAP read              |
-| discord       | REAL    | discord.py       | Bot, send+receive channel msgs     |
+| discord       | REAL    | discord.py       | Bot, send+receive channel msgs. Optional **agents channel**: `agents_channel_id` in connectors.discord or env `ROBOFANG_DISCORD_AGENTS_CHANNEL_ID`; idle agents post there (~10 min cooldown). See [AGENTS_CHANNEL_AND_MOLTBOOK.md](AGENTS_CHANNEL_AND_MOLTBOOK.md) for prose, debate, researcher/Readly/arxiv. |
 | slack         | REAL    | slack-sdk        | Workspace bot; token + channel_id  |
 | telegram      | PLANNED | python-telegram-bot | Personal bot                    |
 | social        | NOT IMPLEMENTED | —            | Use discord or slack connector    |

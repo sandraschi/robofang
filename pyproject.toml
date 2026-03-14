@@ -83,6 +83,7 @@ robofang-supervisor = "robofang.supervisor:app"
 # Target Python 3.12+
 target-version = "py312"
 line-length = 100
+extend-exclude = ["hands"]
 
 [tool.ruff.lint]
 # Enable Pyflakes (F), Pycodestyle (E, W), Isort (I), and Ruff-specific rules (RUF)

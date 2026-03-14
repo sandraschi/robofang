@@ -1,0 +1,21 @@
+{
+  "default_resident": "llama3.2:3b",
+  "tiers": {
+    "small": ["llama3.2:1b", "llama3.2:3b", "phi3:mini", "phi3"],
+    "medium": ["qwen2.5:7b", "deepseek-r1:8b", "llama3.1:8b", "mistral:7b"],
+    "large": ["llama3.1:70b", "qwen2.5:72b"],
+    "opus": ["claude-sonnet-4", "opus-4.6"]
+  },
+  "capacity_hint": "single_gpu_24gb",
+  "unload_idle_after_seconds": 600,
+  "routing": {
+    "simple_asap": "small",
+    "simple_background": "small",
+    "moderate_asap": "small",
+    "moderate_background": "small",
+    "complex_asap": "medium",
+    "complex_background": "small",
+    "ambitious_asap": "medium",
+    "ambitious_background": "small"
+  }
+}

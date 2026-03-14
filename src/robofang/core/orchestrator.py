@@ -10,10 +10,15 @@ from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Set
 
 from robofang.bridges.journal_bridge import JournalBridge
+from robofang.core.difficulty import assess_difficulty
 from robofang.core.hands import HandsManager
 from robofang.core.installer import HandInstaller
 from robofang.core.knowledge import KnowledgeEngine
 from robofang.core.lifecycle import LifecycleManager
+from robofang.core.llm_routing import (
+    get_capacity_hint,
+    resolve_models_for_council,
+)
 from robofang.core.moltbook import MoltbookClient
 from robofang.core.openfang_adapter import resolve as openfang_resolve
 from robofang.core.personality import PersonalityEngine
@@ -93,6 +98,7 @@ class OrchestrationClient:
         self.logger = logging.getLogger("robofang.orchestrator")
         self.topology: Dict[str, Any] = {}
         self.connectors: Dict[str, Any] = {}
+        self._last_breeze_at: float = 0.0
         self.storage = storage or RoboFangStorage()
         self.moltbook = MoltbookClient(api_key=self.config.get("moltbook_api_key"))
         self.reasoning = ReasoningEngine(
@@ -148,6 +154,8 @@ class OrchestrationClient:
         self.journal_bridge = JournalBridge(adn_connector)
         self._tool_registry: Dict[str, Any] = {}
         self._build_tool_bridge()
+        # MCP per-tool discovery: mcp_<connector>_<tool_name> entries added by bridge after startup
+        self._mcp_tool_prefix = "mcp_"
         # Optional: set by bridge for routines (yahboom invoke, email send)
         self._connector_invoker: Optional[Any] = None
         self._email_sender: Optional[Any] = None
@@ -174,6 +182,34 @@ class OrchestrationClient:
                 "description": f"Fleet connector for {name}",
             }
         self.logger.info(f"Tool Bridge built with {len(self._tool_registry)} tools.")
+
+    def clear_mcp_tools(self) -> None:
+        """Remove all mcp_* entries from the tool registry (before refreshing from backends)."""
+        to_remove = [k for k in self._tool_registry if k.startswith(self._mcp_tool_prefix)]
+        for k in to_remove:
+            del self._tool_registry[k]
+        if to_remove:
+            self.logger.info("Cleared %d MCP tool entries.", len(to_remove))
+
+    def register_mcp_tools(self, connector_id: str, tools: List[Dict[str, Any]]) -> None:
+        """Register per-tool entries for a FastMCP 3.1 backend so the council can call them by name."""
+        for t in tools:
+            name = t.get("name") or t.get("title") or ""
+            if not name or not isinstance(name, str):
+                continue
+            desc = t.get("description") or ""
+            if not desc:
+                desc = f"MCP tool {name} ({connector_id}). FastMCP 3.1; use agentic_workflow for multi-step goals."
+            elif "agentic" not in desc.lower() and "workflow" not in desc.lower():
+                desc = f"{desc.rstrip('.')} (FastMCP 3.1; prefer agentic_workflow for multi-step goals in this domain.)"
+            key = f"{self._mcp_tool_prefix}{connector_id}_{name}"
+            self._tool_registry[key] = {
+                "type": "mcp",
+                "connector": connector_id,
+                "mcp_tool": name,
+                "description": desc,
+            }
+        self.logger.info("Registered %d MCP tools for connector %s.", len(tools), connector_id)
 
     def _load_topology(self):
         """Loads the current fleet topology from the federation map."""
@@ -410,6 +446,32 @@ class OrchestrationClient:
                             )
                     except Exception as e:
                         self.logger.warning("Inbox poll skipped: %s", e)
+
+                # Discord agents channel: "shoot the breeze" when idle (optional)
+                discord_conn = self.connectors.get("discord")
+                agents_channel_id = self.topology.get("connectors", {}).get("discord", {}).get(
+                    "agents_channel_id"
+                ) or os.getenv("ROBOFANG_DISCORD_AGENTS_CHANNEL_ID")
+                if agents_channel_id and discord_conn and getattr(discord_conn, "active", False):
+                    try:
+                        agents_channel_id = str(agents_channel_id).strip()
+                        if agents_channel_id and (time.monotonic() - self._last_breeze_at) >= 600:
+                            breeze_prompt = (
+                                "You are a RoboFang agent with a moment of downtime. "
+                                "Write one short, casual sentence to post in the team Discord (shoot the breeze). "
+                                "No commands, no code. Just a thought or observation. Reply with only that sentence."
+                            )
+                            result = await self.reasoning.ask(breeze_prompt)
+                            if result.get("success") and result.get("response"):
+                                content = (result["response"] or "").strip()[:500]
+                                if content:
+                                    ok = await discord_conn.send_message(agents_channel_id, content)
+                                    if ok:
+                                        self._last_breeze_at = time.monotonic()
+                                        self.logger.info("Agents breeze posted to Discord.")
+                    except Exception as e:
+                        self.logger.debug("Discord agents breeze skipped: %s", e)
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -443,6 +505,7 @@ class OrchestrationClient:
         persona: str = "sovereign",
         use_rag: bool = True,
         refine_prompt: bool = False,
+        priority: str = "asap",
     ) -> Dict[str, Any]:
         """Live reasoning via the reasoning engine with optional RAG context."""
         if not await self.security.is_authorized(subject, "reasoning:ask"):
@@ -450,6 +513,26 @@ class OrchestrationClient:
                 "success": False,
                 "error": f"Subject '{subject}' is not authorized for reasoning:ask",
             }
+
+        # 0. Difficulty assessment (simple vs ambitious → route to single vs council)
+        difficulty = assess_difficulty(prompt)
+        effective_council = use_council
+        if not use_council and difficulty["suggest_council"]:
+            effective_council = True
+            self.logger.info(
+                "Difficulty %s (score %s): auto-upgrading to Council for this request.",
+                difficulty["level"],
+                difficulty["score"],
+            )
+        elif use_council and difficulty["level"] == "simple":
+            self.logger.info(
+                "Difficulty simple; user requested Council — using Council as requested."
+            )
+        self._log_reasoning(
+            "Ask",
+            "thought",
+            f"Ask started — difficulty {difficulty['level']} (score {difficulty['score']}), council={effective_council}.",
+        )
 
         # 1. Prompt Refinement (Optional Phase 0)
         final_prompt = prompt
@@ -478,13 +561,24 @@ class OrchestrationClient:
         if context:
             final_prompt = f"RELEVANT CONTEXT:\n{context}\n\nUSER REQUEST: {final_prompt}"
 
-        # 4. Reason
-        if use_council:
+        # 5. Reason (single or council based on effective_council)
+        if effective_council:
             council = self.topology.get("council_members", ["llama3", "llama3.1", "phi3"])
-            self.logger.info(f"Using Council of Dozens: {council}")
-            return await self.reasoning.council_synthesis(final_prompt, council)
+            capacity = get_capacity_hint()
+            council = resolve_models_for_council(council, capacity_hint=capacity)
+            self.logger.info("Using Council of Dozens (capacity=%s): %s", capacity, council)
+            # Second member (index 1) is devil's advocate when council has ≥2 members
+            devil_index = 1 if len(council) >= 2 else None
+            result = await self.reasoning.council_synthesis(
+                final_prompt, council, devil_advocate_index=devil_index
+            )
+        else:
+            self._log_reasoning("Ask", "thought", "Reasoning (single agent).")
+            result = await self.reasoning.ask(final_prompt, system_prompt=system_prompt)
 
-        return await self.reasoning.ask(final_prompt, system_prompt=system_prompt)
+        if result.get("success") and isinstance(result, dict):
+            result["difficulty"] = difficulty
+        return result
 
     async def list_skills(self) -> List[Dict[str, Any]]:
         """List all discovered skills."""
@@ -595,6 +689,11 @@ class OrchestrationClient:
         try:
             if tool["type"] == "skill":
                 return await self.run_skill(tool["id"], kwargs.get("input", ""))
+
+            if tool["type"] == "mcp" and self._connector_invoker:
+                return await self._connector_invoker(
+                    tool["connector"], tool["mcp_tool"], kwargs or {}
+                )
 
             if tool["type"] == "connector":
                 # For now, generic send_message if it's a social/comm connector
