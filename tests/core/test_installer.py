@@ -8,6 +8,7 @@ from unittest.mock import patch
 
 import pytest
 import yaml
+
 from robofang.core.installer import HandInstaller, HandManifestItem, _github_owner_repo
 
 
