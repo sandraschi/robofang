@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "yahboom-mcp"
+version = "0.1.0"
+description = "Yahboom ROS 2 robot car MCP: status, patrol, onboard TTS + bridge to Speech-MCP (cloud TTS → robot)."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=2.14",
+    "fastapi>=0.95",
+    "uvicorn>=0.21",
+    "httpx>=0.24",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "pytest-asyncio>=0.21"]
+
+[project.scripts]
+yahboom-mcp = "yahboom_mcp.server:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
