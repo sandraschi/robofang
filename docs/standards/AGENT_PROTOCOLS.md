@@ -51,7 +51,7 @@ This document defines the documentation standards for all MCP projects in the re
 - Easy discoverability and learning
 - Professional presentation
 - Community-ready documentation
-- FastMCP 3.0+ compliance (SOTA requirement — GA February 18 2026, see FASTMCP3_UPGRADE_STRATEGY.md)
+- FastMCP 3.1+ compliance (SOTA requirement; dual transport stdio + HTTP — see MCP_SERVERS.md and FASTMCP3_UPGRADE_STRATEGY.md)
 - Tool family modularization for complex servers
 - Avatar-mcp integration for compositing workflows
 - Unity-specific VRM integration patterns
@@ -180,11 +180,11 @@ To be considered **SOTA (State of the Art)**, an MCP server MUST meet the follow
 
 ### Version Requirements
 ```bash
-# Minimum version for SOTA compliance
-fastmcp>=3.0.0,<4.0.0
+# Minimum version for SOTA compliance — FastMCP 3.1 (dual transport standard)
+fastmcp>=3.1,<4.0.0
 ```
 **Latest Protocol Version**: `2025-11-25`  
-**FastMCP Version**: 3.0.2 (GA Feb 18 2026) — see `standards/FASTMCP3_UPGRADE_STRATEGY.md`
+**FastMCP Version**: 3.1+ (GA Feb 18 2026; dual transport stdio + HTTP is standard). See `standards/FASTMCP3_UPGRADE_STRATEGY.md` and `docs/MCP_SERVERS.md`.
 
 ### Essential File Structure
 Standard project layout for all MCP servers:
@@ -197,7 +197,7 @@ mcp-server-name/
 │   └── transforms/       # FastMCP 3.0 Transforms
 ├── tests/
 ├── docs/
-├── pyproject.toml        # FastMCP 2.14.3+
+├── pyproject.toml        # fastmcp>=3.1
 ├── mcpb/                # Packaging config (v2)
 └── README.md
 ```
@@ -216,15 +216,13 @@ mcp-server-name/
 - ✅ **Iterative Sampling**: Built-in support for AI-guided iterative refinement (see `sample_logs` pattern).
 - ✅ **Enhanced Response Patterns** for rich AI dialogue (Progressive, Clarification, Recovery, Rich Metadata)
 - ✅ **Server Lifespan** management for stateful servers (Startup/Shutdown)
-- ✅ **Persistent Storage** (2.13+) - Key-Value store persisting across OS reboots
+- ✅ **Persistent Storage** - Key-Value store persisting across OS reboots
 - ✅ **Advanced Tool Management** (Transformations, Serialization, Duplicate Handling)
-- ✅ **Breaking Change**: `run_stdio_async()` MUST be used instead of `run_standalone()`
+- ✅ **Dual transport (FastMCP 3.1 standard)**: One process MUST serve both stdio (for Cursor/Claude) and HTTP (for webapp/bridge). Use `run_stdio_async()` alongside your HTTP server (e.g. uvicorn) in the same event loop.
+- ✅ **Transport**: `run_stdio_async()` for stdio; HTTP via FastAPI/uvicorn with `POST /tool` or mounted MCP endpoint.
+- ✅ **Agentic workflow tools (SEP-1577, mandatory)**: Servers MUST implement at least one agentic workflow tool that uses **sampling** (FastMCP 3.1 `ctx.sample()` / "sampling with tools"). This enables the client to orchestrate multi-step or multi-tool workflows autonomously. Single-shot tools alone are not SOTA; complex operations MUST use sampling where appropriate.
 
-**Complete standards:** See `docs/fastmcp/2.14.4-features.md`
-
-**Migration guide:** See `docs/fastmcp/migration-guide.md`
-
-**Tool documentation:** See `docs/fastmcp/tool-documentation.md`
+**Fleet standard:** `docs/MCP_SERVERS.md` (FastMCP 3.1). **Upgrade path:** `standards/FASTMCP3_UPGRADE_STRATEGY.md`.
 
 ### 1. Docstring Standards
 
@@ -234,7 +232,7 @@ mcp-server-name/
 ```python
 PORTMANTEAU PATTERN RATIONALE:
 Consolidates N related operations into single interface. Prevents tool explosion while maintaining
-full functionality. Follows FastMCP 2.13+ best practices.
+full functionality. Follows FastMCP 3.1+ best practices.
 ```
 
 #### Args Section Formatting
@@ -250,7 +248,7 @@ Args:
 
 ### 2. Enhanced Response Patterns (Structured Returns)
 
-**All SOTA tools MUST implement FastMCP 2.14.1+ enhanced response patterns** to enable rich dialogue:
+**All SOTA tools MUST implement FastMCP 3.1+ enhanced response patterns** to enable rich dialogue:
 
 | Pattern | Purpose | Key Content |
 | :--- | :--- | :--- |
@@ -315,7 +313,7 @@ def _initialize_prompts_and_resources(self):
 - `assets/` directory - Icons, screenshots, prompts
 - `pyproject.toml` - Python project configuration
 - `requirements.txt` - Runtime dependencies
-- `storage/` directory - Local persistent data (if using FastMCP 2.13+ storage)
+- `storage/` directory - Local persistent data (if using FastMCP storage)
 
 #### Manifest Requirements
 ```json
@@ -392,7 +390,7 @@ motor_mgr.register_tools()
 
 ---
 
-## 🏗️ FastMCP 2.14.1+ Architectural Patterns
+## 🏗️ FastMCP 3.1+ Architectural Patterns
 
 SOTA servers must choose between (or combine) two primary architectural patterns depending on task complexity.
 
@@ -406,6 +404,11 @@ SOTA servers must choose between (or combine) two primary architectural patterns
 **Best for**: Complex workflows, high-uncertainty tasks (e.g., recursive research).
 - **Mechanism**: Tools that interactively guide the agent through a "dialogue" of operations.
 - **Requirement**: Must use **Interactive Clarification** (Prompting for missing data) and **Progressive Disclosure** (Returning partial results with next steps).
+
+### 3. Agentic workflow tools (SEP-1577, mandatory)
+**SEP-1577** ("sampling with tools") is standard in FastMCP 3.1. All SOTA servers MUST expose at least one **agentic workflow tool** that uses sampling so the client LLM can orchestrate multi-step or multi-tool workflows autonomously.
+- **Implementation**: Use `ctx.sample()` (or the FastMCP 3.1 sampling API) inside a tool to request the client to reason and call other tools before returning. The tool describes the intent; the client performs the sub-steps via sampling.
+- **Requirement**: Complex operations (multi-step, conditional, or delegating to other tools) MUST use sampling where appropriate. Single-shot tools only do not satisfy SOTA.
 
 ---
 
@@ -433,29 +436,43 @@ For long-running or data-heavy tasks, return the first "chunk" and a tool to get
 
 ---
 
-## 📦 FastMCP 2.14.1+ Specific Standards (SOTA)
+## 📦 FastMCP 3.1+ Specific Standards (SOTA)
 
 ### For Portmanteau Tools:
 - **PORTMANTEAU PATTERN RATIONALE**: Every portmanteau tool MUST include this section in its description.
 - **Consolidation Limit**: Do not exceed 15 operations per tool; split into "Sub-Portmanteaus" if necessary (e.g., `adn_content` vs `adn_navigation`).
-- ✅ **REQUIRED**: Implement FastMCP 2.14.1+ enhanced response patterns
-- ✅ **REQUIRED**: Use `run_stdio_async()` for server startup
-- ✅ **REQUIRED**: Implement `server_lifespan` for stateful servers
+- ✅ **REQUIRED**: Implement enhanced response patterns (Progressive, Clarification, Recovery, Rich Metadata).
+- ✅ **REQUIRED**: **Dual transport (3.1 standard)**: One process serves stdio (Cursor/Claude) and HTTP (webapp/bridge). Run uvicorn (or other HTTP) in an asyncio task and `await mcp.run_stdio_async()` in the same event loop.
+- ✅ **REQUIRED**: **Agentic workflow tools (SEP-1577)**: At least one tool MUST use sampling (`ctx.sample()` / FastMCP 3.1 sampling with tools) so the client can orchestrate multi-step workflows autonomously. Standard in FastMCP 3.1.
+- ✅ **REQUIRED**: Implement `server_lifespan` for stateful servers.
 
-#### SOTA Startup Pattern (FastMCP 2.14.1+)
+#### SOTA Startup Pattern (FastMCP 3.1+ dual transport)
 
 ```python
-# ✅ CORRECT - Production-ready async startup
-if __name__ == "__main__":
+# ✅ CORRECT - Dual transport: HTTP + stdio in one process
+def main():
     import asyncio
-    asyncio.run(mcp.run_stdio_async())
+    import uvicorn
+    async def _run():
+        config = uvicorn.Config(app, host=HOST, port=PORT, log_level="info")
+        server = uvicorn.Server(config)
+        http_task = asyncio.create_task(server.serve())
+        try:
+            await mcp.run_stdio_async()
+        finally:
+            http_task.cancel()
+            try:
+                await http_task
+            except asyncio.CancelledError:
+                pass
+    asyncio.run(_run())
 
-# ❌ WRONG - Deprecated standalone method
+# ❌ WRONG - HTTP-only (no stdio for Cursor)
 if __name__ == "__main__":
-    mcp.run_standalone()
+    uvicorn.run(app, host=HOST, port=PORT)
 ```
 
-#### Persistent Storage Pattern (FastMCP 2.13+)
+#### Persistent Storage Pattern
 
 ```python
 @mcp.tool()
@@ -471,7 +488,7 @@ async def access_knowledge(key: str) -> dict:
 7. ✅ Check imports (no circular dependencies)
 8. ✅ Run ruff before committing
 
-**Complete documentation:** See `docs/fastmcp/2.14.1-features.md` for comprehensive examples and implementation details.
+**Fleet standard:** `docs/MCP_SERVERS.md`. **Upgrade:** `standards/FASTMCP3_UPGRADE_STRATEGY.md`.
 
 ---
 
@@ -1298,7 +1315,7 @@ Brief 1-2 sentence description.
 
 ## MCP Server Documentation Structure
 
-### For FastMCP 2.13+ Servers (SOTA):
+### For FastMCP 3.1+ Servers (SOTA):
 
 ```
 repo-name/
@@ -1608,7 +1625,7 @@ Avoid in-memory only state for critical data. Use SQLite or file-backed storage 
 - [ ] Formatted properly
 - [ ] Up-to-date with code
 
-**FastMCP 2.14.1+ Compliance:**
+**FastMCP 3.1+ Compliance:**
 - [ ] PORTMANTEAU PATTERN RATIONALE included in portmanteau tools
 - [ ] Args section uses standard formatting with type hints
 - [ ] Enhanced Response Patterns implemented (Progressive/Clarification/Recovery)
@@ -1641,7 +1658,7 @@ Every SOTA MCP tool MUST follow the "Gold Standard" docstring structure. This en
 PORTMANTEAU PATTERN RATIONALE:
 Instead of creating N separate tools (one per operation), this tool consolidates related
 operations into a single interface. Prevents tool explosion (N tools -> 1 tool) while maintaining
-full functionality and improving discoverability. Follows FastMCP 2.14.1+ SOTA standards.
+full functionality and improving discoverability. Follows FastMCP 3.1+ SOTA standards.
 ```
 
 ### 4.3. Args Section Formatting

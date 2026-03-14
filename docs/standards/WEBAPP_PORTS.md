@@ -74,6 +74,7 @@ All MCP server webapps and dashboards MUST use ports from the reserved range **1
 | 10742 | filesystem-mcp | Backend |
 | 10743 | filesystem-mcp | Frontend |
 | 10744 | autohotkey-test | Scriptlet COMBridge (AHK dashboard) |
+| 10746 | autohotkey-mcp | MCP server (scriptlets + optional AI generate) |
 | 10748 | windows-operations-mcp | Backend |
 | 10749 | windows-operations-mcp | Frontend |
 | 10750 | reversing-mcp | Backend (API) |
