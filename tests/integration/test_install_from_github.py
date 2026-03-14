@@ -6,6 +6,7 @@ Skip by default: pytest -m "not github"
 
 import pytest
 import yaml
+
 from robofang.core.installer import HandInstaller, HandManifestItem
 
 # Small public repo with no start.ps1 so install script step is skipped

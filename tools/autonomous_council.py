@@ -47,6 +47,7 @@ from cloud_council_bridge import (
 from council_orchestrator import ADJUDICATORS, CouncilOrchestrator
 from equilibrium_synthesizer import synthesize
 from osc_council_bridge import parse_osc_url, query_osc_agent
+
 from robofang.core.reasoning import ReasoningEngine
 
 logger = logging.getLogger("RoboFang.council")
