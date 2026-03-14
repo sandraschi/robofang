@@ -1,7 +1,17 @@
 # RoboFang Hub Start - Unified Redesign (V13.3)
-$WebPort = 10870
-$SupervisorPort = 10872
+# Ports from fleet schema: configs/fleet-stack-ports.json
 $RepoRoot = Split-Path -Parent $PSScriptRoot
+$PortsPath = Join-Path $RepoRoot "src\robofang\configs\fleet-stack-ports.json"
+if (Test-Path $PortsPath) {
+    $stack = Get-Content -Raw -Path $PortsPath | ConvertFrom-Json
+    $WebPort = $stack.web_port
+    $BridgePort = $stack.bridge_port
+    $SupervisorPort = $stack.supervisor_port
+} else {
+    $WebPort = 10870
+    $BridgePort = 10871
+    $SupervisorPort = 10872
+}
 $VenvPython = Join-Path $RepoRoot ".venv\Scripts\python.exe"
 if (Test-Path $VenvPython) { $Python = $VenvPython } else { $Python = "python" }
 
@@ -15,29 +25,20 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "  Deps OK." -ForegroundColor DarkGray
 
-# 1. Clear ports (hub, bridge, supervisor). Use a short timeout so Get-NetTCPConnection cannot hang.
-Write-Host "[1/4] Clearing ports ($WebPort, 10871, $SupervisorPort) ..." -ForegroundColor Yellow
-$portClearJob = Start-Job -ScriptBlock {
-    param($WebPort, $SupervisorPort)
-    $pids = Get-NetTCPConnection -LocalPort $WebPort, 10871, $SupervisorPort -ErrorAction SilentlyContinue | Where-Object { $_.OwningProcess -gt 4 } | Select-Object -ExpandProperty OwningProcess -Unique
-    foreach ($p in $pids) {
-        try {
-            Stop-Process -Id $p -Force -ErrorAction Stop
-            Write-Output "Terminated PID $p"
-        } catch {
-            Write-Warning "Failed to terminate PID $p : $_"
-        }
+# 1. Zombie kill: clear stack ports before bind. Inline + taskkill fallback.
+$portsToClear = @($WebPort, $BridgePort, $SupervisorPort)
+Write-Host "[1/4] Clearing ports ($WebPort, $BridgePort, $SupervisorPort) ..." -ForegroundColor Yellow
+$pids = Get-NetTCPConnection -LocalPort $portsToClear -ErrorAction SilentlyContinue | Where-Object { $_.OwningProcess -gt 4 } | Select-Object -ExpandProperty OwningProcess -Unique
+foreach ($p in $pids) {
+    try {
+        Stop-Process -Id $p -Force -ErrorAction Stop
+        Write-Host "    Terminated PID $p" -ForegroundColor DarkGray
+    } catch {
+        cmd /c "taskkill /F /PID $p 2>nul"
+        if ($LASTEXITCODE -eq 0) { Write-Host "    Killed PID $p (taskkill)" -ForegroundColor DarkGray }
+        else { Write-Warning "Failed to terminate PID $p : $_" }
     }
-} -ArgumentList $WebPort, $SupervisorPort
-$null = Wait-Job -Job $portClearJob -Timeout 6
-if ((Get-Job -Id $portClearJob.Id).State -eq 'Running') {
-    Stop-Job -Job $portClearJob
-    Write-Host "    Port clear timed out (6s); continuing anyway." -ForegroundColor DarkGray
-} else {
-    $clearOut = Receive-Job -Job $portClearJob
-    if ($clearOut) { $clearOut | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray } }
 }
-Remove-Job -Job $portClearJob -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 1
 
 # 2. Optional: start monitoring stack (Prometheus, Loki, Grafana). Set env ROBOFANG_START_MONITORING=1 to enable.
@@ -49,10 +50,10 @@ if ($env:ROBOFANG_START_MONITORING -eq "1") {
     Write-Host "    Grafana: http://localhost:3001 (admin / robofang_admin). Loki job=robofang." -ForegroundColor DarkGray
 }
 
-# 3. Start Supervisor (Background). Supervisor auto-starts the bridge on 10871.
+# 3. Start Supervisor (Background). Supervisor auto-starts the bridge on $BridgePort.
 Write-Host "[2/4] Starting Supervisor (and bridge) ..." -ForegroundColor Cyan
 $env:PYTHONPATH = "$RepoRoot\src;$env:PYTHONPATH"
-$env:PORT = "10871"
+$env:PORT = "$BridgePort"
 # Force Fleet Installer to use repo paths (fixes 'hands empty' when package root differs)
 $env:ROBOFANG_FLEET_MANIFEST = "$RepoRoot\fleet_manifest.yaml"
 $env:ROBOFANG_HANDS_DIR = "$RepoRoot\hands"
@@ -69,16 +70,16 @@ $SupProc = Start-Process `
     -WindowStyle Hidden `
     -PassThru
 
-Write-Host "    Supervisor PID: $($SupProc.Id) (bridge will listen on 10871)" -ForegroundColor DarkGray
+Write-Host "    Supervisor PID: $($SupProc.Id) (bridge will listen on $BridgePort)" -ForegroundColor DarkGray
 Start-Sleep -Seconds 2
 
-# 3. Wait for bridge to respond on 10871 (max 50s). Bridge startup is slow (orchestrator init).
-Write-Host "[3/4] Waiting for bridge on 10871 (max 50s) ..." -ForegroundColor Cyan
+# 3. Wait for bridge to respond on $BridgePort (max 50s). Bridge startup is slow (orchestrator init).
+Write-Host "[3/4] Waiting for bridge on $BridgePort (max 50s) ..." -ForegroundColor Cyan
 $bridgeUp = $false
 $lastError = $null
 for ($i = 1; $i -le 50; $i++) {
     try {
-        $r = Invoke-WebRequest -Uri "http://127.0.0.1:10871/api/diagnostics/heartbeat" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+        $r = Invoke-WebRequest -Uri "http://127.0.0.1:$BridgePort/api/diagnostics/heartbeat" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
         if ($r.StatusCode -eq 200) { $bridgeUp = $true; break }
     } catch {
         $lastError = $_.Exception.Message
@@ -111,11 +112,11 @@ if (-not $bridgeUp) {
 
 Write-Host "    Bridge is up." -ForegroundColor Green
 
-# 4. Run Vite (hub) only when bridge is up.
+# 4. Run Vite (hub) only when bridge is up. Explicit port so we never fall back to 8765 or Vite default.
 Write-Host "[4/4] Starting RoboFang Hub on :$WebPort ..." -ForegroundColor Green
 Start-Process `
     -FilePath "cmd.exe" `
-    -ArgumentList "/c", "npm run dev" `
+    -ArgumentList "/c", "npm run dev -- --port $WebPort --host" `
     -WorkingDirectory $PSScriptRoot `
     -WindowStyle Normal
 Write-Host "    Hub launched. Open http://localhost:$WebPort" -ForegroundColor Green

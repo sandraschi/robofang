@@ -1,0 +1,6 @@
+{
+  "web_port": 10870,
+  "bridge_port": 10871,
+  "supervisor_port": 10872,
+  "freevibe_preview_port": 10873
+}

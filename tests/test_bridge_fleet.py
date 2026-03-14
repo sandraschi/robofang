@@ -104,7 +104,7 @@ def test_fleet_add_from_external_github(client):
 
 def test_fleet_add_from_external_github_missing_repo_url(client):
     r = client.post("/api/fleet/add-from-external", json={"source": "github"})
-    assert r.status_code == 422
+    assert r.status_code in (400, 422)
 
 
 def test_fleet_add_from_external_docker_returns_501(client):

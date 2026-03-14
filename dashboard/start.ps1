@@ -1,16 +1,32 @@
 # Webapp Start - Standardized SOTA (Supervisor-Led V13.3)
-$WebPort = 10870
-$BridgePort = 10871
-$SupervisorPort = 10872
+# Ports from fleet schema: src/robofang/configs/fleet-stack-ports.json
 $RepoRoot = Split-Path -Parent $PSScriptRoot
+$PortsPath = Join-Path $RepoRoot "src\robofang\configs\fleet-stack-ports.json"
+if (Test-Path $PortsPath) {
+    $stack = Get-Content -Raw -Path $PortsPath | ConvertFrom-Json
+    $WebPort = $stack.web_port
+    $BridgePort = $stack.bridge_port
+    $SupervisorPort = $stack.supervisor_port
+} else {
+    $WebPort = 10870
+    $BridgePort = 10871
+    $SupervisorPort = 10872
+}
 $Python = "C:\Users\sandr\AppData\Local\Programs\Python\Python313\python.exe"
 
-# 1. Kill any process squatting on the ports
+# 1. Zombie kill: clear stack ports before bind. taskkill fallback.
+$portsToClear = @($WebPort, $BridgePort, $SupervisorPort)
 Write-Host "[1/4] Clearing ports ($WebPort, $BridgePort, $SupervisorPort) ..." -ForegroundColor Yellow
-$pids = Get-NetTCPConnection -LocalPort $WebPort, $BridgePort, $SupervisorPort -ErrorAction SilentlyContinue | Where-Object { $_.OwningProcess -gt 4 } | Select-Object -ExpandProperty OwningProcess -Unique
+$pids = Get-NetTCPConnection -LocalPort $portsToClear -ErrorAction SilentlyContinue | Where-Object { $_.OwningProcess -gt 4 } | Select-Object -ExpandProperty OwningProcess -Unique
 foreach ($p in $pids) {
-    Write-Host "    Terminating PID $p ..." -ForegroundColor DarkGray
-    try { Stop-Process -Id $p -Force -ErrorAction SilentlyContinue } catch { }
+    try {
+        Stop-Process -Id $p -Force -ErrorAction Stop
+        Write-Host "    Terminated PID $p" -ForegroundColor DarkGray
+    } catch {
+        cmd /c "taskkill /F /PID $p 2>nul"
+        if ($LASTEXITCODE -eq 0) { Write-Host "    Killed PID $p (taskkill)" -ForegroundColor DarkGray }
+        else { Write-Warning "Failed to terminate PID $p : $_" }
+    }
 }
 
 # 2. Setup
@@ -37,10 +53,10 @@ $SupProc = Start-Process `
 Write-Host "    Supervisor PID: $($SupProc.Id)" -ForegroundColor DarkGray
 Start-Sleep -Seconds 3
 
-# 4. Start the Bridge via Supervisor
+# 4. Start the Bridge via Supervisor (supervisor listens on $SupervisorPort)
 Write-Host "[3/4] Triggering Bridge start ..." -ForegroundColor Cyan
 try {
-    Invoke-WebRequest -Uri "http://localhost:$SupervisorPort/supervisor/start" -Method POST -UseBasicParsing -TimeoutSec 10 -ErrorAction SilentlyContinue | Out-Null
+    Invoke-WebRequest -Uri "http://127.0.0.1:$SupervisorPort/supervisor/start" -Method POST -UseBasicParsing -TimeoutSec 10 -ErrorAction SilentlyContinue | Out-Null
     Write-Host "    Bridge: SIGNALED" -ForegroundColor Green
 }
 catch {

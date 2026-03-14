@@ -88,9 +88,10 @@ Config: `configs/mcp_sidecars.json`. Test: `python tests/connectors/test_mcp_bri
 
 ## Robotics
 
-| Connector    | Status  | Library       | Notes                                      |
-|--------------|---------|---------------|--------------------------------------------|
-| dreame       | PLANNED | python-miio   | Dreame S20 Pro vacuum — map, zone clean    |
+| Connector    | Status  | Library/Method | Notes                                                                 |
+|--------------|---------|----------------|-----------------------------------------------------------------------|
+| yahboom      | REAL    | hands/yahboom-mcp | Yahboom ROS 2 robocar: get_status, patrol_with_recording; speech tools (robot_speech_say, speech_mcp_tts bridge to Speech-MCP). Port 10833. |
+| dreame       | PLANNED | python-miio   | Dreame vacuum — map, zone clean; audio is preset phrases/voice packs only, no arbitrary TTS. |
 | unitree_g1   | PLANNED | unitree-sdk   | Full humanoid — joints, gait, sensors      |
 | ros2_bridge  | PLANNED | rclpy         | Generic ROS2 topic/service bridge          |
 

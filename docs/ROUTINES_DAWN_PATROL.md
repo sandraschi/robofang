@@ -35,7 +35,7 @@ You can say things like **"dawn patrol 7am daily"** and have agents schedule a r
    - `comms_smtp_from` / `ROBOFANG_SMTP_FROM` (optional, defaults to user)
 
 4. **Yahboom backend**  
-   The robotics MCP server (yahboom) must be running and expose a tool that the bridge can call. The bridge calls `POST {yahboom_backend}/tool` with `{"name": "patrol_with_recording", "arguments": {"duration_sec": 120}}`. The backend should return something like `{"video_path": "/path/to/video.mp4"}` or `{"video_url": "..."}` so the bridge can pass it to the analysis step. If the tool name or contract differs, adjust `_run_dawn_patrol` and/or the backend.
+   The robotics MCP server (yahboom) must be running and expose a tool that the bridge can call. The bridge calls `POST {yahboom_backend}/tool` with `{"name": "patrol_with_recording", "arguments": {"duration_sec": 120}}`. The backend should return something like `{"video_path": "/path/to/video.mp4"}` or `{"video_url": "..."}` so the bridge can pass it to the analysis step. You can use **hands/yahboom-mcp** as the reference backend (GET `/status` for hub, POST `/tool` for patrol); default port 10833. If the tool name or contract differs, adjust `_run_dawn_patrol` and/or the backend.
 
 ## Hub: Schedule page
 

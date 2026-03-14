@@ -54,3 +54,31 @@ Only if: (1) Bridge logs `File logging active: ...` at startup (else it only wri
 ## Root docker-compose (optional)
 
 The repo root also has `docker-compose.monitoring.yml` (builds from `containers/`). It uses different volume names; ensure Promtail’s config points at the path where `logs/robofang-bridge.log` is written and that the Prometheus config scrapes `robofang-bridge` at `:10871` (as in `configs/prometheus.yml`).
+
+## Profiling and monitoring together
+
+Monitoring gives **request-level** metrics (rate, latency per route). To see **where** time goes inside a request (council vs single, LLM vs tools), combine with profiling-style metrics.
+
+### Option A: Custom metrics (recommended first step)
+
+Add Prometheus histograms or summary metrics for key segments so Grafana shows a breakdown:
+
+- `robofang_ask_duration_seconds` — total `/ask` (or chat) request.
+- `robofang_council_duration_seconds` — time in council_synthesis (when council is used).
+- `robofang_llm_call_duration_seconds` — per LLM call (single or council member).
+- `robofang_tool_execution_duration_seconds` — per tool call, optionally by `tool_name`.
+
+Implement by creating a small metrics module (use `prometheus_client` already pulled in by the instrumentator), then instrument `orchestrator.ask()`, `reasoning.council_synthesis()`, and the tool executor. The same `/metrics` endpoint exposes them; add panels to the existing Grafana dashboard. No separate profiling run — always-on, low overhead.
+
+### Option B: On-demand profiling
+
+For deep CPU hotspots (e.g. before trying PyPy or optimizing a loop):
+
+- **py-spy**: `py-spy record -o profile.svg -p <bridge_pid> --duration 30` — 30s sample, view in browser or convert to flame graph. No code changes; run when the bridge is under load.
+- **cProfile**: In code, `import cProfile; cProfile.runctx("await ask(...)", globals(), locals(), "ask.prof")` (or wrap a request); inspect with `snakeviz ask.prof` or `pstats`. Good for single-request breakdown.
+
+Store `.prof` or `.svg` under `data/profiling/` (gitignored) and open locally. Optionally add a dev-only endpoint (e.g. `POST /admin/profile?seconds=30`) that runs py-spy or cProfile and returns the file — only enable behind a flag or in dev.
+
+### Option C: Continuous profiling (later)
+
+Tools like **Pyroscope** or **Google pprof** scrape profile data and can show flame graphs in a UI or in Grafana (e.g. Grafana Pyroscope datasource). Full integration: always-on profiling, query by time range. Heavier setup and more storage; consider only if you need continuous CPU profiling in production.

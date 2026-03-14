@@ -71,5 +71,10 @@ graph LR
     F --> G[Physical Actuation]
 ```
 
+## Speech and audio
+
+- **Yahboom Raspbot v2**: Optional **Yahboom Voice (ASR-TTS) module** (CI1302) provides onboard TTS and STT. The **yahboom-mcp** hand (`hands/yahboom-mcp`) exposes `robot_speech_say(text)` to send text to the robot’s TTS and `speech_mcp_tts(text, provider, send_to_robot)` to call Speech-MCP for cloud TTS and optionally play on the robot. See Speech-MCP docs (e.g. `YAHBOOM_RASPBOT_VOICE.md`) for the bridge pattern.
+- **Dreame vacuum**: Only **preset phrases** (e.g. “start cleaning”, “returning to dock”) and installable **voice packs** (same phrases, different voice/language). No API for arbitrary TTS or custom audio playback; `play_sound` is a parameterless locate beep. For custom announcements, use an external speaker driven by dreame-mcp events + Speech-MCP.
+
 ---
 *True intelligence is measured by its impact on the physical world. We are building the reach.*

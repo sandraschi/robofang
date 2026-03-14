@@ -73,6 +73,7 @@ All MCP server webapps and dashboards MUST use ports from the reserved range **1
 | 10741 | plex-mcp | Webapp frontend |
 | 10742 | filesystem-mcp | Backend |
 | 10743 | filesystem-mcp | Frontend |
+| 10744 | autohotkey-test | Scriptlet COMBridge (AHK dashboard) |
 | 10748 | windows-operations-mcp | Backend |
 | 10749 | windows-operations-mcp | Frontend |
 | 10750 | reversing-mcp | Backend (API) |
@@ -156,6 +157,7 @@ All MCP server webapps and dashboards MUST use ports from the reserved range **1
 | 10870 | robofang | Web dashboard frontend |
 | 10871 | robofang | Bridge server |
 | 10872 | robofang | Supervisor |
+| 10873 | freevibe-at | Premium landing preview |
 | 10874 | handbrake-mcp | Web dashboard frontend |
 | 10875 | handbrake-mcp | Web dashboard backend |
 | 10876 | virtualdj-mcp | Web dashboard frontend |
@@ -182,6 +184,7 @@ All MCP server webapps and dashboards MUST use ports from the reserved range **1
 Source of truth in machine-readable JSON:
 - [webapp-registry.json](./webapp-registry.json)
 - [container-registry.json](./container-registry.json)
+- **RoboFang stack** (hub, bridge, supervisor): `src/robofang/configs/fleet-stack-ports.json` — `web_port`, `bridge_port`, `supervisor_port`. Start scripts and Python (supervisor, main) read from this; env `PORT` / `SUPERVISOR_PORT` override.
 
 > **FORBIDDEN PORTS (3000, 5000, 5173, 8000, 8080)**: Strictly prohibited for production webapps. Any webapp found on these ports will be forcefully migrated.
 

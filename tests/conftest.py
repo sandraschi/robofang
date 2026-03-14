@@ -42,9 +42,13 @@ def client(mock_orchestrator):
     async def no_auto_launch():
         pass
 
+    async def no_refresh_mcp_tools():
+        pass
+
     with (
         patch("robofang.main.orchestrator", mock_orchestrator),
         patch("robofang.main.auto_launch_enabled_connectors", side_effect=no_auto_launch),
+        patch("robofang.main._refresh_mcp_tools_from_backends", side_effect=no_refresh_mcp_tools),
     ):
         from robofang.main import app
 

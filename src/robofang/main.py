@@ -3058,10 +3058,24 @@ async def get_doc(slug: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _default_bridge_port() -> int:
+    """Default bridge port from fleet schema (fleet-stack-ports.json)."""
+    path = Path(__file__).resolve().parent / "configs" / "fleet-stack-ports.json"
+    if path.exists():
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data.get("bridge_port"), int):
+                return data["bridge_port"]
+        except (OSError, json.JSONDecodeError):
+            pass
+    return 10871
+
+
 def main():
     """Entry point for the robofang-bridge script."""
     try:
-        port = int(os.getenv("PORT", 10871))
+        port = int(os.getenv("PORT", _default_bridge_port()))
         host = os.getenv("ROBOFANG_BRIDGE_HOST", "0.0.0.0")
         uvicorn.run("robofang.main:app", host=host, port=port, reload=False)
     except Exception:

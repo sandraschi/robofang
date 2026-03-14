@@ -32,8 +32,29 @@ from pydantic import BaseModel
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
-SUPERVISOR_PORT = 10872
-BRIDGE_PORT = 10871
+
+def _load_fleet_stack_ports() -> dict:
+    """Load web_port, bridge_port, supervisor_port from fleet schema. Single source of truth."""
+    default = {"web_port": 10870, "bridge_port": 10871, "supervisor_port": 10872}
+    path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "configs", "fleet-stack-ports.json"
+    )
+    if not os.path.isfile(path):
+        return default
+    try:
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        return {
+            **default,
+            **{k: data[k] for k in default if k in data and isinstance(data[k], int)},
+        }
+    except (OSError, json.JSONDecodeError):
+        return default
+
+
+_STACK_PORTS = _load_fleet_stack_ports()
+SUPERVISOR_PORT = int(os.environ.get("SUPERVISOR_PORT", _STACK_PORTS["supervisor_port"]))
+BRIDGE_PORT = int(os.environ.get("PORT", _STACK_PORTS["bridge_port"]))
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REPOS_ROOT = os.environ.get("ROBOFANG_REPOS_ROOT", os.path.dirname(_REPO_ROOT))
 FLEET_REGISTRY_PATH = os.path.join(

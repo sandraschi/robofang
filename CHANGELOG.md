@@ -5,6 +5,14 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Yahboom MCP** (`hands/yahboom-mcp`): New hand with robot tools (`get_status`, `patrol_with_recording`) and **speech tools** that add on top of Speech-MCP — `robot_speech_say(text)` (onboard Yahboom Voice Module TTS), `speech_mcp_tts(text, provider, send_to_robot)` (Speech-MCP TTS with optional play on robot). Bridge and hub use GET `/status` and POST `/tool`; default port 10833. Env: `YAHBOOM_ROBOT_URL`, `SPEECH_MCP_BACKEND_URL`.
+- **Docs**: ROBOTICS.md — "Speech and audio" section (Yahboom Voice Module + yahboom-mcp; Dreame preset-only, no arbitrary TTS/audio). ROUTINES_DAWN_PATROL.md — reference to hands/yahboom-mcp. connector_taxonomy.md — yahboom in Robotics table.
+
+---
+
 ## [2.1.0] — 2026-02-26
 
 ### Added

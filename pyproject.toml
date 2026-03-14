@@ -62,6 +62,7 @@ dependencies = [
 dev = [
     "pytest>=8",
     "pytest-asyncio>=0.23",
+    "pytest-timeout>=2.3",
     "httpx",
 ]
 # Install everything including future connector deps
@@ -105,6 +106,7 @@ line-ending = "auto"
 testpaths = ["tests"]
 asyncio_mode = "auto"
 pythonpath = ["src"]
+timeout = 30
 markers = [
     "github: marks tests that clone from GitHub (deselect with -m 'not github')",
     "integration: marks tests that need network or external services (deselect with -m 'not integration')",
