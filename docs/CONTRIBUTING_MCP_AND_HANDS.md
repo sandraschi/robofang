@@ -67,7 +67,8 @@ The connector must be wired (see 1.3) so the bridge knows its backend URL (e.g. 
 
 **Where installs live and when they appear as “installed”**
 
-- **Clone location**: When you use the Fleet Installer to install an MCP server, it is cloned into the RoboFang repo under **`hands/<hand_id>/`** (e.g. `hands/ring-mcp/`). The repo root is the package root (where `fleet_manifest.yaml` and `hands/` live), typically the RoboFang project root (e.g. `D:/Dev/repos/robofang/hands/`).
+- **`hands/` is for ingested clones only.** RoboFang clones MCP servers into `hands/<hand_id>/` during onboarding/install. Do not commit contents of `hands/` to the RoboFang repo — they are copies of external repos (e.g. d:/dev/repos or GitHub). The directory is in `.gitignore`.
+- **Clone location**: When you use the Fleet Installer to install an MCP server, it is cloned into the RoboFang repo under **`hands/<hand_id>/`** (e.g. `hands/ring-mcp/`). The repo root is the package root (where `fleet_manifest.yaml` and `hands/` live), typically the RoboFang project root (e.g. `D:/Dev/repos/robofang/`).
 - **“Installed” in the UI**: A server is shown as installed if that directory exists (and, for catalog entries, the same is true after you install from the Installer). On a fresh start with no installs yet, **no** MCP servers are shown as installed until you run Install at least once.
 - **Launch path**: The bridge tries REPO_MAP first (e.g. `d:/Dev/repos/ring-mcp`). If that path does not exist, it falls back to **`hands/<connector>-mcp`** (e.g. `hands/ring-mcp`), so Launch works for servers installed only via the Fleet Installer.
 
