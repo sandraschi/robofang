@@ -9,9 +9,10 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Annotated, Any, Dict, Optional
 
 from fastmcp import Context, FastMCP
+from pydantic import Field
 
 from robofang_mcp._bridge import (
     create_routine_from_phrase,
@@ -64,16 +65,24 @@ except Exception as e:
 
 @mcp.tool()
 async def robofang_status(
-    sections: Optional[str] = None,
-    activity_limit: int = 20,
-    logs_limit: int = 50,
+    sections: Annotated[
+        Optional[str],
+        Field(
+            description="Comma-separated or 'all'. Include: activity, scheduling, config, hands, personas. Example: 'activity,personas' or 'all'. Omit for bridge health and connector summary only."
+        ),
+    ] = None,
+    activity_limit: Annotated[
+        int, Field(description="Max deliberations to include when sections includes activity.")
+    ] = 20,
+    logs_limit: Annotated[
+        int, Field(description="Max log entries when sections includes activity.")
+    ] = 50,
 ) -> Dict[str, Any]:
     """
-    RoboFang status and optional deep inspection.
-    No args: bridge health and connector summary only.
-    sections: comma-separated or 'all' to include activity (deliberations + logs), scheduling (hands + routines), config (fleet settings), hands (full fleet + hand status), personas (council/personality names). Example: 'activity,personas' or 'all'.
-    activity_limit: max deliberations to include when sections includes activity (default 20).
-    logs_limit: max log entries when sections includes activity (default 50).
+    RoboFang status and optional deep inspection. No args: bridge health and connector summary only.
+
+    Returns:
+        dict: success, running, connectors_online; optional activity, scheduling, config, hands, personas when sections is set.
     """
     out: Dict[str, Any] = await fetch_status()
     if not out.get("success"):
@@ -131,16 +140,28 @@ async def robofang_status(
 
 @mcp.tool()
 async def robofang_help(
-    category: Optional[str] = None,
-    topic: Optional[str] = None,
-    depth: Optional[str] = "2",
-    path: Optional[str] = None,
+    category: Annotated[
+        Optional[str], Field(description="Help category: tools, council, connection, skills.")
+    ] = None,
+    topic: Annotated[
+        Optional[str], Field(description="Topic within category for full detail.")
+    ] = None,
+    depth: Annotated[
+        Optional[str],
+        Field(
+            description="'0'=one-line summary, '1'=categories, '2'=topics per category, '3'=full category, 'full'=entire tree."
+        ),
+    ] = "2",
+    path: Annotated[
+        Optional[str],
+        Field(description="Shortcut: e.g. 'council.use_council' sets category and topic."),
+    ] = None,
 ) -> Dict[str, Any]:
     """
-    Multi-level detailed help for RoboFang MCP.
-    depth: '0' = one-line summary, '1' = categories only, '2' = topics per category, '3' = full text for one category (use category=), 'full' = entire help tree with all detail.
-    path: shortcut to a topic, e.g. 'council.use_council' → category=council, topic=use_council; returns that topic's full detail.
-    category= and topic=: drill down as usual (tools, council, connection, skills).
+    Multi-level detailed help for RoboFang MCP. Returns categories, topics, or full topic detail depending on depth/category/topic/path.
+
+    Returns:
+        dict: help, usage, categories; or category, description, topics/topics_full; or category, topic, detail. On error: error, available.
     """
     if path:
         parts = path.strip().split(".", 1)
@@ -222,16 +243,23 @@ async def robofang_help(
 
 @mcp.tool()
 async def robofang_ask(
-    message: str,
-    use_council: bool = False,
-    use_rag: bool = True,
-    subject: str = "guest",
-    persona: str = "sovereign",
+    message: Annotated[
+        str, Field(description="The question or instruction to send to the orchestrator.")
+    ],
+    use_council: Annotated[
+        bool, Field(description="If true, run Council of Dozens synthesis.")
+    ] = False,
+    use_rag: Annotated[bool, Field(description="If true, augment with RAG context.")] = True,
+    subject: Annotated[str, Field(description="Security subject; default guest.")] = "guest",
+    persona: Annotated[
+        str, Field(description="Personality name; default sovereign.")
+    ] = "sovereign",
 ) -> Dict[str, Any]:
     """
     Send a message to the RoboFang orchestrator.
-    use_council=True: run Council of Dozens synthesis. use_rag=True: augment with RAG context.
-    subject: security subject (default guest). persona: personality name (default sovereign).
+
+    Returns:
+        dict: success; on success message (str), model (str); on failure error (str).
     """
     out = await fetch_ask(
         message=message,
@@ -252,17 +280,23 @@ async def robofang_ask(
 @mcp.tool()
 async def robofang_fleet() -> Dict[str, Any]:
     """
-    Return the full fleet registry: connectors (live + config), domain agents, summary.
-    Same data as GET /fleet on the Bridge.
+    Return the full fleet registry: connectors (live + config), domain agents, summary. Same data as GET /fleet on the Bridge.
+
+    Returns:
+        dict: success, connectors/config, domain agents, summary (structure from bridge /fleet).
     """
     return await fetch_fleet()
 
 
 @mcp.tool()
-async def robofang_deliberations(limit: int = 50) -> Dict[str, Any]:
+async def robofang_deliberations(
+    limit: Annotated[int, Field(description="Max number of deliberation entries to return.")] = 50,
+) -> Dict[str, Any]:
     """
     Return recent reasoning log entries (Council/ReAct deliberation steps).
-    limit: max entries (default 50).
+
+    Returns:
+        dict: success; deliberations (list of entries), count (int).
     """
     return await fetch_deliberations(limit=limit)
 
@@ -274,59 +308,107 @@ async def robofang_deliberations(limit: int = 50) -> Dict[str, Any]:
 async def robofang_task_list() -> Dict[str, Any]:
     """
     List all RoboFang agentic tasks (routines): scheduled actions like yahboom patrol, dawn patrol.
-    Returns routine id, name, time_local, recurrence, action_type, enabled, last_run.
+
+    Returns:
+        dict: success; routines (list of {id, name, time_local, recurrence, action_type, enabled, last_run}).
     """
     return await fetch_routines()
 
 
 @mcp.tool()
-async def robofang_task_get(routine_id: str) -> Dict[str, Any]:
-    """Get a single agentic task (routine) by id."""
+async def robofang_task_get(
+    routine_id: Annotated[str, Field(description="Routine id from robofang_task_list.")],
+) -> Dict[str, Any]:
+    """
+    Get a single agentic task (routine) by id.
+
+    Returns:
+        dict: success; routine (id, name, time_local, recurrence, action_type, enabled, last_run, ...) or error.
+    """
     return await fetch_routine(routine_id)
 
 
 @mcp.tool()
 async def robofang_task_create_from_phrase(
-    phrase: str,
-    report_email: Optional[str] = None,
-    run_now: bool = False,
+    phrase: Annotated[
+        str,
+        Field(
+            description="Natural language task, e.g. 'yahboom robot patrol 7am daily', 'dawn patrol and report anomalies'."
+        ),
+    ],
+    report_email: Annotated[
+        Optional[str], Field(description="Optional email for report delivery.")
+    ] = None,
+    run_now: Annotated[
+        bool, Field(description="If true, run the task immediately and return run result.")
+    ] = False,
 ) -> Dict[str, Any]:
     """
-    Create an agentic task from natural language (e.g. 'yahboom robot patrol 7am daily', 'dawn patrol and report anomalies').
-    The bridge parses phrase into name, time, recurrence, action_type (e.g. dawn_patrol for patrol + video + report).
-    If run_now=True, run the task immediately and return the run result (e.g. patrol report with anomalies).
+    Create an agentic task from natural language. Bridge parses into name, time, recurrence, action_type.
+
+    Returns:
+        dict: success; created routine (id, name, ...) or, if run_now, run result (e.g. patrol report). On failure error.
     """
     return await create_routine_from_phrase(phrase, report_email=report_email, run_now=run_now)
 
 
 @mcp.tool()
 async def robofang_task_run_from_phrase(
-    phrase: str,
-    report_email: Optional[str] = None,
+    phrase: Annotated[
+        str,
+        Field(
+            description="Natural language task to run now, e.g. 'start yahboom robot patrol and report anomalies'."
+        ),
+    ],
+    report_email: Annotated[
+        Optional[str], Field(description="Optional email for report delivery.")
+    ] = None,
 ) -> Dict[str, Any]:
     """
-    Start an agentic task from natural language and report back. Use for: 'RoboFang, start yahboom robot patrol and report back anomalies'.
-    Creates the task from the phrase (if needed), runs it now, and returns the run result (patrol output, analysis, report).
+    Start an agentic task from natural language and report back. Creates task if needed, runs now.
+
+    Returns:
+        dict: success; run result (patrol output, report, etc.) or error.
     """
     return await create_routine_from_phrase(phrase, report_email=report_email, run_now=True)
 
 
 @mcp.tool()
-async def robofang_task_run(routine_id: str) -> Dict[str, Any]:
-    """Run an existing agentic task (routine) by id once. Returns run result (e.g. patrol report)."""
+async def robofang_task_run(
+    routine_id: Annotated[str, Field(description="Routine id from robofang_task_list.")],
+) -> Dict[str, Any]:
+    """
+    Run an existing agentic task (routine) by id once.
+
+    Returns:
+        dict: success; run result (e.g. patrol report) or error.
+    """
     return await bridge_run_routine(routine_id)
 
 
 @mcp.tool()
 async def robofang_task_update(
-    routine_id: str,
-    name: Optional[str] = None,
-    time_local: Optional[str] = None,
-    recurrence: Optional[str] = None,
-    action_type: Optional[str] = None,
-    enabled: Optional[bool] = None,
+    routine_id: Annotated[str, Field(description="Routine id to update.")],
+    name: Annotated[Optional[str], Field(description="New name; omit to keep current.")] = None,
+    time_local: Annotated[
+        Optional[str], Field(description="New local time; omit to keep current.")
+    ] = None,
+    recurrence: Annotated[
+        Optional[str], Field(description="New recurrence; omit to keep current.")
+    ] = None,
+    action_type: Annotated[
+        Optional[str], Field(description="New action_type; omit to keep current.")
+    ] = None,
+    enabled: Annotated[
+        Optional[bool], Field(description="Enable or disable; omit to keep current.")
+    ] = None,
 ) -> Dict[str, Any]:
-    """Update an agentic task (routine) by id. Pass only fields to change."""
+    """
+    Update an agentic task (routine) by id. Pass only fields to change.
+
+    Returns:
+        dict: success; updated routine or error.
+    """
     return await bridge_update_routine(
         routine_id,
         name=name,
@@ -339,16 +421,130 @@ async def robofang_task_update(
 
 @mcp.tool()
 async def robofang_task_delete(routine_id: str) -> Dict[str, Any]:
-    """Delete an agentic task (routine) by id."""
+    """
+    Delete an agentic task (routine) by id.
+
+    Returns:
+        dict: success or error.
+    """
     return await bridge_delete_routine(routine_id)
 
 
 @mcp.tool()
-async def robofang_agentic_workflow(goal: str, ctx: Context) -> str:
+async def robofang_bootstrap_check() -> Dict[str, Any]:
     """
-    Achieve a high-level goal by planning and executing steps via the RoboFang hub (FastMCP 3.1 sampling).
-    Use for: "Summarize fleet status and suggest one improvement", "Ask the council how to secure the hub", "Get recent deliberations and summarize the last decision".
-    The LLM will use robofang_status, robofang_ask, robofang_fleet, robofang_deliberations as sub-tools.
+    Check whether the RoboFang bridge is reachable and what state the stack is in.
+    Use from IDE before the bridge is running to see connection status and next steps.
+    Returns: bridge_url, bridge_reachable, service name/version if up, connectors count, and next_step hint.
+    """
+    from robofang_mcp._bridge import get_bridge_url
+
+    bridge_url = get_bridge_url()
+    out = await fetch_status()
+    if out.get("success") and out.get("running"):
+        return {
+            "success": True,
+            "bridge_url": bridge_url,
+            "bridge_reachable": True,
+            "service": out.get("service", "RoboFang-bridge"),
+            "version": out.get("version", "?"),
+            "connectors_online": out.get("connectors_online", 0),
+            "connectors_total": out.get("connectors_total", 0),
+            "next_step": "Bridge is up. Optional: start the Sovereign Hub (port 10864), run this MCP server for IDE access, or use robofang_bootstrap_guide for a full setup checklist.",
+        }
+    return {
+        "success": True,
+        "bridge_url": bridge_url,
+        "bridge_reachable": False,
+        "error": out.get("error", "Bridge not reachable"),
+        "next_step": "Start the RoboFang bridge: from the RoboFang repo run `uv run python -m robofang.main` or `robofang-bridge` (default port 10871). Set ROBOFANG_BRIDGE_URL if the bridge runs elsewhere.",
+    }
+
+
+@mcp.tool()
+async def robofang_bootstrap_guide(
+    include_ide: Annotated[
+        bool, Field(description="If true, include IDE (Cursor/Antigrav) and robofang-mcp steps.")
+    ] = True,
+) -> Dict[str, Any]:
+    """
+    Return a step-by-step setup guide for the RoboFang stack.
+
+    Returns:
+        dict: success, bridge_url, bridge_reachable, current_step (int), steps (list of {order, title, action, detail}), message.
+    """
+    from robofang_mcp._bridge import get_bridge_url
+
+    bridge_url = get_bridge_url()
+    status_out = await fetch_status()
+    bridge_up = status_out.get("success") and status_out.get("running")
+
+    steps = [
+        {
+            "order": 1,
+            "title": "Start the RoboFang bridge",
+            "action": "Run bridge (port 10871)",
+            "detail": "From RoboFang repo: `uv run python -m robofang.main` or `robofang-bridge`. Set ROBOFANG_BRIDGE_URL if different.",
+        },
+        {
+            "order": 2,
+            "title": "Verify bridge",
+            "action": "Call robofang_bootstrap_check or robofang_status",
+            "detail": "Confirm bridge_reachable and connectors_online.",
+        },
+        {
+            "order": 3,
+            "title": "Optional: Sovereign Hub (dashboard)",
+            "action": "Run hub on port 10864",
+            "detail": "From repo: `cd robofang-hub; npm run dev` or use start.ps1. Hub talks to bridge for fleet, chat, deliberations.",
+        },
+        {
+            "order": 4,
+            "title": "Optional: robofang-mcp for IDE",
+            "action": "Add robofang-mcp to Cursor/Antigrav",
+            "detail": "Run `robofang-mcp` (stdio) or `robofang-mcp --sse` (port 10867). In client config: command `robofang-mcp`. Use robofang_ask, robofang_fleet, robofang_agentic_workflow.",
+        },
+        {
+            "order": 5,
+            "title": "Optional: robofang-mcp webapp",
+            "action": "Run webapp backend (10761) and frontend (10760)",
+            "detail": "See robofang-mcp/webapp/README.md for status and tool testing UI.",
+        },
+    ]
+    if not include_ide:
+        steps = [s for s in steps if s["order"] in (1, 2, 3)]
+
+    current_step = 0
+    if bridge_up:
+        current_step = 2
+        if include_ide:
+            current_step = 4  # suggest IDE + webapp as next
+
+    return {
+        "success": True,
+        "bridge_url": bridge_url,
+        "bridge_reachable": bridge_up,
+        "current_step": current_step,
+        "steps": steps,
+        "message": "Use robofang_bootstrap_check to re-check reachability anytime.",
+    }
+
+
+@mcp.tool()
+async def robofang_agentic_workflow(
+    goal: Annotated[
+        str,
+        Field(
+            description="High-level goal in natural language, e.g. 'Summarize fleet status and suggest one improvement'."
+        ),
+    ],
+    ctx: Context,
+) -> str:
+    """
+    Achieve a high-level goal by planning and executing steps via the hub (sampling). Uses status, ask, fleet, deliberations as sub-tools.
+
+    Returns:
+        str: Summary of what was done and the outcome (or error message if the workflow failed).
     """
 
     async def status() -> str:
@@ -393,7 +589,11 @@ async def robofang_agentic_workflow(goal: str, ctx: Context) -> str:
 
 
 @mcp.prompt()
-def robofang_quick_start(bridge_url: str = "http://localhost:10871") -> str:
+def robofang_quick_start(
+    bridge_url: Annotated[
+        str, Field(description="Bridge base URL for SSE/API.")
+    ] = "http://localhost:10871",
+) -> str:
     """Get step-by-step instructions to connect and use the RoboFang hub (Bridge + MCP)."""
     return f"""You are helping set up the RoboFang MCP & robots hub.
 

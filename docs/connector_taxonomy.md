@@ -6,6 +6,7 @@ OpenClaw routes messages. robofang controls things.
 
 ## Status Legend
 - REAL     — fully implemented, tested
+- BETA     — official support, early/beta quality (e.g. Resonite SDK for Unity)
 - PARTIAL  — implemented, some methods stub
 - PLANNED  — designed, not yet coded
 - NOT IMPLEMENTED — no implementation; use an alternative connector
@@ -68,10 +69,20 @@ Config: `configs/mcp_sidecars.json`. Test: `python tests/connectors/test_mcp_bri
 
 | Connector      | Status  | Library/Method     | Notes                                 |
 |----------------|---------|--------------------|---------------------------------------|
-| resonite       | REAL    | WebSocket          | ResoniteLink protocol, world control  |
+| resonite       | REAL    | WebSocket          | ResoniteLink protocol, world control. Authoring: [Resonite SDK (Unity) beta](integrations/resonite.md#resonite-sdk-unity-editor-beta). |
 | vrchat         | PLANNED | httpx              | VRChat API (unofficial, stable)       |
-| unity3d        | PLANNED | subprocess/REST    | Unity batch mode + Editor REST plugin |
+| unity3d        | BETA    | Resonite SDK + MCP | [Resonite SDK (Unity) beta](integrations/unity3d.md#resonite-sdk-unity) for worlds/gadgets/avatars; unity3d-mcp for batch/Editor. See [Integration: Unity3D](integrations/unity3d.md). |
 | gazebo         | PLANNED | ros2 / gz REST     | Robot simulation                      |
+
+### Resonite SDK (Unity Editor) — beta (2026.3.11.1400+)
+
+As of **2026.3.11.1400**, Resonite ships an **official SDK (beta) for the Unity Editor**. It provides an alternative authoring path for Resonite content and makes it easy to bring existing Unity projects into Resonite.
+
+- **Scope**: Build **worlds**, **gadgets**, and **avatars** in Unity; convert and export for use in Resonite.
+- **State**: Beta — expect some jank; for hassle-free use, consider waiting for stabilization.
+- **License**: Fully **open source**; modular, extensible **conversion system** (community issues and PRs welcome).
+- **Upstream**: [Yellow-Dog-Man/Resonite.UnitySDK](https://github.com/Yellow-Dog-Man/Resonite.UnitySDK) (releases v0.0.1–v0.0.3). Requires a Resonite client build that includes the SDK announcement (2026.3.11.1400 or later).
+- **RoboFang**: Runtime control remains via **resonite** connector (ResoniteLink/OSC) and [resonite-mcp](mcp-servers/resonite-mcp.md). The SDK covers **authoring**; the **unity3d** connector status is **BETA** for this official authoring path. See [Integration: Resonite](integrations/resonite.md) and [Integration: Unity3D](integrations/unity3d.md) for detailed API and MCP crosslinks.
 
 ---
 

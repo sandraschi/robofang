@@ -20,6 +20,8 @@ All RoboFang MCP servers MUST be built using **FastMCP 3.1**. This standard ensu
   - *Good*: `get_telemetry(operation='battery')`.
 - **Agentic workflow tools (SEP-1577, mandatory)**: Servers MUST expose at least one agentic workflow tool that uses **sampling** (FastMCP 3.1 `ctx.sample()` / sampling with tools). This allows the client LLM to orchestrate multi-step or multi-tool workflows autonomously. Servers are "sampling-aware"; complex operations MUST use sampling where appropriate rather than single-shot tool returns only.
 
+**Repo requirements:** Every MCP server repo MUST include a **justfile** (just recipes for run, lint, test, etc.) and **llms.txt** (LLM-facing project summary per llms.txt spec).
+
 **Canonical build standard:** `docs/standards/AGENT_PROTOCOLS.md` (FastMCP 3.1+ and SOTA requirements). Do not follow outdated 2.14.x-only guides.
 
 ## 3. Fleet Discovery & Mesh Topology

@@ -52,11 +52,11 @@ Thorough overview of the RoboFang MCP & robotics hub, the role of **robofang-mcp
 
 ---
 
-## 2. The missing piece: robofang-mcp
+## 2. robofang-mcp (implemented)
 
-### 2.1 What robofang-mcp is (intended)
+### 2.1 What robofang-mcp is
 
-**robofang-mcp** would be a **Model Context Protocol (MCP) server** that exposes RoboFang's orchestration to the rest of the MCP ecosystem. Today, Cursor, Claude Desktop, and other MCP clients can talk to individual MCP servers (Plex, Calibre, yahboom, etc.) but have no standard way to *drive the Sovereign Hub*—they would need to call the Bridge’s HTTP API directly, which is off-protocol.
+**robofang-mcp** is a **Model Context Protocol (MCP) server** that exposes RoboFang's orchestration to the rest of the MCP ecosystem. Today, Cursor, Claude Desktop, and other MCP clients can talk to individual MCP servers (Plex, Calibre, yahboom, etc.) but have no standard way to *drive the Sovereign Hub*—they would need to call the Bridge’s HTTP API directly, which is off-protocol.
 
 robofang-mcp would:
 
@@ -67,15 +67,16 @@ robofang-mcp would:
 
 So: **Bridge = HTTP hub and brain; robofang-mcp = MCP adapter so that any MCP client can use that brain with one config entry.**
 
-### 2.2 Why it’s dormant
+### 2.2 How to use it
 
-- The Bridge and Dashboard already allow full control via HTTP and the React UI; MCP was not the first path.
-- Implementing robofang-mcp requires a small FastMCP (or equivalent) app, env config for the Bridge URL, and maintenance of tool schemas in sync with the Bridge API. That work was deferred.
-- No single “robofang-mcp” repo or package is present in the current layout; it would be a new module (e.g. under `robofang/mcp/` or a sibling repo `robofang-mcp`) that depends on the Bridge being up.
+1. Start the RoboFang bridge (port 10871). 2. Run `pip install -e robofang-mcp` then `robofang-mcp` or `robofang-mcp --sse`. 3. In Cursor/Antigrav: add MCP server, command `robofang-mcp`. 4. Optional: run the robofang-mcp webapp (see robofang-mcp/README.md).
 
-### 2.3 Relationship to the Rust “robofang” (RightNow-AI)
+**Bootstrap / alternate setup:** robofang-mcp can be an **alternative way to setup or bootstrap** the main RoboFang stack. IDE-first: install robofang-mcp and add it to Cursor/Antigrav before the bridge or hub are running; use `robofang_bootstrap_check`, `robofang_bootstrap_guide`, `robofang_help`, and `robofang_agentic_workflow` to guide setup. Paths: **classic** (install RoboFang, run bridge, run hub, optionally add robofang-mcp) or **MCP-first** (install robofang-mcp, add to IDE, use it to drive and bootstrap the rest).
 
-The **RightNow-AI robofang** (Rust “agent OS”, 2026) is a different product: a single binary with WASM sandbox, MCP support, scheduled agents. This repo is the **Sandra-class Sovereign Orchestration Hub** (Python, Council, DTU, federation map). They are complementary: the Rust runtime could, in theory, run agents that *call* this hub via HTTP or via a future robofang-mcp. The dormant **robofang-mcp** discussed here is the MCP adapter for *this* (Python) RoboFang only.
+### 2.3 Relationship to the Rust "robofang" (RightNow-AI)
+
+The **RightNow-AI robofang** (Rust "agent OS", 2026) is a different product. This repo is the **Sandra-class Sovereign Orchestration Hub** (Python, Council, DTU, federation map). The Rust runtime could call this hub via HTTP or via **robofang-mcp**.
+
 
 ---
 
@@ -132,7 +133,7 @@ The **RightNow-AI robofang** (Rust “agent OS”, 2026) is a different product:
 
 | Area | Current state | Suggested direction |
 |------|----------------|---------------------|
-| **robofang-mcp** | Dormant; no MCP server in repo | Add MCP server (FastMCP) that calls Bridge HTTP; expose ask, council, fleet, logs, deliberations, launch; document in README and fleet. |
+| **robofang-mcp** | Implemented in `robofang-mcp/`; optional webapp in `webapp/` | Keep tool schemas in sync with Bridge; document in README and QUICKSTART. |
 | **MCP backend map** | Hardcoded in `main.py` | Derive from `federation_map.json` (+ env override); single place to add new backends. |
 | **Tool bridge** | Skills + connectors, minimal schema | Structured tool schemas per connector/skill; optional MCP tools/list discovery for backends. |
 | **Council / Dark** | 3-phase flow, reasoning log | Ensure all phases and Bastio/DTU outcomes logged; consider per-role prompts. |

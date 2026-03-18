@@ -16,6 +16,8 @@ dependencies = [
     "websockets>=12",
     "psutil>=5.9",
     "pydantic>=2.7",
+    "typer>=0.12.0",
+    "rich>=13.7.1",
 
     # ── Comms connectors ────────────────────────────────────────────────────
     "discord.py>=2.3",         # DiscordConnector
@@ -77,6 +79,7 @@ where = ["src"]
 robofang = ["configs/*.json"]
 
 [project.scripts]
+robofang            = "robofang.cli:main"
 robofang-bridge     = "robofang.main:main"
 robofang-supervisor = "robofang.supervisor:app"
 
