@@ -1,0 +1,6 @@
+{
+  "name": "robofang",
+  "version": "0.3.0",
+  "description": "RoboFang MCP & robotics orchestration hub",
+  "manifest": "mcpb/manifest.json"
+}

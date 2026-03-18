@@ -81,6 +81,7 @@ To be considered **SOTA (State of the Art)**, an MCP server MUST meet the follow
     - **GPU Opportunity**: MUST detect high-end GPUs and suggest local LLM installation if missing.
     - **Rich Docstrings**: Pretty-printed rationales and examples.
     - **Self-Discovery**: Use of `GrokTools` (meta-mcp integration) for automated schema-aware UI generation.
+    - **Skill page (FastMCP 3.1)**: When the MCP server exposes skills (Anthropic-style SKILL.md as resources), the webapp MUST provide a **Skill** page that lists and displays skill content so the client/IDE knows how to use the server. **Canonical**: **mcp-central-docs/standards/WEBAPP_SOTA_STANDARDS.md** § V (Skill Page); backend: `GET /api/skills`, `GET /api/skills/{name}`; frontend: render markdown.
 9.  **Webapp Neural Audio Interface (MANDATORY)**: To enhance the "Synaptic Handshake" experience, all SOTA webapps MUST implement a procedural audio layer:
     - **Web Audio API**: MUST use the native Web Audio API for interactive feedback (no heavy MP3 assets for handshakes).
     - **Neural Jingle Pattern**: Handshakes should consist of high-performance, procedural sine/triangle/square wave sequences (e.g., `useNeuralJingle` pattern).
@@ -198,9 +199,12 @@ mcp-server-name/
 ├── tests/
 ├── docs/
 ├── pyproject.toml        # fastmcp>=3.1
+├── justfile              # MANDATORY: just recipes (run, lint, test, etc.)
+├── llms.txt              # MANDATORY: LLM-facing project summary (llms.txt spec)
 ├── mcpb/                # Packaging config (v2)
 └── README.md
 ```
+Every MCP server repo MUST include a **justfile** (or **just** recipe file) and an **llms.txt** file for discoverability and consistent dev workflows.
 
 ---
 
@@ -1267,7 +1271,11 @@ All integration MCP servers must document:
 
 ### Every MCP Repository MUST Have:
 
-**1. README.md** (Root)
+**1. justfile** (Root) — Just recipe file for common tasks (e.g. `run`, `lint`, `test`, `format`). Use `just` to run recipes.
+
+**2. llms.txt** (Root) — LLM-facing project summary per the [llms.txt](https://llmstxt.org/) spec; enables discoverability and context for AI tools.
+
+**3. README.md** (Root)
 ```markdown
 # Project Name
 
@@ -1293,7 +1301,7 @@ Brief 1-2 sentence description.
 [License info]
 ```
 
-**2. CHANGELOG.md** (Root)
+**4. CHANGELOG.md** (Root)
 ```markdown
 # Changelog
 
@@ -1304,10 +1312,10 @@ Brief 1-2 sentence description.
 ### Removed
 ```
 
-**3. LICENSE** (Root)
+**5. LICENSE** (Root)
 - Choose appropriate license (MIT, Apache, etc.)
 
-**4. docs/** (Directory)
+**6. docs/** (Directory)
 - Organized documentation
 - Clear structure by topic
 
@@ -1322,6 +1330,8 @@ repo-name/
 ├── README.md (overview, quick start)
 ├── CHANGELOG.md (version history)
 ├── LICENSE
+├── justfile (MANDATORY: run, lint, test, etc.)
+├── llms.txt (MANDATORY: LLM-facing project summary)
 ├── docs/
 │   ├── integration-guide.md (Claude Desktop setup)
 │   ├── architecture.md (system design)
@@ -1663,6 +1673,8 @@ full functionality and improving discoverability. Follows FastMCP 3.1+ SOTA stan
 
 ### 4.3. Args Section Formatting
 The `Args` section is the "Schema Bridge." It must be formatted precisely:
+
+> **Cursor UI**: To avoid "no description" in the Parameters panel, add per-parameter descriptions to the **schema** via `Annotated[T, Field(description="...")]` in the tool signature. Canonical: **mcp-central-docs/standards/MCP_TOOL_DOCSTRINGS_IMPROVEMENT_PLAN.md**.
 - **One parameter per line**: No exceptions.
 - **Explicit Type Hints**: Must match the code (e.g., `(str | None)`, `(list[str])`).
 - **Required/Optional**: Explicitly state if a parameter is required for specific operations.

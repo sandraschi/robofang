@@ -84,6 +84,20 @@ To only set up without starting: `.\setup.ps1`.
 
 ---
 
+## Unified CLI
+
+Robofang includes a powerful, Typer-based CLI for managing the local platform directly from your terminal:
+
+```powershell
+uv pip install -e .
+robofang status      # Health check for Bridge and Supervisor
+robofang bridge      # Start the MCP Gateway bridge
+robofang supervisor  # Start the background process supervisor
+robofang --help      # Show all available commands
+```
+
+---
+
 ## Architecture
 
 <p align="center">
@@ -137,6 +151,7 @@ In the Robofang architecture, **the human is in control.** MCP & robots do the w
 - [**MCP Fleet Catalog**](docs/MCP_FLEET.md): Available digital hands and the pipeline ahead
 - [**Robotics Profile**](docs/ROBOTICS.md): Hardware strategy — Yahboom entry level to Noetix Bumi humanoid
 - [**Technical Stack**](docs/TECHNICAL.md): FastAPI / FastMCP 3.x core, orchestration logic, plugin system
+- [**SOTA Standards**](../mcp-central-docs/standards/AGENT_PROTOCOLS.md): 🚀 Ecosystem Compliance (v12.0)
 
 ---
 

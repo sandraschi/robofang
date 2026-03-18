@@ -1145,7 +1145,7 @@ async def launch_hand_webapp(hand_id: str):
                 "-File",
                 str(start_script),
             ],
-            cwd=str(path),
+            cwd=str(start_script.parent),
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
         orchestrator.storage.log_event(
@@ -1176,9 +1176,11 @@ async def launch_app(request: LaunchRequest):
 
     start_script = path / "web_sota" / "start.ps1"
     if not start_script.exists():
+        start_script = path / "web-sota" / "start.ps1"
+    if not start_script.exists():
         start_script = path / "web" / "start.ps1"
-        if not start_script.exists():
-            raise HTTPException(status_code=400, detail="No start.ps1 found")
+    if not start_script.exists():
+        raise HTTPException(status_code=400, detail="No start.ps1 found")
 
     try:
         subprocess.Popen(
@@ -1189,7 +1191,7 @@ async def launch_app(request: LaunchRequest):
                 "-File",
                 str(start_script),
             ],
-            cwd=str(path),
+            cwd=str(start_script.parent),
             creationflags=subprocess.CREATE_NEW_CONSOLE,
         )
         orchestrator.storage.log_event(

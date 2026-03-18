@@ -53,7 +53,7 @@ class BaseVectorStore:
                 entry["source"] = doc["source"]
             data.append(entry)
 
-        if overwrite or self.table_name not in self.db.table_names():
+        if overwrite or self.table_name not in self.db.list_tables():
             self.db.create_table(self.table_name, data=data, mode="overwrite")
         else:
             tbl = self.db.open_table(self.table_name)
@@ -68,7 +68,7 @@ class BaseVectorStore:
         where: str | None = None,
     ) -> list[dict[str, Any]]:
         """Semantic search. Returns list of dicts with vector, content, metadata, etc."""
-        if self.table_name not in self.db.table_names():
+        if self.table_name not in self.db.list_tables():
             logger.warning("Table '%s' not found.", self.table_name)
             return []
 

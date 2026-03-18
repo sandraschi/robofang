@@ -47,6 +47,9 @@ logs/
 *.msix
 DesktopAppInstaller_Dependencies.zip
 
+# RoboFang internal (do not commit)
+hands/
+
 # RoboFang Runtime & Data
 exchange/sandbox/
 data/*.db
@@ -59,6 +62,11 @@ memory/
 # Backup / temp (do not commit)
 *.bak
 *_*.md.bak
+*.md.bak
 *.backup
+*.tmp
+*.temp
+*.orig
+*~
 llms.txt
 llms-full.txt

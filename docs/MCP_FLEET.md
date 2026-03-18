@@ -97,7 +97,7 @@ This writes **`fleet_analysis.json`** next to `fleet_manifest.yaml`. The bridge 
 
 ## Future: autodetect from GitHub
 
-The onboarding catalog is currently a hardcoded list. A later improvement is to **autodetect** installable MCP repos from a GitHub org or user (e.g. `sandraschi`): list repos via GitHub API, filter by topic (e.g. `mcp`) or name pattern (e.g. `*-mcp`), optionally use repo description/topics for category, and merge with `fleet_manifest` for `GET /api/fleet/catalog`. When autodetect is implemented, fetching `robofang.json` and `llm.txt` from the default branch (via GitHub API) will allow catalog entries to be fully driven by repo metadata.
+The onboarding catalog is currently a hardcoded list. A later improvement is to **autodetect** installable MCP repos from a GitHub org or user (e.g. `sandraschi`): list repos via GitHub API, filter by name pattern (e.g. `*-mcp`), optionally use repo description for category, and merge with `fleet_manifest` for `GET /api/fleet/catalog`. When autodetect is implemented, fetching `robofang.json` and `llm.txt` from the default branch (via GitHub API) will allow catalog entries to be fully driven by repo metadata.
 
 ---
 
