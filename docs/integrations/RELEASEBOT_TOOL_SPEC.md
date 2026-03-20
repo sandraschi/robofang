@@ -2,6 +2,8 @@
 
 **Canonical**: mcp-central-docs. This file is a reference copy in RoboFang.
 
+**Implementation**: `docs_mcp` MCP tool **`query_releasebot`** (`src/docs_mcp/releasebot.py` + registration in `server.py`).
+
 **Purpose**: One tool that answers “was there a new release of X?” and points you to the details. No API key; uses public Releasebot pages only.
 
 ---

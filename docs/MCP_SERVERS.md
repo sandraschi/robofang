@@ -1,7 +1,7 @@
 # RoboFang: MCP & Fleet Substrate
 
 **Document Status**: Active Standard (v3.1)  
-**Date**: 2026-03-12  
+**Date**: 2026-03-20  
 **Implementation**: FastMCP 3.1 (GA Feb 18, 2026)
 
 ---
@@ -20,9 +20,9 @@ All RoboFang MCP servers MUST be built using **FastMCP 3.1**. This standard ensu
   - *Good*: `get_telemetry(operation='battery')`.
 - **Agentic workflow tools (SEP-1577, mandatory)**: Servers MUST expose at least one agentic workflow tool that uses **sampling** (FastMCP 3.1 `ctx.sample()` / sampling with tools). This allows the client LLM to orchestrate multi-step or multi-tool workflows autonomously. Servers are "sampling-aware"; complex operations MUST use sampling where appropriate rather than single-shot tool returns only.
 
-**Repo requirements:** Every MCP server repo MUST include a **justfile** (just recipes for run, lint, test, etc.) and **llms.txt** (LLM-facing project summary per llms.txt spec).
+**Repo requirements:** Every MCP server repo MUST include a **justfile** (run, lint, test, optional **`mcpb pack`** recipe), **`llms.txt`** (LLM index) and **`llms-full.txt`** (full LLM corpus) as a **required pair** — see [mcp-central-docs integrations/llms-txt-manifest.md](https://github.com/sandraschi/mcp-central-docs/blob/master/integrations/llms-txt-manifest.md), **Python: uv** with committed **`uv.lock`** and **`pyproject.toml`**, root **`glama.json`** (Glama discovery), **`.pre-commit-config.yaml`** with **Ruff** hooks where practical, **`ty`** in CI with **`continue-on-error: true`** until clean, and produce a **`.mcpb`** via **`mcpb pack`** when Claude Desktop distribution is in scope (manifest per central MCPB doc — never **`mcpb init`**).
 
-**Canonical build standard:** `docs/standards/AGENT_PROTOCOLS.md` (FastMCP 3.1+ and SOTA requirements). Do not follow outdated 2.14.x-only guides.
+**Canonical build standard:** [mcp-central-docs `standards/AGENT_PROTOCOLS.md`](https://github.com/sandraschi/mcp-central-docs/blob/master/standards/AGENT_PROTOCOLS.md) and **[PACKAGING_STANDARDS.md §5](https://github.com/sandraschi/mcp-central-docs/blob/master/standards/PACKAGING_STANDARDS.md)** (uv · justfile · **llms.txt** + **llms-full.txt** · glama · `mcpb pack`). Do not follow outdated 2.14.x-only guides.
 
 ## 3. Fleet Discovery & Mesh Topology
 
@@ -56,6 +56,20 @@ The **RoboFang Fleet** is a dynamic, federated mesh of MCP servers. Discovery is
   }
 }
 ```
+
+## 3.3 Fleet reference servers (sandraschi)
+
+Examples maintained alongside the mesh (see **mcp-central-docs** `operations/MASTER_MCP_CONFIG.json`):
+
+- **arxiv-mcp** — arXiv search, experimental HTML→Markdown, SQLite **FTS5** depot + favorites, Glama + webapp **10770/10771**. Repo: [sandraschi/arxiv-mcp](https://github.com/sandraschi/arxiv-mcp).
+
+### 3.4 bumi-mcp (Noetix Bumi)
+
+**bumi-mcp** — narrow MCP for the **Noetix Bumi** hero humanoid (same tier as **yahboom-mcp** / **dreame-mcp**): FastMCP 3.1, dashboard **10774/10775**, `bumi(operation=...)`, agentic workflow, virtual-twin **composition map** (delegate to **resonite-mcp**, **robotics-mcp**, **worldlabs-mcp**). **robotics-mcp** `noetix_info` remains valid for fleet-wide discovery.
+
+**Repo:** [sandraschi/bumi-mcp](https://github.com/sandraschi/bumi-mcp) · **Docs:** [integrations/bumi-mcp.md](integrations/bumi-mcp.md) · **Central:** [mcp-central-docs/projects/bumi-mcp](https://github.com/sandraschi/mcp-central-docs/tree/master/projects/bumi-mcp).
+
+---
 
 ## 4. Building a RoboFang Connector
 

@@ -8,6 +8,10 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 ## [Unreleased]
 
 ### Added
+- **Docs / fleet**: **bumi-mcp** live repo + dashboard ports **10774/10775** — [integrations/bumi-mcp.md](docs/integrations/bumi-mcp.md), [MCP_SERVERS.md](docs/MCP_SERVERS.md) §3.4, [integrations/README.md](docs/integrations/README.md), [fleet-registry.json](src/robofang/configs/fleet-registry.json) card.
+- **Docs**: [MCP_SERVERS.md](docs/MCP_SERVERS.md) §2 — repo bar: **`llms.txt` + `llms-full.txt` (required pair)**, **pre-commit+Ruff**, **ty** (non-blocking CI), plus uv / glama / `mcpb pack` (mcp-central-docs **PACKAGING_STANDARDS §5–6**, [llms-txt-manifest](https://github.com/sandraschi/mcp-central-docs/blob/master/integrations/llms-txt-manifest.md)).
+
+### Added
 - **Yahboom MCP** (`hands/yahboom-mcp`): New hand with robot tools (`get_status`, `patrol_with_recording`) and **speech tools** that add on top of Speech-MCP — `robot_speech_say(text)` (onboard Yahboom Voice Module TTS), `speech_mcp_tts(text, provider, send_to_robot)` (Speech-MCP TTS with optional play on robot). Bridge and hub use GET `/status` and POST `/tool`; default port 10833. Env: `YAHBOOM_ROBOT_URL`, `SPEECH_MCP_BACKEND_URL`.
 - **Docs**: ROBOTICS.md — "Speech and audio" section (Yahboom Voice Module + yahboom-mcp; Dreame preset-only, no arbitrary TTS/audio). ROUTINES_DAWN_PATROL.md — reference to hands/yahboom-mcp. connector_taxonomy.md — yahboom in Robotics table.
 
