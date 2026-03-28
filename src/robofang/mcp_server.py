@@ -32,9 +32,16 @@ def register_mcp(mcp: Any, orchestrator: Any) -> None:
     mcp.tool()(robofang_fleet)
     mcp.tool()(robofang_deliberations)
     mcp.tool()(robofang_agentic_workflow)
+
+    # Voice bridge — MCP-to-MCP relay to kyutai-mcp
+    from robofang.bridges.voice_bridge import robofang_voice
+
+    mcp.tool()(robofang_voice)
+
     mcp.prompt()(robofang_quick_start)
     mcp.prompt()(robofang_council_workflow)
-    logger.info("RoboFang MCP tools and prompts registered.")
+    mcp.prompt()(robofang_voice_workflow)
+    logger.info("RoboFang MCP tools and prompts registered (including voice bridge).")
 
 
 # ─── Help content (multi-level, like yahboom_help) ────────────────────────
@@ -50,6 +57,7 @@ _HELP: Dict[str, Any] = {
                 "robofang_fleet": "Fleet registry: connectors (live + config), domain agents, summary counts.",
                 "robofang_deliberations": "Recent reasoning log entries (Council/ReAct steps). limit=50.",
                 "robofang_agentic_workflow": "High-level goal; uses sampling to plan and run steps (ask, fleet_status, deliberations) to achieve the goal.",
+                "robofang_voice": "Voice relay to kyutai-mcp: voice turns, agentic briefings, Moshi service control, session history (MCP-to-MCP bridge).",
             },
         },
         "council": {
@@ -74,6 +82,17 @@ _HELP: Dict[str, Any] = {
             "topics": {
                 "skill_bridge": "Orchestrator integrates memops skill facility. List via Bridge GET /skills.",
                 "operator": "See docs/skills/RoboFang-operator.md for when to use which tool and council workflow.",
+            },
+        },
+        "voice": {
+            "description": "Voice pipeline via kyutai-mcp bridge (Moshi 7B speech model).",
+            "topics": {
+                "turn": "Send an utterance through the staged voice pipeline (ack → intent → research → synthesis).",
+                "speak_boilerplate": "Request an agentic spoken briefing for weather, news, AI news, or stocks.",
+                "service_status": "Check Moshi speech server state (running, PID, HTTP probe).",
+                "sessions": "List all voice sessions with turn counts.",
+                "session_history": "Get full turn history for a specific session.",
+                "health": "Probe kyutai-mcp backend reachability and Moshi liveness.",
             },
         },
     }
@@ -327,6 +346,21 @@ def robofang_council_workflow() -> str:
 3. The Council runs Enrich (Foreman spec) -> Execute (ReAct) -> Audit (Satisficer). Results appear in the response.
 4. Optionally call robofang_deliberations(limit=20) to inspect the reasoning log and then summarize the outcome for the user.
 5. For multi-step goals that mix status, ask, and deliberations, use robofang_agentic_workflow(goal="...") and describe the goal in natural language."""
+
+
+def robofang_voice_workflow() -> str:
+    """Guide for using the voice pipeline via the kyutai-mcp bridge."""
+    return """You have access to robofang_voice — a bridge to the kyutai-mcp voice pipeline.
+
+1. Run robofang_voice(operation='health') to check if the kyutai-mcp backend is reachable.
+2. Run robofang_voice(operation='service_status') to check if Moshi (the speech model) is running.
+3. To process speech: robofang_voice(operation='turn', utterance='your text here')
+   - The pipeline stages: quick ack → intent detection → agentic research → deep reasoner synthesis.
+   - For weather: include a location, e.g. utterance='weather in Vienna'.
+4. For topic briefings: robofang_voice(operation='speak_boilerplate', topic='world_news', style='brief')
+   - Topics: weather, world_news, ai_news, stock_market.
+5. Session history: robofang_voice(operation='sessions') to list, then (operation='session_history', session_id='...').
+6. The voice relay calls kyutai-mcp REST directly (no double-MCP overhead). Ensure kyutai-mcp webapp is running on port 10924."""
 
 
 # ─── Entry Point ─────────────────────────────────────────────────────────────

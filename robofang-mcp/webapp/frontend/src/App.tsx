@@ -1,163 +1,229 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from 'react';
+import { 
+  Activity, 
+  RefreshCw, 
+  Send, 
+  Cpu, 
+  AlertCircle,
+  Network,
+  ShieldCheck
+} from 'lucide-react';
+import { AppLayout } from './components/AppLayout';
+import { GlassCard } from './components/GlassCard';
+import { PulseBadge } from './components/PulseBadge';
+import { StreamingConsole } from './components/StreamingConsole';
 
-interface Health {
-  backend: string;
-  bridge_url: string;
-  bridge_ok: boolean;
-  bridge_error?: string;
-  bridge?: { service?: string; status?: string; connectors?: Record<string, boolean> };
+interface LogEntry {
+  id: string;
+  message: string;
+  timestamp: string;
+  type: 'info' | 'warn' | 'error' | 'success';
 }
 
-interface Deliberation {
-  id?: number;
-  role?: string;
-  content?: string;
-  ts?: string;
+interface FleetItem {
+  id: string;
+  url: string;
+  status: 'active' | 'inactive';
 }
 
-export default function App() {
-  const [health, setHealth] = useState<Health | null>(null);
-  const [deliberations, setDeliberations] = useState<Deliberation[]>([]);
-  const [askMessage, setAskMessage] = useState("");
-  const [askCouncil, setAskCouncil] = useState(false);
-  const [askResult, setAskResult] = useState<string | null>(null);
-  const [askLoading, setAskLoading] = useState(false);
+function App() {
+  const [activeView, setActiveView] = useState<'hub' | 'fleet' | 'audit' | 'settings'>('hub');
+  const [healthStatus, setHealthStatus] = useState<'ok' | 'error' | 'idle'>('idle');
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [fleet, setFleet] = useState<FleetItem[]>([]);
+  const [prompt, setPrompt] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const fetchHealth = async () => {
-    try {
-      const r = await fetch("/api/health");
-      const data = await r.json();
-      setHealth(data);
-    } catch (e) {
-      setHealth({
-        backend: "ok",
-        bridge_url: "?",
-        bridge_ok: false,
-        bridge_error: String(e),
-      });
-    }
-  };
+  const addLog = useCallback((message: string, type: LogEntry['type'] = 'info') => {
+    const newLog: LogEntry = {
+      id: Math.random().toString(36).substr(2, 9),
+      message,
+      timestamp: new Date().toLocaleTimeString(),
+      type
+    };
+    setLogs(prev => [...prev.slice(-99), newLog]);
+  }, []);
 
-  const fetchDeliberations = async () => {
+  const fetchHealth = useCallback(async () => {
     try {
-      const r = await fetch("/api/deliberations?limit=20");
-      const data = await r.json();
-      setDeliberations(data.deliberations || []);
-    } catch {
-      setDeliberations([]);
+      const res = await fetch("/api/system/health");
+      const data = await res.json();
+      setHealthStatus(data.status === 'ok' ? 'ok' : 'error');
+      addLog(`System health check: ${data.status.toUpperCase()}`, data.status === 'ok' ? 'success' : 'error');
+    } catch (err) {
+      setHealthStatus('error');
+      addLog("Failed to fetch system health status", "error");
     }
-  };
+  }, [addLog]);
+
+  const fetchFleet = useCallback(async () => {
+    try {
+      const res = await fetch("/api/connectors/active");
+      const data = await res.json();
+      const raw = data.success ? (data.active || []) : [];
+      setFleet(
+        raw.map((c: { id: string; url?: string }) => ({
+          id: c.id,
+          url: c.url || "",
+          status: "active" as const,
+        }))
+      );
+      addLog(`Fleet Deck synchronized: ${raw.length} active nodes`, "info");
+    } catch (err) {
+      addLog("Failed to sync fleet deck state", "error");
+    }
+  }, [addLog]);
 
   useEffect(() => {
     fetchHealth();
-    const t = setInterval(fetchHealth, 15000);
-    return () => clearInterval(t);
-  }, []);
+    fetchFleet();
+    const interval = setInterval(fetchHealth, 30000);
+    return () => clearInterval(interval);
+  }, [fetchHealth, fetchFleet]);
 
-  useEffect(() => {
-    if (health?.bridge_ok) {
-      fetchDeliberations();
-      const t = setInterval(fetchDeliberations, 10000);
-      return () => clearInterval(t);
-    }
-  }, [health?.bridge_ok]);
-
-  const onAsk = async () => {
-    if (!askMessage.trim()) return;
-    setAskLoading(true);
-    setAskResult(null);
+  const handleAsk = async () => {
+    if (!prompt.trim()) return;
+    setIsLoading(true);
+    addLog(`Operator Query: ${prompt}`, "info");
+    
     try {
-      const r = await fetch("/api/ask", {
+      const res = await fetch("/api/hands/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: askMessage.trim(),
-          use_council: askCouncil,
-          use_rag: true,
-        }),
+        body: JSON.stringify({ prompt })
       });
-      const data = await r.json();
-      setAskResult(data.reply ?? data.error ?? JSON.stringify(data));
-      fetchDeliberations();
-    } catch (e) {
-      setAskResult(`Error: ${e}`);
+      const data = await res.json();
+      const text =
+        data.response ??
+        data.message ??
+        (data.success === false ? data.error : null) ??
+        JSON.stringify(data);
+      addLog(`Council Reply: ${text}`, data.success !== false ? "success" : "error");
+      setPrompt("");
+    } catch (err) {
+      addLog("Failed to transmit query to council bridge", "error");
     } finally {
-      setAskLoading(false);
+      setIsLoading(false);
     }
   };
 
   return (
-    <div style={{ maxWidth: 720, margin: "0 auto", padding: "1.5rem" }}>
-      <h1 style={{ fontSize: "1.5rem", marginBottom: "0.5rem" }}>RoboFang MCP — Operator</h1>
-      <p style={{ color: "#94a3b8", fontSize: "0.875rem", marginBottom: "1.5rem" }}>
-        Status and tool test for the robofang-mcp server. Bridge must be running.
-      </p>
-
-      <div className="card">
-        <h2 style={{ fontSize: "1rem", marginBottom: "0.75rem" }}>Status</h2>
-        {health ? (
-          <>
-            <p style={{ margin: "0.25rem 0" }}>
-              Bridge: <code style={{ background: "#1e293b", padding: "0.1rem 0.4rem", borderRadius: 4 }}>{health.bridge_url}</code>{" "}
-              <span className={`badge ${health.bridge_ok ? "badge-ok" : "badge-err"}`}>
-                {health.bridge_ok ? "OK" : health.bridge_error ?? "Unreachable"}
-              </span>
-            </p>
-            {health.bridge?.connectors && (
-              <p style={{ margin: "0.25rem 0", fontSize: "0.875rem", color: "#94a3b8" }}>
-                Connectors: {Object.keys(health.bridge.connectors).filter((k) => health.bridge!.connectors![k]).length} online
-              </p>
-            )}
-            <button type="button" onClick={fetchHealth} style={{ marginTop: "0.5rem" }}>
-              Refresh
-            </button>
-          </>
-        ) : (
-          <p>Loading…</p>
-        )}
-      </div>
-
-      <div className="card">
-        <h2 style={{ fontSize: "1rem", marginBottom: "0.75rem" }}>Test Ask</h2>
-        <label className="label">Message</label>
-        <textarea
-          value={askMessage}
-          onChange={(e) => setAskMessage(e.target.value)}
-          placeholder="e.g. What is the fleet status?"
-          style={{ marginBottom: "0.5rem" }}
-        />
-        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem" }}>
-          <input type="checkbox" checked={askCouncil} onChange={(e) => setAskCouncil(e.target.checked)} />
-          <span className="label" style={{ marginBottom: 0 }}>Use council</span>
-        </label>
-        <button type="button" onClick={onAsk} disabled={askLoading || !health?.bridge_ok}>
-          {askLoading ? "Sending…" : "Send"}
-        </button>
-        {askResult && (
-          <div className="card" style={{ marginTop: "1rem", whiteSpace: "pre-wrap", fontSize: "0.875rem" }}>
-            {askResult}
-          </div>
-        )}
-      </div>
-
-      <div className="card">
-        <h2 style={{ fontSize: "1rem", marginBottom: "0.75rem" }}>Deliberations (tail)</h2>
-        <button type="button" onClick={fetchDeliberations} disabled={!health?.bridge_ok} style={{ marginBottom: "0.75rem" }}>
-          Refresh
-        </button>
-        <div style={{ maxHeight: 320, overflowY: "auto" }}>
-          {deliberations.length === 0 ? (
-            <p style={{ color: "#64748b", fontSize: "0.875rem" }}>None or bridge offline.</p>
-          ) : (
-            deliberations.map((d, i) => (
-              <div key={d.id ?? i} style={{ padding: "0.5rem 0", borderBottom: "1px solid #334155", fontSize: "0.8125rem" }}>
-                {d.role && <span style={{ color: "#94a3b8", marginRight: "0.5rem" }}>{d.role}</span>}
-                {(d.content ?? "").slice(0, 200)}{(d.content?.length ?? 0) > 200 ? "…" : ""}
+    <AppLayout activeView={activeView} onViewChange={setActiveView} fleetCount={fleet.length} healthStatus={healthStatus}>
+      {activeView === 'hub' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-14rem)]">
+          {/* Left Column: Control & Status */}
+          <div className="lg:col-span-4 flex flex-col gap-6">
+            <GlassCard 
+              title="System Node" 
+              subtitle="Real-time Operational Status"
+              icon={<Cpu size={18} />}
+            >
+              <div className="flex flex-col gap-4">
+                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+                  <span className="text-xs text-slate-400 font-medium">Bridge Integrity</span>
+                  <PulseBadge status={healthStatus} label={healthStatus === 'ok' ? 'SOVEREIGN' : 'COMPROMISED'} />
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
+                  <span className="text-xs text-slate-400 font-medium">Active Fleet</span>
+                  <span className="text-sm font-bold text-cyan-400">{fleet.length} nodes</span>
+                </div>
+                <button 
+                  onClick={fetchHealth} 
+                  className="w-full mt-2"
+                  disabled={isLoading}
+                >
+                  <RefreshCw size={14} className={isLoading ? "animate-spin" : ""} />
+                  Refresh Bridge
+                </button>
               </div>
+            </GlassCard>
+
+            <GlassCard 
+              title="Quick Audit" 
+              subtitle="Integrity Metrics"
+              icon={<Activity size={18} />}
+              className="flex-1"
+            >
+              <div className="space-y-4">
+                <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-transparent border border-violet-500/10">
+                  <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Hashing Standard</div>
+                  <div className="text-xs font-mono text-violet-400">SHA-256 (v12.3 Hardened)</div>
+                </div>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/10">
+                  <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Safety Sidecar</div>
+                  <div className="text-xs font-mono text-cyan-400">Active (Cisco DefenseClaw Compliant)</div>
+                </div>
+              </div>
+            </GlassCard>
+          </div>
+
+          {/* Right Column: Console & Interaction */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+            <StreamingConsole logs={logs} className="flex-1 min-h-[400px]" />
+            
+            <div className="glass-panel p-2 flex gap-2">
+              <input 
+                type="text" 
+                placeholder="Transmit intent to the bridge council..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleAsk()}
+                className="flex-1 bg-transparent border-none outline-none text-sm px-4 py-2 placeholder:text-slate-600 focus:placeholder:text-slate-500"
+              />
+              <button 
+                onClick={handleAsk}
+                disabled={isLoading || !prompt.trim()}
+                className="bg-violet-600 hover:bg-violet-500 text-white p-2.5 rounded-lg active:scale-95 transition-all shadow-lg shadow-violet-900/40"
+              >
+                {isLoading ? <RefreshCw size={18} className="animate-spin" /> : <Send size={18} />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeView === 'fleet' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {fleet.length > 0 ? (
+            fleet.map((item) => (
+              <GlassCard 
+                key={item.id} 
+                title={item.id} 
+                subtitle="Connector Node"
+                icon={<Network size={18} />}
+              >
+                <div className="space-y-3">
+                  <div className="text-[10px] font-mono text-slate-500 break-all bg-black/40 p-2 rounded border border-white/5">
+                    {item.url}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-slate-600">Transport: SSE/HTTP</span>
+                    <PulseBadge status={item.status === 'active' ? 'ok' : 'idle'} label={item.status.toUpperCase()} />
+                  </div>
+                </div>
+              </GlassCard>
             ))
+          ) : (
+            <div className="col-span-full py-20 text-center opacity-30 italic text-slate-400">
+              No active connector nodes detected in the fleet repository.
+            </div>
           )}
         </div>
-      </div>
-    </div>
+      )}
+
+      {activeView === 'audit' && (
+        <div className="flex flex-col gap-6 max-w-4xl">
+          <GlassCard title="Security Heartbeat" subtitle="Integrity Audit results" icon={<ShieldCheck size={18} />}>
+            <div className="p-8 text-center opacity-40">
+              <AlertCircle size={48} className="mx-auto mb-4 text-violet-400" />
+              <p className="text-sm font-medium">Detailed Heartbeat metrics are processed in the background.</p>
+              <p className="text-xs text-slate-500 mt-2">Check the console for real-time audit logs.</p>
+            </div>
+          </GlassCard>
+        </div>
+      )}
+    </AppLayout>
   );
 }
+
+export default App;

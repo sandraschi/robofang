@@ -15,6 +15,7 @@ Architecture:
 
 from __future__ import annotations
 
+import asyncio
 import collections
 import json
 import logging
@@ -29,6 +30,8 @@ import uvicorn
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+
+from robofang.core.heartbeat import HeartbeatService
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -157,6 +160,10 @@ class HeartbeatManager:
 
 _pulse = HeartbeatManager()
 _pulse.start()
+
+# Global async heartbeat service (Phase 12.1 Security Hardening)
+_heartbeat_audit_service = HeartbeatService(interval_seconds=3600)
+_heartbeat_audit_task: asyncio.Task | None = None
 
 
 class FleetHealthMonitor:
@@ -537,7 +544,8 @@ class SupervisorInterface:
         return _bridge.status
 
     def get_pulse(self):
-        return _pulse.get_pulse()["pulse"] if "pulse" in _pulse.get_pulse() else _pulse.get_pulse()
+        pulse = _pulse.get_pulse()
+        return pulse
 
     @property
     def fleet_nodes(self):
@@ -558,8 +566,14 @@ app = FastAPI(title="RoboFang Supervisor", version="1.0.0")
 
 
 @app.on_event("startup")
-def _auto_start_bridge():
-    """Start the bridge automatically so start.bat brings up bridge + hub with one click."""
+async def _startup_services():
+    """Start background services and the bridge."""
+    global _heartbeat_audit_task
+    # Start Heartbeat Audit Service (keep reference for RUF006 / GC)
+    _heartbeat_audit_task = asyncio.create_task(_heartbeat_audit_service.start())
+    logger.info("Heartbeat Audit Service registered in background task.")
+
+    # Start the bridge automatically so start.bat brings up bridge + hub with one click.
     result = _bridge.start()
     if result.get("ok"):
         logger.info("Bridge auto-started on port %s (PID %s)", BRIDGE_PORT, result.get("pid"))

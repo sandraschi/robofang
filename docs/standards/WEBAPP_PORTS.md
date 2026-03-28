@@ -69,6 +69,7 @@ All MCP server webapps and dashboards MUST use ports from the reserved range **1
 | 10735 | advanced-memory-mcp | Auto-start service |
 | 10736 | myai/calibre_plus | Backend |
 | 10738 | dark-app-factory | Web dashboard |
+| 10739 | dark-app-factory | MCP streamable HTTP (`mcp-server/`, path `/mcp`) |
 | 10740 | plex-mcp | Webapp backend |
 | 10741 | plex-mcp | Webapp frontend |
 | 10742 | filesystem-mcp | Backend |
@@ -155,6 +156,8 @@ All MCP server webapps and dashboards MUST use ports from the reserved range **1
 | 10859 | ocr-mcp | Web dashboard backend |
 | 10860 | system-admin-mcp | Web dashboard frontend |
 | 10861 | system-admin-mcp | Web dashboard backend |
+| 10862 | sakana-mcp | Web dashboard frontend (Vite) |
+| 10863 | sakana-mcp | Web dashboard backend (FastAPI) |
 | 10864 | worldlabs-mcp | Web dashboard frontend |
 | 10865 | worldlabs-mcp | Web dashboard backend |
 | 10870 | robofang | Web dashboard frontend |
@@ -181,6 +184,9 @@ All MCP server webapps and dashboards MUST use ports from the reserved range **1
 | 10893 | yahboom-mcp | Web dashboard frontend |
 | 10894 | dreame-mcp | Web dashboard backend (API) |
 | 10895 | dreame-mcp | Web dashboard frontend |
+| 10924 | kyutai-mcp | Web dashboard backend (FastAPI) |
+| 10925 | kyutai-mcp | Web dashboard frontend (Vite) |
+| 10926 | kyutai-mcp | MCP HTTP `/mcp` |
 
 ## Port Allocation Registry (Live)
 
