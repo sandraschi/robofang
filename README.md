@@ -1,176 +1,46 @@
-<h1 align="center">robofang</h1>
+# RoboFang — Multi-Agent Coordination Hub
 
-<p align="center">
-  <strong>Your AI. Your hardware. Your data. Nobody else's.</strong><br>
-  MCP & robots — with hands, legs, senses, and a voice.
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/status-alpha-orange?style=for-the-badge" alt="Alpha">
-  <img src="https://img.shields.io/github/actions/workflow/status/sandraschi/robofang/ci.yml?branch=main&style=for-the-badge&logo=github&label=CI" alt="CI Status">
-  <img src="https://img.shields.io/badge/MCP-Fleet-orange?style=for-the-badge&logo=serverless" alt="MCP Fleet">
-  <img src="https://img.shields.io/badge/Robotics-ROS_2-blue?style=for-the-badge&logo=ros" alt="Robotics ROS 2">
-  <img src="https://img.shields.io/badge/inference-local_RTX_4090-76b900?style=for-the-badge&logo=nvidia" alt="Local Inference">
-  <img src="https://img.shields.io/badge/FastMCP-3.x-9b59b6?style=for-the-badge" alt="FastMCP 3">
-</p>
-
----
-
-## The problem with 2026 AI agents
-
-Every major cloud agent — Manus, Gemini Live, Claude computer use — shares the same architecture: your intent, their infrastructure, their data retention, their pricing model, their uptime SLA, their safety filter between you and your own tools.
-
-They are impressive. They are also not yours.
-
-Robofang is an **orchestration hub for MCP & robots**: local AI with physical and virtual embodiment. You are the architect; inference runs on your hardware at zero per-token cost, and the agent has genuine reach into the physical and virtual world — not just a browser tab. Custom MCP fleet, Council of Dozens, and virtual-first robotics validation; no cloud lock-in.
-
----
-
-## What it actually does
-
-The core loop:
-
-```
-Perceive (senses) → Reason (Council) → Act (hands + legs) → Speak (voice) → Audit → Memory
-```
-
-Running on your machine:
-
-- **Council of agents** (Foreman / Labor / Satisficer) handles complex tasks with adversarial self-auditing — no single black-box LLM call, no hallucination without a trace
-- **Live fleet map** of every MCP server you run: tool schemas, ports, health signals — queryable by agents, visible in the hub at `localhost:10870`
-- **Local inference** via Ollama (RTX 4090 — Llama 3.3 70B, Qwen 2.5 32B at zero per-token cost); cloud is the fallback, not the default
-- **Resonite + OSC bridge** for 30 Hz joint control of virtual avatars — the same code path that bridges to physical robots via ROS 2
-- **Persistent memory** (ADN / memops): every decision, sensor reading, and reasoning step is logged and queryable; agents remember across sessions
-
----
-
-## The five capabilities (Hands, Legs, Senses, Voice, Memory)
-
-> *"Agents Need Hands"* — [steipete](https://steipete.com/)
-
-Hands were the start. A complete agent needs more:
-
-| Capability | Tier | What it covers |
-|------------|------|----------------|
-| **Hands** | SimpleHands → AppHands | File ops, code execution, MCP fleet (email, Discord, Hue, Tapo, Plex, Calibre, Ring...) |
-| **Legs** | FlowHands → RoboHands | Multi-step workflows, ROS 2 locomotion, Resonite avatar embodiment, Yahboom / Noetix Bumi hardware |
-| **Senses** | Perception layer | OSC telemetry, camera feeds, Home Assistant sensors, IoT state, VLM vision via MCP bridges |
-| **Voice** | Speech bridge | TTS/STT via local or cloud models, Resonite ProtoFlux audio, ElevenLabs / Hume integration |
-| **Memory** | ADN substrate | Persistent knowledge graph (memops), Forensic Trace logs, semantic RAG across all sessions |
-
-Each layer is independent and MCP-addressable. You can run just the fleet manager, or the full embodied loop.
-
----
-
-## Quick start
-
-```powershell
-git clone https://github.com/sandraschi/robofang
-cd robofang
-.\robofang-hub\start.bat
-```
-
-Or from repo root: `.\start_all.ps1` (does setup if needed, then calls the same hub start).
-
-First run runs `setup.ps1` automatically (venv, pip install, .env from example, hub npm install + build), then starts the bridge and hub. Open **http://localhost:10870**. The bridge can take **60–90 seconds** to be ready; if the hub shows "Bridge not ready yet", wait and click Retry. Then use the **Onboarding** wizard to install MCP servers and optional Telegram/Discord. No config files to edit—everything is in the web app.
-
-To only set up without starting: `.\setup.ps1`.
-
-**Fresh install:** Works on any path. No `D:\Dev\repos` or mcp-central-docs required. Fleet catalog is bundled. MCP servers you install from the hub clone into **`.\hands\`** under your RoboFang folder by default. Set `ROBOFANG_HANDS_DIR` only if you want to install hands somewhere else.
-
-**Tailscale / LAN access:** The bridge defaults to `127.0.0.1` (localhost only). To reach it from another device by hostname (e.g. `http://goliath:10871` with goliath a Tailscale machine name), set `ROBOFANG_BRIDGE_HOST=0.0.0.0` before starting so it listens on all interfaces. Tailscale encrypts and authenticates; avoid exposing the port to the wider internet.
-
-**Cursor / Antigrav:** To have Cursor or Antigrav (or any MCP client) converse with RoboFang, use the thin **robofang-mcp** server in this repo: `pip install -e robofang-mcp` then run `robofang-mcp` (stdio). It forwards all tools to the bridge; FastMCP 3.1, sampling, prompts, and a small operator skill. See [robofang-mcp/README.md](robofang-mcp/README.md). No extra webapp — the main hub stays the single UI.
-
----
-
-## Unified CLI
-
-Robofang includes a powerful, Typer-based CLI for managing the local platform directly from your terminal:
-
-```powershell
-uv pip install -e .
-robofang status      # Health check for Bridge and Supervisor
-robofang bridge      # Start the MCP Gateway bridge
-robofang supervisor  # Start the background process supervisor
-robofang --help      # Show all available commands
-```
-
----
-
-## Architecture
-
-<p align="center">
-  <img src="assets/architecture.png" alt="Robofang 3-Level Architecture" width="800">
-</p>
-
-> [!TIP]
-> **See it in action**: We recommend checking out the `robofang-hub` dashboard at `localhost:10870` after startup to see real-time fleet discovery in motion.
-
-The Council pattern — Foreman (architect) → Labor (executor) → Satisficer (auditor) — maps directly onto Karl Friston's sensorimotor loop: perceive, predict, act, update. Not as a metaphor. As an engineering constraint. The Satisficer exists because unchecked ReAct loops hallucinate. The Forensic Trace exists because you should be able to see exactly why your agent did what it did.
-
----
-
-## Expectation vs Reality
-
-| **THE EXPECTATION** | **THE REALITY** |
-| :---: | :---: |
-| ![EXPECTATION](assets/whimsical-clobber.png) | ![REALITY](assets/sad_reality.png) |
-
----
-
-## The philosophy: Human in control
-
-In the current industry default, the human is a prompt engineer — a data source for someone else's oracle.
-
-In the Robofang architecture, **the human is in control.** MCP & robots do the work. The agent is the **Loyal Guardian** — think Benny, our German Shepherd. Its job is dexterity in service of human intent. The human sets strategy. The agent handles execution across digital, virtual, and physical substrates.
-
-<p align="center">
-  <img src="assets/bumi_step2.png" alt="The Robofang Bros: Benny and Bumi" width="600">
-  <br>
-  <em>The Robofang Bros: Harmonious co-operation between Benny and Bumi.</em>
-</p>
-
----
-
-### Current Roadmap
-
-- [x] **Core Substrate**: FastMCP 3.x integration and Council pattern.
-- [x] **Fleet Discovery**: Automated MCP server mapping and health monitoring.
-- [x] **Virtual Embodiment**: Resonite + OSC 30Hz joint control.
-- [/] **Physical Hands**: ROS 2 bridging for Yahboom and Noetix Bumi.
-- [ ] **Local voice**: ElevenLabs-style TTS/STT via RTX 4090.
-- [ ] **Multi-Agent Memory**: ADN graph persistence across reset cycles.
+RoboFang is an orchestration layer for local AI agents, designed to bridge a federated fleet of MCP servers with physical robotics and virtual environments.
 
 ---
 
 ## Documentation
 
-- [**Installation Guide**](docs/INSTALLATION.md): Environment setup and first-hand onboarding
-- [**Architecture**](docs/ARCHITECTURE.md): Council of Dozens, memory substrate, federation mesh
-- [**MCP Fleet Catalog**](docs/MCP_FLEET.md): Available digital hands and the pipeline ahead
-- [**Robotics Profile**](docs/ROBOTICS.md): Hardware strategy — Yahboom entry level to Noetix Bumi humanoid
-- [**Technical Stack**](docs/TECHNICAL.md): FastAPI / FastMCP 3.x core, orchestration logic, plugin system
-- [**SOTA Standards**](../mcp-central-docs/standards/AGENT_PROTOCOLS.md): 🚀 Ecosystem Compliance (v12.0)
+Standard technical documentation is organized by category:
+
+| Domain | Description |
+|:-------|:------------|
+| [Architecture](docs/ARCHITECTURE.md) | Multi-process topology and module layout. |
+| [Setup](docs/INSTALLATION.md) | Local deployment guide (UV, Ollama, Dashboard). |
+| [Council Protocol](docs/COUNCIL.md) | Multi-model coordination and adjudication logic. |
+| [Fleet Management](docs/FLEET.md) | Port registry and connector integration for the 30+ server fleet. |
+| [Autonomous Hands](docs/HANDS.md) | Manifest-driven background processes. |
+| [Comparison Matrix](docs/COMPETITION.md) | Technical mapping against OpenClaw and OpenFang. |
+| [Roadmap](docs/ROADMAP.md) | Strategic development phases and priorities. |
+| [Status](docs/STATUS.md) | Operational health and tech debt registry. |
 
 ---
 
-## Join the Grid
+## Technical Overview
 
-<p align="center">
-  <a href="https://discord.gg/robofang">
-    <img src="https://img.shields.io/badge/Discord-Join%20the%20Grid-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Robofang Discord">
-  </a>
-</p>
+### Deployment Stack
+- **Backend**: FastAPI + FastMCP 3.1+ (Python 3.12).
+- **Frontend**: React + Vite (Port 10864).
+- **Adjudication**: Council of Dozens (Foreman/Worker/Satisficer logic).
+- **Inference**: Local Ollama (Primary).
 
-### Why Star? ⭐
-
-If you believe that the era of "Cloud Oracle" AI is a dead end—and that true intelligence requires **MCP, robots, and local hardware**—join the grid. 
-
-Robofang is built for the developers who want to own their substrate. Every star helps us signal to the hardware community that there is a demand for open, agentic robotics.
-
----
+### Core Features
+- **Local-First**: Zero-token cost operations via optimized local models.
+- **Unified Tool Surface**: Standardized API gateway for heterogeneous MCP backends.
+- **Embodiment**: Joint control for robotics (Bumi, Yahboom) and VR systems (Resonite, VRChat).
+- **Security Gates**: Policy-driven adversarial adjudication for sensitive operations.
 
 ---
 
-*Handcrafted in Vienna. Built for the era of high-agency intelligence.*
+## Quick Setup
+
+1. **Environment**: `uv sync`
+2. **Backend**: `uv run python -m robofang.cli start bridge`
+3. **Frontend**: `cd dashboard; .\start.ps1`
+
+Visit http://localhost:10864 to manage the coordination node.

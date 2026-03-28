@@ -4,6 +4,10 @@
 default:
   just --list
 
+# Repo statistics (Markdown, tools, FastMCP, MCP tools)
+stats:
+  python tools/repo_stats.py
+
 # Install package editable
 install:
   python -m pip install -e .

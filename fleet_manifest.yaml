@@ -153,3 +153,15 @@ hands:
     repo_url: https://github.com/sandraschi/tapo-camera-mcp
     install_script: start.ps1
     tags: ["Tapo", "Camera", "Home"]
+
+  - id: kyutai-mcp
+    name: Kyutai Voice Hand
+    category: Voice
+    potassium_score: 9.5
+    description: >
+      The voice backbone. Full-duplex speech via Kyutai Moshi 7B, staged voice
+      pipeline (ack → intent → research → synthesis), agentic spoken briefings,
+      and Moshi service lifecycle control. Bridges to Robofang via REST relay.
+    repo_url: https://github.com/sandraschi/kyutai-mcp
+    install_script: webapp/start.ps1
+    tags: ["Voice", "Speech", "Moshi", "Pipeline"]

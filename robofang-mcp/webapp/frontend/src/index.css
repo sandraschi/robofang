@@ -1,40 +1,112 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 :root {
-  font-family: system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color: #e2e8f0;
-  background: #0f172a;
+  --bg-obsidian: #050505;
+  --bg-card: rgba(15, 15, 15, 0.7);
+  --bg-card-hover: rgba(25, 25, 25, 0.8);
+  
+  --color-violet: #8b5cf6;
+  --color-cyan: #06b6d4;
+  --color-text: #f8fafc;
+  --color-text-muted: #94a3b8;
+  
+  --border-glass: rgba(255, 255, 255, 0.08);
+  --border-active: rgba(139, 92, 246, 0.5);
+  
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  --shadow-premium: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
 }
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  margin: 0;
+  background: var(--bg-obsidian);
+  color: var(--color-text);
+  font-family: var(--font-sans);
   min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
 }
 
-.card {
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(71, 85, 105, 0.5);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1rem;
+/* Glassmorphism primitives */
+.glass-panel {
+  background: var(--bg-card);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  box-shadow: var(--shadow-premium);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+.glass-panel:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--border-active);
+  transform: translateY(-2px);
+}
+
+/* Typography styles */
+h1, h2, h3 {
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  background: linear-gradient(to bottom right, #fff 30%, #94a3b8);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-mono {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+/* Custom scrollbar for that industrial feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.4);
+}
+
+/* Premium Buttons */
 button {
-  background: #334155;
-  color: #e2e8f0;
-  border: 1px solid #475569;
-  border-radius: 6px;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
+  all: unset;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.25rem;
+  border-radius: 8px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  color: #fff;
+  font-weight: 500;
   font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  gap: 0.5rem;
 }
 
-button:hover {
-  background: #475569;
+button:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--color-violet);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
 }
 
 button:disabled {
@@ -42,41 +114,13 @@ button:disabled {
   cursor: not-allowed;
 }
 
-input, textarea {
-  background: #1e293b;
-  border: 1px solid #475569;
-  border-radius: 6px;
-  color: #e2e8f0;
-  padding: 0.5rem 0.75rem;
-  width: 100%;
-  font-size: 0.875rem;
+/* Pulse Animation for Status */
+@keyframes status-pulse {
+  0% { transform: scale(0.95); opacity: 0.5; }
+  50% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(0.95); opacity: 0.5; }
 }
 
-textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.label {
-  display: block;
-  font-size: 0.75rem;
-  color: #94a3b8;
-  margin-bottom: 0.25rem;
-}
-
-.badge {
-  display: inline-block;
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
-.badge-ok {
-  background: rgba(34, 197, 94, 0.2);
-  color: #86efac;
-}
-
-.badge-err {
-  background: rgba(239, 68, 68, 0.2);
-  color: #fca5a5;
+.pulse {
+  animation: status-pulse 2s infinite ease-in-out;
 }

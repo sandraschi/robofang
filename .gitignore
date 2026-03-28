@@ -27,6 +27,7 @@ venv/
 ENV/
 
 # IDEs
+.cursor/
 .vscode/*
 !.vscode/settings.json
 .idea/
