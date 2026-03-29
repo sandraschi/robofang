@@ -93,3 +93,55 @@ class SecurityManager:
         self.registry[subject] = {"role": role, "permissions": set(permissions)}
         self.storage.save_security_policy(subject, role, permissions)
         self.logger.info(f"Security Policy Updated & Persisted: {subject} ({role})")
+
+    async def validate_prompt(self, prompt: str, orchestrator: Any) -> bool:
+        """
+        Check for prompt injection or malicious intent using Bastio.
+        """
+        bastio = orchestrator.connectors.get("bastio")
+        if not bastio:
+            self.logger.debug("Bastio security layer not found; skipping input validation.")
+            return True
+
+        self.logger.info("Bastio: Scanning input for injection vectors...")
+        try:
+            # SOTA API for Bastio MCP: 'filter_prompt'
+            result = await bastio.call_tool("filter_prompt", {"prompt": prompt})
+            if result and isinstance(result, dict):
+                is_safe = result.get("safe", True)
+                if not is_safe:
+                    self.logger.warning(f"Bastio REJECTION: {result.get('reason', 'Potential injection detected')}")
+                return is_safe
+            return True
+        except Exception as e:
+            self.logger.error(f"Bastio validation failed: {e}")
+            return True  # Fail-open for input to avoid blocking UX
+
+    async def validate_action(self, action: str, params: Any, orchestrator: Any) -> bool:
+        """
+        Validate a proposed tool action using DefenseClaw sandboxing.
+        """
+        defenseclaw = orchestrator.connectors.get("defenseclaw")
+        if not defenseclaw:
+            self.logger.debug("DefenseClaw layer not found; skipping action validation.")
+            return True
+
+        self.logger.info(f"DefenseClaw: Validating action '{action}' in sandbox...")
+        try:
+            # SOTA API for DefenseClaw MCP: 'validate_action'
+            # We pass action name and JSON-stringified params for deep inspection
+            import json
+            result = await defenseclaw.call_tool(
+                "validate_action", 
+                {"action": action, "params": json.dumps(params)}
+            )
+            if result and isinstance(result, dict):
+                is_approved = result.get("approved", True)
+                if not is_approved:
+                    self.logger.error(f"DefenseClaw REJECTION: {result.get('reason', 'Policy violation')}")
+                return is_approved
+            return True
+        except Exception as e:
+            self.logger.error(f"DefenseClaw validation failed: {e}")
+            return False  # Fail-closed for actions for maximum safety
+

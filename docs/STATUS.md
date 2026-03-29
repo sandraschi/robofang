@@ -17,6 +17,8 @@ The following gaps from the Phase 8 bridge refactor were closed:
 
 **Verify locally:** `py -3 -m pytest tests\test_bridge_import.py -q` (use project venv if pytest-cov is required). Dev UI: Vite proxies `/api` → bridge `10871` per `vite.config.ts`.
 
+**Vendor security stack (DefenseClaw / OpenShell / Bastio):** Roadmap and non-claims are in **`docs/SECURITY_INTEGRATIONS.md`**. Hub UI marks these as **Coming soon** until wired.
+
 ---
 
 ## Active Development

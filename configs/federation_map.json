@@ -210,6 +210,27 @@
         "osc": {
             "enabled": true,
             "mcp_backend": "http://localhost:10766"
+        },
+        "games": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10744",
+            "mcp_frontend": "http://localhost:10745",
+            "description": "Games Playground \u2014 Chess, Shogi, Go reasoning engines"
+        },
+        "defenseclaw": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10880",
+            "description": "DefenseClaw \u2014 execution sandboxing and runtime security"
+        },
+        "openshell": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10882",
+            "description": "NVIDIA OpenShell \u2014 AI-isolated environment management"
+        },
+        "bastio": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10884",
+            "description": "Bastio \u2014 Anti-prompt injection and input/output filtering"
         }
     },
     "domains": {
@@ -486,6 +507,38 @@
                     "3D avatar creation"
                 ],
                 "priority": "weak"
+            }
+        },
+        "reasoning_security": {
+            "games": {
+                "path": "games-app",
+                "capabilities": [
+                    "Chess",
+                    "Shogi",
+                    "Go",
+                    "adversarial reasoning"
+                ]
+            },
+            "defenseclaw": {
+                "path": "defenseclaw-mcp",
+                "capabilities": [
+                    "sandboxing",
+                    "runtime monitoring"
+                ]
+            },
+            "openshell": {
+                "path": "openshell-mcp",
+                "capabilities": [
+                    "environment isolation",
+                    "CUDA-isolated execution"
+                ]
+            },
+            "bastio": {
+                "path": "bastio-mcp",
+                "capabilities": [
+                    "prompt injection defense",
+                    "inference filtering"
+                ]
             }
         }
     }

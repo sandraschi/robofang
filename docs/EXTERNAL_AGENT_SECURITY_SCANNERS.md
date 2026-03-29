@@ -1,5 +1,7 @@
 # External Agent Security Scanners: Cisco + OpenClaw Ecosystem
 
+**RoboFang adoption status (bridge + hub):** see [SECURITY_INTEGRATIONS.md](./SECURITY_INTEGRATIONS.md) — this file surveys upstream tools; it does not mean those tools are installed or active here.
+
 ## Purpose
 
 This document captures practical usage guidance for current external security tooling related to:

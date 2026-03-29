@@ -514,7 +514,15 @@ class OrchestrationClient:
                 "error": f"Subject '{subject}' is not authorized for reasoning:ask",
             }
 
+        # --- SECURITY MOAT: Bastio Prompt Injection Defense ---
+        if not await self.security.validate_prompt(prompt, orchestrator=self):
+            return {
+                "success": False,
+                "error": "SECURITY_REJECTION: Bastio has detected a potential prompt injection or malicious intent.",
+            }
+
         # 0. Difficulty assessment (simple vs ambitious → route to single vs council)
+
         difficulty = assess_difficulty(prompt)
         effective_council = use_council
         if not use_council and difficulty["suggest_council"]:
@@ -624,7 +632,15 @@ class OrchestrationClient:
         self, tool_name: str, approval_gate: bool = True, **kwargs
     ) -> Dict[str, Any]:
         """Gateway for agentic tool execution with optional Council Approval Gate."""
+        # --- SECURITY MOAT: DefenseClaw Action Validation ---
+        if not await self.security.validate_action(tool_name, kwargs, orchestrator=self):
+            return {
+                "success": False,
+                "error": f"SECURITY_REJECTION: DefenseClaw has blocked the action '{tool_name}' due to policy violation.",
+            }
+
         if tool_name not in self._tool_registry:
+
             # OpenFang adapter: map hand tool names to MCP connector + tool
             resolved = openfang_resolve(tool_name)
             if resolved and self._connector_invoker:
@@ -743,7 +759,15 @@ class OrchestrationClient:
         2. Agentic Execution (Labor/Worker)
         3. Satisficer Audit (Judge/Satisficer)
         """
+        # --- SECURITY MOAT: Bastio Prompt Injection Defense ---
+        if not await self.security.validate_prompt(vibe, orchestrator=self):
+            return {
+                "success": False,
+                "error": "SECURITY_REJECTION: Bastio has blocked this mission due to potential malicious content.",
+            }
+
         self.logger.info(f"INITIATING MISSION: {vibe[:50]}...")
+
 
         # PHASE 1: ENRICH
         self._log_reasoning("Foreman", "thought", f"Enriching Vibe: {vibe[:100]}...")

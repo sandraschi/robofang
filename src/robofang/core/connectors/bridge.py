@@ -204,7 +204,7 @@ class MCPBridgeConnector(BaseConnector):
             self.logger.error(f"MCPBridgeConnector '{self._name}' tools/list failed: {exc}")
             return []
 
-    async def _ping(self) -> bool:
+    async def ping(self) -> bool:
         """Liveness check via tools/list."""
         try:
             payload = {"jsonrpc": "2.0", "id": 0, "method": "tools/list", "params": {}}
