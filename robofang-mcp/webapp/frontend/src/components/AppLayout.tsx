@@ -74,11 +74,19 @@ const NavItem: React.FC<NavItemProps> = ({ icon: Icon, label, active, onClick, b
 
 interface AppLayoutProps {
   children: React.ReactNode;
-  activeView: 'hub' | 'fleet' | 'audit' | 'settings';
-  onViewChange: (view: any) => void;
+  activeView: 'hub' | 'fleet' | 'audit' | 'settings' | 'integrations';
+  onViewChange: (view: AppLayoutProps['activeView']) => void;
   fleetCount?: number;
   healthStatus?: 'ok' | 'error' | 'idle';
 }
+
+const VIEW_TITLE: Record<AppLayoutProps['activeView'], string> = {
+  hub: 'The Hub',
+  fleet: 'Fleet Deck',
+  audit: 'System Audit',
+  settings: 'Settings',
+  integrations: 'Integrations',
+};
 
 export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onViewChange, fleetCount = 0, healthStatus = 'idle' }) => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -158,9 +166,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onVi
 
           <NavItem 
             icon={ShieldCheck} 
-            label="Security" 
-            active={false}
+            label="Integrations" 
+            active={activeView === 'integrations'} 
+            onClick={() => onViewChange('integrations')}
             isCollapsed={isSidebarCollapsed}
+            badge={
+              !isSidebarCollapsed ? (
+                <span className="bg-amber-500/10 text-amber-300/90 text-[10px] py-0.5 px-2 rounded-full font-mono border border-amber-500/25">
+                  Soon
+                </span>
+              ) : undefined
+            }
           />
           <NavItem 
             icon={Settings} 
@@ -180,11 +196,17 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onVi
           ) : (
             <div className="glass-panel p-3 bg-gradient-to-br from-violet-900/10 to-transparent border-violet-500/10 hover:border-violet-500/30">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 pulse" />
-                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">System Online</span>
+                <div className={`w-2 h-2 rounded-full pulse ${healthStatus === 'error' ? 'bg-rose-500' : healthStatus === 'ok' ? 'bg-emerald-500' : 'bg-slate-500'}`} />
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">Bridge</span>
               </div>
               <p className="text-[10px] text-slate-500 leading-relaxed font-mono">
-                Integrity Status: <span className="text-emerald-500/80">Sovereign</span>
+                {healthStatus === 'ok' && (
+                  <>Reachable <span className="text-emerald-500/90">(health OK)</span></>
+                )}
+                {healthStatus === 'error' && (
+                  <>Check <span className="text-rose-400/90">failed</span></>
+                )}
+                {healthStatus === 'idle' && <>Not checked yet</>}
               </p>
             </div>
           )}
@@ -211,7 +233,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onVi
             <div className="flex flex-col">
               <span className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
                 <Zap size={14} className="text-violet-500" />
-                {activeView.replace('_', ' ')}
+                {VIEW_TITLE[activeView]}
               </span>
             </div>
           </div>

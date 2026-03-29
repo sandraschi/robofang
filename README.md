@@ -10,6 +10,7 @@ Standard technical documentation is organized by category:
 
 | Domain | Description |
 |:-------|:------------|
+| [Assessment](ASSESSMENT.md) | Technical audit of the current state and roadmap. |
 | [Architecture](docs/ARCHITECTURE.md) | Multi-process topology and module layout. |
 | [Setup](docs/INSTALLATION.md) | Local deployment guide (UV, Ollama, Dashboard). |
 | [Council Protocol](docs/COUNCIL.md) | Multi-model coordination and adjudication logic. |
@@ -18,6 +19,7 @@ Standard technical documentation is organized by category:
 | [Comparison Matrix](docs/COMPETITION.md) | Technical mapping against OpenClaw and OpenFang. |
 | [Roadmap](docs/ROADMAP.md) | Strategic development phases and priorities. |
 | [Status](docs/STATUS.md) | Operational health and tech debt registry. |
+| [Security integrations](docs/SECURITY_INTEGRATIONS.md) | DefenseClaw, OpenShell, Bastio — roadmap and honesty contract (what is not wired). |
 
 ---
 

@@ -6,9 +6,11 @@ import {
   Cpu, 
   AlertCircle,
   Network,
-  ShieldCheck
+  ShieldCheck,
+  Settings,
 } from 'lucide-react';
 import { AppLayout } from './components/AppLayout';
+import { ComingSoonBadge } from './components/ComingSoonBadge';
 import { GlassCard } from './components/GlassCard';
 import { PulseBadge } from './components/PulseBadge';
 import { StreamingConsole } from './components/StreamingConsole';
@@ -26,8 +28,10 @@ interface FleetItem {
   status: 'active' | 'inactive';
 }
 
+type AppView = 'hub' | 'fleet' | 'audit' | 'settings' | 'integrations';
+
 function App() {
-  const [activeView, setActiveView] = useState<'hub' | 'fleet' | 'audit' | 'settings'>('hub');
+  const [activeView, setActiveView] = useState<AppView>('hub');
   const [healthStatus, setHealthStatus] = useState<'ok' | 'error' | 'idle'>('idle');
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [fleet, setFleet] = useState<FleetItem[]>([]);
@@ -121,7 +125,10 @@ function App() {
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
                   <span className="text-xs text-slate-400 font-medium">Bridge Integrity</span>
-                  <PulseBadge status={healthStatus} label={healthStatus === 'ok' ? 'SOVEREIGN' : 'COMPROMISED'} />
+                  <PulseBadge
+                    status={healthStatus}
+                    label={healthStatus === 'ok' ? 'UP' : healthStatus === 'error' ? 'DOWN' : 'IDLE'}
+                  />
                 </div>
                 <div className="flex items-center justify-between p-3 rounded-lg bg-white/5 border border-white/5">
                   <span className="text-xs text-slate-400 font-medium">Active Fleet</span>
@@ -139,19 +146,28 @@ function App() {
             </GlassCard>
 
             <GlassCard 
-              title="Quick Audit" 
-              subtitle="Integrity Metrics"
+              title="Security posture" 
+              subtitle="What is live vs planned"
               icon={<Activity size={18} />}
               className="flex-1"
             >
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-gradient-to-br from-violet-500/10 to-transparent border border-violet-500/10">
-                  <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Hashing Standard</div>
-                  <div className="text-xs font-mono text-violet-400">SHA-256 (v12.3 Hardened)</div>
+              <div className="space-y-3 text-xs text-slate-400 leading-relaxed">
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">Bridge health</span>
+                    <span className="text-[10px] text-emerald-400/90">Live</span>
+                  </div>
+                  <p className="text-slate-500">From <code className="text-violet-300/90">GET /api/system/health</code> only.</p>
                 </div>
-                <div className="p-4 rounded-xl bg-gradient-to-br from-cyan-500/10 to-transparent border border-cyan-500/10">
-                  <div className="text-[10px] text-slate-500 uppercase tracking-widest mb-1">Safety Sidecar</div>
-                  <div className="text-xs font-mono text-cyan-400">Active (Cisco DefenseClaw Compliant)</div>
+                <div className="p-3 rounded-xl bg-white/[0.03] border border-white/10">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="text-[10px] text-slate-500 uppercase tracking-widest">Vendor stack</span>
+                    <ComingSoonBadge />
+                  </div>
+                  <p className="text-slate-500">
+                    Cisco DefenseClaw, NVIDIA OpenShell, Bastio — planned; not wired in this UI. See repo{' '}
+                    <code className="text-violet-300/90">docs/SECURITY_INTEGRATIONS.md</code>.
+                  </p>
                 </div>
               </div>
             </GlassCard>
@@ -213,12 +229,67 @@ function App() {
 
       {activeView === 'audit' && (
         <div className="flex flex-col gap-6 max-w-4xl">
-          <GlassCard title="Security Heartbeat" subtitle="Integrity Audit results" icon={<ShieldCheck size={18} />}>
-            <div className="p-8 text-center opacity-40">
-              <AlertCircle size={48} className="mx-auto mb-4 text-violet-400" />
-              <p className="text-sm font-medium">Detailed Heartbeat metrics are processed in the background.</p>
-              <p className="text-xs text-slate-500 mt-2">Check the console for real-time audit logs.</p>
+          <GlassCard title="System audit" subtitle="What this screen shows today" icon={<ShieldCheck size={18} />}>
+            <div className="p-6 space-y-4 text-sm text-slate-400">
+              <p>
+                <span className="text-slate-300">Live:</span> operator log stream on this page (client-side), and bridge{' '}
+                <code className="text-violet-300/90">/api/system/health</code> / fleet polling from the Hub tab.
+              </p>
+              <p>
+                <span className="text-slate-300">Not here yet:</span> dedicated SOC-style audit API, DefenseClaw telemetry, or
+                OpenShell policy reports. Those are roadmap items; the hub does not imply they are running.
+              </p>
+              <p className="text-xs text-slate-500 border-t border-white/10 pt-4">
+                Optional hash / integrity jobs may run in other processes (e.g. supervisor); this SPA does not surface their output
+                yet. <ComingSoonBadge label="UI planned" />
+              </p>
             </div>
+          </GlassCard>
+        </div>
+      )}
+
+      {activeView === 'integrations' && (
+        <div className="flex flex-col gap-6 max-w-4xl">
+          <p className="text-sm text-slate-500">
+            Third-party security products are <strong className="text-slate-400">not</strong> active inside this webapp by default.
+            Labels below reflect roadmap intent only.
+          </p>
+          <div className="grid gap-4 md:grid-cols-1">
+            <GlassCard title="Cisco DefenseClaw" subtitle="Governance / MCP ecosystem" icon={<ShieldCheck size={18} />}>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <ComingSoonBadge />
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Evaluate sidecar and scanner patterns; see <code className="text-violet-300/90">docs/SECURITY_INTEGRATIONS.md</code>{' '}
+                and <code className="text-violet-300/90">docs/EXTERNAL_AGENT_SECURITY_SCANNERS.md</code>.
+              </p>
+            </GlassCard>
+            <GlassCard title="NVIDIA OpenShell" subtitle="Runtime hardening (reference)" icon={<ShieldCheck size={18} />}>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <ComingSoonBadge />
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Pattern adoption only until a concrete integration exists; no OpenShell runtime ships with RoboFang today.
+              </p>
+            </GlassCard>
+            <GlassCard title="Bastio" subtitle="Gateway / injection defenses (bastio.com)" icon={<ShieldCheck size={18} />}>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <ComingSoonBadge />
+              </div>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                No Bastio adapter in the bridge yet; verify product claims on the vendor site before production reliance.
+              </p>
+            </GlassCard>
+          </div>
+        </div>
+      )}
+
+      {activeView === 'settings' && (
+        <div className="max-w-xl space-y-4">
+          <GlassCard title="Settings" subtitle="Hub preferences" icon={<Settings size={18} />}>
+            <p className="text-sm text-slate-400">
+              Account and theme controls are <ComingSoonBadge className="ml-1 align-middle" /> — not implemented in this build.
+            </p>
           </GlassCard>
         </div>
       )}

@@ -108,9 +108,17 @@ async def connectors_config():
 @router.post("/{connector_id}/test")
 async def connector_test(connector_id: str):
     """Test connection to a specific connector endpoint."""
-    # Placeholder for actual ping/health check verification
+    connector = orchestrator.connectors.get(connector_id)
+    if not connector:
+        return {
+            "success": False,
+            "status": "offline",
+            "message": f"Connector {connector_id} not initialized in orchestrator.",
+        }
+
+    online = await connector.ping()
     return {
-        "success": True,
-        "status": "online",
-        "message": f"Test ping to {connector_id} successful.",
+        "success": online,
+        "status": "online" if online else "offline",
+        "message": f"Test ping to {connector_id} {'successful' if online else 'failed'}.",
     }

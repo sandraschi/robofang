@@ -50,5 +50,9 @@ class BaseConnector(abc.ABC):
     async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
         """Retrieve recent messages / readings from the service."""
 
+    async def ping(self) -> bool:
+        """Health check for the connector connection."""
+        return self.active
+
 
 ConnectorBase = BaseConnector  # backwards compat alias
