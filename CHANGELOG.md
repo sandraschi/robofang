@@ -7,6 +7,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 
 ## [Unreleased]
 
+- **Bumi Sim2Real**: Researching integration for Noetix Bumi virtual embodiment.
+
+## [12.6.0] — 2026-03-29
+
+### Added
+- **Ollama Native Tool-Use**: Refactoring the ReAct loop to use Ollama's native `/api/chat` tools API instead of XML regex parsing (Improves reliability for 3B-8B models).
+
+## [12.5.0] — 2026-03-29
+
+### Added
+- **Security Moat Layer**: Integrated **Bastio** (input validation) and **DefenseClaw** (action sandboxing) into `OrchestrationClient`.
+- **Connector Hardening**: Formalized `.ping()` standard; bridge `/test` API now performs real-time liveness verification.
+- **Posture Dashboard**: New "Integrations Hub" in frontend with "Coming Soon" badges for roadmap transparency.
+
 ### Added
 - **Docs / fleet**: **bumi-mcp** live repo + dashboard ports **10774/10775** — [integrations/bumi-mcp.md](docs/integrations/bumi-mcp.md), [MCP_SERVERS.md](docs/MCP_SERVERS.md) §3.4, [integrations/README.md](docs/integrations/README.md), [fleet-registry.json](src/robofang/configs/fleet-registry.json) card.
 - **Docs**: [MCP_SERVERS.md](docs/MCP_SERVERS.md) §2 — repo bar: **`llms.txt` + `llms-full.txt` (required pair)**, **pre-commit+Ruff**, **ty** (non-blocking CI), plus uv / glama / `mcpb pack` (mcp-central-docs **PACKAGING_STANDARDS §5–6**, [llms-txt-manifest](https://github.com/sandraschi/mcp-central-docs/blob/master/integrations/llms-txt-manifest.md)).
