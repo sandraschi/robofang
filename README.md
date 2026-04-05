@@ -1,4 +1,4 @@
-# RoboFang — Multi-Agent Coordination Hub
+# RoboFang  Multi-Agent Coordination Hub
 
 RoboFang is an orchestration layer for local AI agents, designed to bridge a federated fleet of MCP servers with physical robotics and virtual environments.
 
@@ -19,7 +19,7 @@ Standard technical documentation is organized by category:
 | [Comparison Matrix](docs/COMPETITION.md) | Technical mapping against OpenClaw and OpenFang. |
 | [Roadmap](docs/ROADMAP.md) | Strategic development phases and priorities. |
 | [Status](docs/STATUS.md) | Operational health and tech debt registry. |
-| [Security integrations](docs/SECURITY_INTEGRATIONS.md) | DefenseClaw, OpenShell, Bastio — roadmap and honesty contract (what is not wired). |
+| [Security integrations](docs/SECURITY_INTEGRATIONS.md) | DefenseClaw, OpenShell, Bastio  roadmap and honesty contract (what is not wired). |
 
 ---
 

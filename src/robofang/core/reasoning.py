@@ -162,6 +162,71 @@ class ReasoningEngine:
             logger.error(f"LLM Reasoning Error ({model} on {node or 'local'}): {e}")
             return {"success": False, "error": str(e)}
 
+    def _convert_to_json_schema(self, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Converts internal tool definitions (or MCP input_schema) 
+        into Ollama-compatible JSON Schema for the 'tools' parameter.
+        """
+        json_tools = []
+        for t in tools:
+            # Handle both 'input_schema' (MCP style) and 'parameters' (OpenAI style)
+            schema = t.get("input_schema") or t.get("parameters") or {"type": "object", "properties": {}}
+            
+            # Ollama expects 'type' and 'function'
+            json_tools.append({
+                "type": "function",
+                "function": {
+                    "name": t["name"],
+                    "description": t.get("description", ""),
+                    "parameters": schema
+                }
+            })
+        return json_tools
+
+    async def chat(
+        self,
+        messages: List[Dict[str, Any]],
+        tools: Optional[List[Dict[str, Any]]] = None,
+        model: str = "llama3",
+        node: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """
+        Native Ollama /api/chat endpoint with tool-calling support.
+        """
+        if self.use_ollama and (model == "llama3" or not model):
+            model = self.default_model
+
+        # Ensure model ready (local only for now)
+        if not node:
+            await self._ensure_model_ready(model)
+
+        payload = {
+            "model": model,
+            "messages": messages,
+            "stream": False,
+            "keep_alive": self._get_keep_alive(model),
+        }
+        if tools:
+            payload["tools"] = self._convert_to_json_schema(tools)
+
+
+
+        try:
+            url = f"{self.ollama_url}/api/chat"
+            response = await self.client.post(url, json=payload)
+
+            response.raise_for_status()
+            data = response.json()
+            return {
+                "success": True,
+                "message": data.get("message", {}),
+                "model": data.get("model"),
+                "done": data.get("done", True),
+            }
+        except Exception as e:
+            logger.error(f"Ollama Chat Error: {e}")
+            return {"success": False, "error": str(e)}
+
     async def reason_and_act(
         self,
         prompt: str,
@@ -169,10 +234,111 @@ class ReasoningEngine:
         tools: List[Dict[str, Any]],
         model: str = "llama3",
         max_turns: int = 5,
+        use_native_tools: bool = True,
     ) -> Dict[str, Any]:
         """
-        Agentic reasoning loop using XML-based ReAct pattern.
-        Hardened against circular reasoning and infinite loops.
+        Agentic reasoning loop. Dispatches to native (JSON) or legacy (XML)
+        based on configuration. Default: Native (v12.6).
+        """
+        if use_native_tools:
+            try:
+                return await self._reason_and_act_native(
+                    prompt, tool_executor, tools, model, max_turns
+                )
+            except Exception as e:
+                logger.error(f"Native tool-calling failed, falling back to legacy: {e}")
+
+        return await self._reason_and_act_legacy(prompt, tool_executor, tools, model, max_turns)
+
+    async def _reason_and_act_native(
+        self,
+        prompt: str,
+        tool_executor: Callable,
+        tools: List[Dict[str, Any]],
+        model: str,
+        max_turns: int,
+    ) -> Dict[str, Any]:
+        """
+        Native Ollama tool-calling loop (JSON-based).
+        """
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You are a Sovereign RoboFang Agent. Use the provided tools to fulfill the user request. "
+                    "Output a final answer when the objective is achieved."
+                ),
+            },
+            {"role": "user", "content": prompt},
+        ]
+        full_trail = []
+        executed_actions = set()
+
+        for turn in range(max_turns):
+            logger.info(f"Native ReAct Loop: Turn {turn + 1}/{max_turns}")
+            resp = await self.chat(messages, tools=tools, model=model)
+            if not resp["success"]:
+                return resp
+
+            message = resp["message"]
+
+            content = message.get("content", "")
+
+            tool_calls = message.get("tool_calls", [])
+
+            full_trail.append({"turn": turn, "content": content, "tool_calls": tool_calls})
+            messages.append(message)
+
+            if not tool_calls:
+                # No more tools called, assume completion
+                return {"success": True, "response": content, "trail": full_trail}
+
+            for tool_call in tool_calls:
+                func = tool_call.get("function", {})
+                tool_name = func.get("name")
+                tool_args = func.get("arguments", {})
+
+                # Deduplication/Circular guard
+                call_id = f"{tool_name}:{json.dumps(tool_args, sort_keys=True)}"
+                if call_id in executed_actions:
+                    logger.warning(f"Continuous loop detected for {tool_name}. Aborting tool call.")
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": f"ERROR: Continuous loop detected for tool '{tool_name}'. Pivot your strategy.",
+                        }
+                    )
+                    continue
+
+                executed_actions.add(call_id)
+                logger.info(f"Executing native tool: {tool_name}")
+
+                # Execute tool via Orchestrator
+                result = await tool_executor(tool_name, **tool_args)
+
+                tool_msg = {
+                    "role": "tool",
+                    "content": json.dumps(result),
+                    "name": tool_name,
+                }
+                if tool_call.get("id"):
+                    tool_msg["tool_call_id"] = tool_call["id"]
+
+                messages.append(tool_msg)
+
+
+        return {"success": True, "response": content, "trail": full_trail}
+
+    async def _reason_and_act_legacy(
+        self,
+        prompt: str,
+        tool_executor: Callable,
+        tools: List[Dict[str, Any]],
+        model: str,
+        max_turns: int,
+    ) -> Dict[str, Any]:
+        """
+        Agentic reasoning loop using XML-based ReAct pattern (Legacy).
         """
         # Node-aware model readiness
         if not (
@@ -196,7 +362,7 @@ class ReasoningEngine:
         executed_actions = set()
 
         for turn in range(max_turns):
-            logger.info(f"ReAct Loop: Turn {turn + 1}/{max_turns}")
+            logger.info(f"Legacy ReAct Loop: Turn {turn + 1}/{max_turns}")
             resp = await self.ask(current_prompt, system_prompt=history[0]["content"], model=model)
             if not resp["success"]:
                 return resp
@@ -235,6 +401,8 @@ class ReasoningEngine:
                 continue
 
             executed_actions.add(action_key)
+
+            # Map XML input string to 'input' keyword for compatibility
             result = await tool_executor(tool_name, input=tool_input)
 
             result_str = json.dumps(result)
@@ -242,6 +410,7 @@ class ReasoningEngine:
             history.append({"role": "user", "content": current_prompt})
 
         return {"success": True, "response": content, "trail": full_trail}
+
 
     async def council_synthesis(
         self,
