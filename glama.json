@@ -1,6 +1,10 @@
 {
-  "name": "robofang",
-  "version": "0.3.0",
-  "description": "RoboFang MCP & robotics orchestration hub",
-  "manifest": "mcpb/manifest.json"
+    "name":  "robofang",
+    "version":  "0.3.0",
+    "description":  "RoboFang MCP \u0026 robotics orchestration hub",
+    "manifest":  "mcpb/manifest.json",
+    "fleet":  {
+                  "stars":  "★★★★★",
+                  "tier":  1
+              }
 }
