@@ -1,80 +1,45 @@
-# Robofang: Physical Hands (Robotics)
+# Robotics Integration: Physical Agency
 
-<p align="center">
-  <img src="../assets/architecture.png" alt="Robofang Nervous System" width="800">
-</p>
-
-The name "Robofang" is an intentional provocation. It signifies that our agents are no longer purely digital constructs; they have "bite" in the physical world. This document outlines our strategic roadmap for physical agency, detailing the hardware we trust and the software layers that bring it to life.
-
-## The Strategy: Hierarchical Hardware
-
-We do not believe in a one-size-fits-all approach to robotics. Instead, we follow a tiered strategy that allows for both accessible learning and high-end industrial-grade performance.
-
-### 1. The Primary Champion: Noetix Bumi (The "iPhone-Priced" Breakthrough)
-The **Noetix Bumi** is not just another robot; it is a fundamental shift in the robotics landscape—a Chinese breakthrough that finally delivers an **"Android for the price of an iPhone."** Priced at approximately $1,399 (¥10,000 range), it shatters the price-to-performance ratio that has kept humanoid robotics locked in research labs for decades.
-
-This is the cornerstone of our physical agency strategy. In the 2026 SOTA landscape, it represents the first true "mass-market" humanoid capable of high-fidelity agentic orchestration. Noetix Robotics has intentionally designed Bumi for the education and home markets, providing the lightweight agility and open substrate required for our **Embodied Sentience** loop.
-
-<p align="center">
-  <img src="../assets/bumi_step2.png" alt="Noetix Bumi - THE NEXT STEP" width="500">
-</p>
-
-#### Technical Specifications (Advanced AI Edition)
-- **Dimensions**: 94 cm (3.1 ft) Height | 12 kg (26.5 lbs) Weight.
-- **Chassis**: High-strength plastic and aluminum alloy with lightweight composite reinforcement.
-- **Actuation**: ≥ 21 Degrees of Freedom (DOF), supporting walking, running, and autonomous recovery.
-- **Primary Compute**: Rockchip RK3576 (System Control).
-- **AI Neural Substrate**: NVIDIA Orin Nano Super (Vision & Reasoning).
-- **Power**: 48V / 3.5Ah+ Intelligent Battery (1-2 Hours operational life).
-- **Perception**: Camera-based depth vision + "JoyInside" Voice Interaction v2.0.
-
-#### The Robofang Advantage: Open Substrate
-Unlike proprietary consumer bots, the Noetix Bumi Advanced AI Edition provides the open interfaces required for our **Embodied Sentience** loop. Robofang targets this platform specifically because it allows for:
-1. **Low-Level Motor Control**: Direct actuation via ROS 2 nodes.
-2. **Vision Ingest**: Real-time camera streams processed by the Orin Nano Super.
-3. **Android/ROS Hybridity**: Leveraging Java/Kotlin for UI and C++/Python for heavy-duty motion control.
-
-The Bumi is where our "Physical Hands" find their most expressive and capable outlet.
-
-### 2. The Learning Foundation: Yahboom (Raspbot v2)
-Every major journey begins with a first step, and for many Robofang users, that step is the **Yahboom Raspbot v2**. Starting at just $100, this platform is an incredible accessible entry point into the world of agentic robotics.
-
-<p align="center">
-  <img src="../assets/yahboom_step1.png" alt="Yahboom Raspbot - THE FIRST STEP" width="500">
-</p>
-
-We consider the Yahboom essential for the "learning" phase of the project. It provides an excellent sandbox for testing vision-based tracking using OpenCV, basic SLAM navigation, and simple agentic intentions. Before an agent attempts to manipulate a humanoid robot, it learns the fundamentals of spatial awareness and physics on a Raspbot.
-
-### 3. Deemphasized: The Unitree Ecosystem
-While we acknowledge the technical prowess of the **Unitree** lineup, we have deliberately deemphasized their platforms in the current iteration of Robofang. The primary reason is the high barrier to entry—specifically the price of their "Edu" models, which are required for full development access. 
-
-The lower-cost consumer models in the Unitree stack often come with closed or restricted software layers that are fundamentally incompatible with the Robofang vision of a sovereign, open substrate. Until their open stack becomes more accessible, we choose to focus our energy elsewhere.
-
-## The Reach: Software Integration
-
-Physical agency is not just about the hardware; it's about the communication layer. Robofang bridges the gap between the agent's "mind" and its "hands" using:
-
--   **ROS (Robot Operating System)**: The industry standard that allows our Python-based orchestrator to talk to nearly any modern robot.
--   **python-osc**: This provides ultra-low latency, real-time synchronization. It allows an agent to maintain a "digital twin" in Unity3D while its physical hands are moving in reality.
--   **Standardized Hand Plugins**: We are developing a library of plugins that standardize how agents approach navigation, grasping, and environmental perception.
-
-### The Bridge: Logic Flow
-
-```mermaid
-graph LR
-    A[Agent Intent] --> B[Robofang Orchestrator]
-    B --> C{Transport}
-    C -->|High Latency / Admin| D[ROS 2 Node]
-    C -->|Real-time Control| E[python-osc Bridge]
-    D --> F[Bumi / Raspbot Motor Controllers]
-    E --> F
-    F --> G[Physical Actuation]
-```
-
-## Speech and audio
-
-- **Yahboom Raspbot v2**: Optional **Yahboom Voice (ASR-TTS) module** (CI1302) provides onboard TTS and STT. The **yahboom-mcp** hand (`hands/yahboom-mcp`) exposes `robot_speech_say(text)` to send text to the robot’s TTS and `speech_mcp_tts(text, provider, send_to_robot)` to call Speech-MCP for cloud TTS and optionally play on the robot. See Speech-MCP docs (e.g. `YAHBOOM_RASPBOT_VOICE.md`) for the bridge pattern.
-- **Dreame vacuum**: Only **preset phrases** (e.g. “start cleaning”, “returning to dock”) and installable **voice packs** (same phrases, different voice/language). No API for arbitrary TTS or custom audio playback; `play_sound` is a parameterless locate beep. For custom announcements, use an external speaker driven by dreame-mcp events + Speech-MCP.
+RoboFang is designed to bridge the gap between digital agents and physical hardware. This document outlines the strategy for physical agency and the integration of robotic manipulators.
 
 ---
-*True intelligence is measured by its impact on the physical world. We are building the reach.*
+
+## 🏗️ Hardware Strategy
+We utilize a tiered approach to robotics, focusing on platforms that offer an open interface for agentic control.
+
+### 🌟 The Breakthrough: Noetix Bumi
+The **Noetix Bumi** represents a fundamental shift in the robotics landscape—an Android substrate delivered at an **"iPhone-level price point."** Historically, humanoid platforms have been restricted to high-cost research environments; the Bumi brings high-fidelity physical agency into a manageable $1,399 (¥10,000 range) scale.
+
+This is the cornerstone of our physical agency strategy. In the current landscape, it is the first mass-market humanoid capable of granular agentic orchestration.
+
+#### Technical Specifications
+- **Dimensions**: 94 cm Height | 12 kg Weight.
+- **Actuation**: ≥ 21 Degrees of Freedom (DOF), supporting complex motion and balance.
+- **Compute**: Rockchip RK3576 (Control) + NVIDIA Orin Nano Super (Vision/Reasoning).
+- **Perception**: Integrated depth vision and voice interaction arrays.
+
+#### The Open Substrate
+Robofang targets the Bumi platform specifically because of its open interfaces:
+1. **Low-Level Control**: Direct actuation via ROS 2 nodes.
+2. **Vision Ingest**: Real-time processing of camera streams for spatial reasoning.
+3. **Hybrid Architecture**: Leverages ROS for motion and custom API layers for agentic intent.
+
+---
+
+### 🎓 Learning & Prototyping: Yahboom Raspbot v2
+For initial experimentation and mapping, we support the **Yahboom Raspbot v2**. This platform is a highly accessible entry point for testing vision-based tracking and basic agentic navigation. It serves as a sandbox for refining the algorithms that eventually drive more complex humanoid manipulators.
+
+---
+
+## 🔌 Software Integration: The reach
+Physical agency is managed through a dedicated communication layer:
+
+- **ROS (Robot Operating System)**: The standard for low-level communication.
+- **python-osc**: Used for real-time synchronization between the agent's internal model and the physical world.
+- **Actuator Plugins**: A library of standardized controllers for navigation and environmental interaction.
+
+### 📊 Terminology Discipline
+To avoid confusion, **"Hands"** are defined strictly as **Metaphoric Extension Processes** (subordinate agents). The physical robot arms, claws, and legs are referred to as **Manipulators** or **Actuators**.
+
+---
+*True utility is measured by impact on the physical world. We are building the reach.*
