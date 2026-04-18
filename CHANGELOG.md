@@ -5,7 +5,7 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 
 ---
 
-## [1.8.0] — 2026-04-18 "OpenClaw++ Transition"
+## [1.8.0-alpha.1] — 2026-04-18 "OpenClaw++ Transition"
 
 ### Added
 - **Embodied Agency**: Established **Noetix Bumi Android** (1m biped) as the primary centerpiece for physical agency.
