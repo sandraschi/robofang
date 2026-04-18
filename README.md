@@ -1,13 +1,17 @@
-# 🪝 RoboFang v1.8.0
+# 🪝 RoboFang v1.8.0-alpha
 
 **A Comprehensive Orchestration Substrate for Agentic Fleets and Physical Agency.**
 
 ---
 
+[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-red.svg)](README.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![UV](https://img.shields.io/badge/Package_Manager-UV-orange.svg)](https://github.com/astral-sh/uv)
 [![Tailscale](https://img.shields.io/badge/Network-Tailscale-blue.svg)](https://tailscale.com)
+
+> [!WARNING]
+> RoboFang is currently in **Alpha Status**. Version v1.8.0 introduces significant architectural changes for physical integration and security. Expect rapid iteration and breaking changes.
 
 RoboFang is a high-fidelity orchestration node designed to bridge local LLM intelligence with a federated fleet of MCP servers and robotic hardware. Built for sovereign control, it prioritizes local execution, cryptographic safety, and physical integration. v1.8.0 introduces the **OpenClaw++** mission loop to ensure deterministic tool use and auditing.
 
