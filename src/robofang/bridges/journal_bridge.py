@@ -2,17 +2,13 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 
 def _has_call_tool(client: Any) -> bool:
-    return (
-        client is not None
-        and hasattr(client, "call_tool")
-        and callable(getattr(client, "call_tool"))
-    )
+    return client is not None and hasattr(client, "call_tool") and callable(client.call_tool)
 
 
 class JournalBridge:
@@ -26,7 +22,7 @@ class JournalBridge:
     def __init__(self, adn_client: Any):
         self.adn = adn_client
 
-    async def promote_to_adn(self, entry: Dict[str, Any]) -> bool:
+    async def promote_to_adn(self, entry: dict[str, Any]) -> bool:
         """
         Converts a Moltbook entry into an ADN note via advanced-memory.
         Uses adn_content(operation='write') in portmanteau mode, or write_note in full-tools mode.
@@ -92,7 +88,7 @@ class JournalBridge:
 
         return False
 
-    async def get_recent_entries(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_recent_entries(self, limit: int = 10) -> list[dict[str, Any]]:
         """
         Retrieves recent #moltbridge entries from ADN.
         Uses adn_knowledge(operation='search') in portmanteau mode, or search_notes in full-tools mode.
@@ -129,7 +125,7 @@ class JournalBridge:
         return []
 
 
-def _parse_search_result(result: Dict[str, Any], limit: int) -> List[Dict[str, Any]]:
+def _parse_search_result(result: dict[str, Any], limit: int) -> list[dict[str, Any]]:
     """Map advanced-memory search response to list of {content, title, timestamp}."""
     # adn_knowledge returns { success, operation, summary, result: { results, ... } }
     data = result.get("result", result)

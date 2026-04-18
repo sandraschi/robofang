@@ -25,7 +25,7 @@ import logging
 import os
 import re
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
@@ -40,14 +40,14 @@ _CLOUD_BUDGET_USD = float(os.environ.get("ROBOFANG_CLOUD_BUDGET_USD", "0.05"))
 _TIMEOUT = float(os.environ.get("ROBOFANG_CLOUD_TIMEOUT", "30"))
 
 
-def _load_registry() -> Dict[str, Any]:
+def _load_registry() -> dict[str, Any]:
     if _REGISTRY_PATH.exists():
         with open(_REGISTRY_PATH, encoding="utf-8") as f:
             return json.load(f)
     return {}
 
 
-_REGISTRY: Dict[str, Any] = _load_registry()
+_REGISTRY: dict[str, Any] = _load_registry()
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +55,7 @@ _REGISTRY: Dict[str, Any] = _load_registry()
 # ---------------------------------------------------------------------------
 
 
-def parse_cloud_url(url: str) -> Dict[str, str]:
+def parse_cloud_url(url: str) -> dict[str, str]:
     """
     Parse a cloud adviser URL.
 
@@ -107,8 +107,8 @@ async def _call_openai_compat(
     api_key: str,
     model: str,
     prompt: str,
-    system_prompt: Optional[str] = None,
-) -> Dict[str, Any]:
+    system_prompt: str | None = None,
+) -> dict[str, Any]:
     """Call any OpenAI-compatible API (Groq, DeepSeek, Together, OpenAI, Moonshot)."""
     messages = []
     if system_prompt:
@@ -133,13 +133,11 @@ async def _call_openai_compat(
 async def _call_hf_inference(
     model: str,
     prompt: str,
-    api_key: Optional[str] = None,
-) -> Dict[str, Any]:
+    api_key: str | None = None,
+) -> dict[str, Any]:
     """Call HuggingFace Inference API (free tier or PRO token)."""
     api_base = (
-        _REGISTRY.get("providers", {})
-        .get("hf", {})
-        .get("api_base", "https://api-inference.huggingface.co/models")
+        _REGISTRY.get("providers", {}).get("hf", {}).get("api_base", "https://api-inference.huggingface.co/models")
     )
     headers = {}
     if api_key:
@@ -180,9 +178,9 @@ async def _call_hf_inference(
 async def query_cloud_adviser(
     cloud_url: str,
     prompt: str,
-    system_prompt: Optional[str] = None,
+    system_prompt: str | None = None,
     budget_usd: float = _CLOUD_BUDGET_USD,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Query a cloud LLM adviser by URL schema.
 
@@ -272,7 +270,7 @@ def _detect_tiebreaker_needed(synthesis_text: str) -> bool:
     return any(t in lower for t in triggers)
 
 
-def _cheapest_available_adviser() -> Optional[str]:
+def _cheapest_available_adviser() -> str | None:
     """Return the cheapest cloud adviser URL with an available API key."""
     policy = _REGISTRY.get("tiebreaker_policy", {})
     order = policy.get("preferred_order", ["groq", "deepseek", "together", "hf", "openai"])
@@ -296,8 +294,8 @@ def _cheapest_available_adviser() -> Optional[str]:
 async def tiebreaker_call(
     synthesis: str,
     task_desc: str,
-    budget_usd: Optional[float] = None,
-) -> Dict[str, Any]:
+    budget_usd: float | None = None,
+) -> dict[str, Any]:
     """
     Called when the Adjudicator-in-Chief's synthesis signals a deadlock.
     Selects the cheapest available cloud adviser and requests a casting vote.

@@ -28,7 +28,7 @@ from __future__ import annotations
 import logging
 import os
 import time
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 import httpx
 
@@ -55,12 +55,12 @@ async def _rest_voice_turn(
     utterance: str,
     session_id: str = "default",
     provider: str = "auto",
-    model: Optional[str] = None,
+    model: str | None = None,
     use_deep_reasoner: bool = True,
     deep_provider: str = "same",
-    deep_model: Optional[str] = None,
-    location_hint: Optional[str] = None,
-) -> Dict[str, Any]:
+    deep_model: str | None = None,
+    location_hint: str | None = None,
+) -> dict[str, Any]:
     """Call kyutai-mcp REST /api/voice/turn."""
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
         r = await client.post(
@@ -85,11 +85,11 @@ async def _rest_speak_boilerplate(
     provider: str = "auto",
     style: str = "normal",
     location: str = "Vienna",
-    symbols: Optional[list[str]] = None,
-) -> Dict[str, Any]:
+    symbols: list[str] | None = None,
+) -> dict[str, Any]:
     """Call kyutai-mcp REST /api/voice/speak_boilerplate."""
     async with httpx.AsyncClient(timeout=_TIMEOUT) as client:
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "topic": topic,
             "provider": provider,
             "style": style,
@@ -105,7 +105,7 @@ async def _rest_speak_boilerplate(
         return r.json()
 
 
-async def _rest_moshi_status() -> Dict[str, Any]:
+async def _rest_moshi_status() -> dict[str, Any]:
     """Call kyutai-mcp REST /api/moshi/service/status."""
     async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
         r = await client.get(f"{KYUTAI_BACKEND_URL}/api/moshi/service/status")
@@ -113,7 +113,7 @@ async def _rest_moshi_status() -> Dict[str, Any]:
         return r.json()
 
 
-async def _rest_sessions() -> Dict[str, Any]:
+async def _rest_sessions() -> dict[str, Any]:
     """Call kyutai-mcp REST /api/voice/sessions."""
     async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
         r = await client.get(f"{KYUTAI_BACKEND_URL}/api/voice/sessions")
@@ -121,7 +121,7 @@ async def _rest_sessions() -> Dict[str, Any]:
         return r.json()
 
 
-async def _rest_session_history(session_id: str) -> Dict[str, Any]:
+async def _rest_session_history(session_id: str) -> dict[str, Any]:
     """Call kyutai-mcp REST /api/voice/sessions/{session_id}/history."""
     async with httpx.AsyncClient(timeout=httpx.Timeout(5.0)) as client:
         r = await client.get(f"{KYUTAI_BACKEND_URL}/api/voice/sessions/{session_id}/history")
@@ -134,10 +134,10 @@ async def _rest_session_history(session_id: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-async def probe_voice_backend() -> Dict[str, Any]:
+async def probe_voice_backend() -> dict[str, Any]:
     """Check if kyutai-mcp backend is reachable and Moshi is up."""
     backend_ok = False
-    moshi_status: Optional[Dict[str, Any]] = None
+    moshi_status: dict[str, Any] | None = None
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(3.0)) as client:
             r = await client.get(f"{KYUTAI_BACKEND_URL}/health")
@@ -175,15 +175,15 @@ async def robofang_voice(
     utterance: str = "",
     session_id: str = "default",
     provider: str = "auto",
-    model: Optional[str] = None,
+    model: str | None = None,
     use_deep_reasoner: bool = True,
     deep_provider: str = "same",
-    deep_model: Optional[str] = None,
-    location_hint: Optional[str] = None,
+    deep_model: str | None = None,
+    location_hint: str | None = None,
     topic: str = "weather",
-    symbols: Optional[list[str]] = None,
+    symbols: list[str] | None = None,
     style: str = "normal",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """robofang_voice — Voice relay to kyutai-mcp voice pipeline (MCP-to-MCP bridge).
 
     BRIDGE PATTERN:
@@ -283,7 +283,7 @@ async def robofang_voice(
             "error_type": "connection_error",
             "recovery_options": [
                 "Start kyutai-mcp webapp: cd kyutai-mcp/webapp && python -m backend.app",
-                "Check KYUTAI_BACKEND_URL env var (current: {})".format(KYUTAI_BACKEND_URL),
+                f"Check KYUTAI_BACKEND_URL env var (current: {KYUTAI_BACKEND_URL})",
                 "Run operation='health' to diagnose connectivity",
             ],
         }

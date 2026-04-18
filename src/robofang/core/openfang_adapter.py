@@ -7,17 +7,16 @@ the requested tool is not in the bridge tool registry.
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
 _PKG_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 _DEFAULT_MAPPING_PATH = _PKG_ROOT / "configs" / "openfang_tool_mapping.json"
 
-_mapping: Optional[Dict[str, Dict[str, str]]] = None
+_mapping: dict[str, dict[str, str]] | None = None
 
 
-def _load_mapping(path: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
+def _load_mapping(path: Path | None = None) -> dict[str, dict[str, str]]:
     global _mapping
     if _mapping is not None:
         return _mapping
@@ -27,7 +26,7 @@ def _load_mapping(path: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
         logger.warning("OpenFang tool mapping not found at %s", p)
         return _mapping
     try:
-        with open(p, "r", encoding="utf-8") as f:
+        with open(p, encoding="utf-8") as f:
             raw = json.load(f)
         if isinstance(raw, dict):
             for k, v in raw.items():
@@ -39,7 +38,7 @@ def _load_mapping(path: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
     return _mapping
 
 
-def resolve(tool_name: str, path: Optional[Path] = None) -> Optional[Tuple[str, str]]:
+def resolve(tool_name: str, path: Path | None = None) -> tuple[str, str] | None:
     """
     Resolve an OpenFang tool name to (connector_id, mcp_tool_name).
     Returns None if no mapping exists.
@@ -51,6 +50,6 @@ def resolve(tool_name: str, path: Optional[Path] = None) -> Optional[Tuple[str, 
     return (entry["connector"], entry["tool"])
 
 
-def get_mapping(path: Optional[Path] = None) -> Dict[str, Dict[str, str]]:
+def get_mapping(path: Path | None = None) -> dict[str, dict[str, str]]:
     """Return the full mapping dict for UI/config display."""
     return dict(_load_mapping(path))

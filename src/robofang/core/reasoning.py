@@ -3,7 +3,8 @@ import json
 import logging
 import os
 import re
-from typing import Any, Callable, Dict, List, Optional
+from collections.abc import Callable
+from typing import Any
 
 import httpx
 
@@ -18,15 +19,13 @@ class ReasoningEngine:
 
     def __init__(
         self,
-        ollama_url: Optional[str] = None,
-        federation_config: Optional[Dict[str, Any]] = None,
+        ollama_url: str | None = None,
+        federation_config: dict[str, Any] | None = None,
         use_ollama: bool = True,
     ):
         self.use_ollama = use_ollama
         if self.use_ollama:
-            self.ollama_url = (
-                ollama_url or os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")
-            ).rstrip("/")
+            self.ollama_url = (ollama_url or os.getenv("OLLAMA_URL", "http://127.0.0.1:11434")).rstrip("/")
             self.default_model = os.getenv("DEFAULT_MODEL", "llama3.2:3b")
         else:
             self.ollama_url = ollama_url.rstrip("/") if ollama_url else None
@@ -51,15 +50,13 @@ class ReasoningEngine:
             return "0s"  # Evaluator/Tier 3: Release immediately
         return "2m"  # Default Tier 2
 
-    async def _ask_lmstudio(
-        self, prompt: str, system_prompt: Optional[str], model: str
-    ) -> Dict[str, Any]:
+    async def _ask_lmstudio(self, prompt: str, system_prompt: str | None, model: str) -> dict[str, Any]:
         """OpenAI-compatible chat completions against LM Studio."""
         if not self.lmstudio_url:
             return {"success": False, "error": "LM Studio not configured."}
 
         url = f"{self.lmstudio_url}/v1/chat/completions"
-        messages: List[Dict[str, str]] = []
+        messages: list[dict[str, str]] = []
         if system_prompt:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": prompt})
@@ -96,10 +93,10 @@ class ReasoningEngine:
     async def ask(
         self,
         prompt: str,
-        system_prompt: Optional[str] = None,
+        system_prompt: str | None = None,
         model: str = "llama3",
-        node: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        node: str | None = None,
+    ) -> dict[str, Any]:
         """Simple point-to-point query to an LLM (local or remote)."""
         target_url = self.ollama_url
         remote_node = None
@@ -162,34 +159,32 @@ class ReasoningEngine:
             logger.error(f"LLM Reasoning Error ({model} on {node or 'local'}): {e}")
             return {"success": False, "error": str(e)}
 
-    def _convert_to_json_schema(self, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _convert_to_json_schema(self, tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
-        Converts internal tool definitions (or MCP input_schema) 
+        Converts internal tool definitions (or MCP input_schema)
         into Ollama-compatible JSON Schema for the 'tools' parameter.
         """
         json_tools = []
         for t in tools:
             # Handle both 'input_schema' (MCP style) and 'parameters' (OpenAI style)
             schema = t.get("input_schema") or t.get("parameters") or {"type": "object", "properties": {}}
-            
+
             # Ollama expects 'type' and 'function'
-            json_tools.append({
-                "type": "function",
-                "function": {
-                    "name": t["name"],
-                    "description": t.get("description", ""),
-                    "parameters": schema
+            json_tools.append(
+                {
+                    "type": "function",
+                    "function": {"name": t["name"], "description": t.get("description", ""), "parameters": schema},
                 }
-            })
+            )
         return json_tools
 
     async def chat(
         self,
-        messages: List[Dict[str, Any]],
-        tools: Optional[List[Dict[str, Any]]] = None,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
         model: str = "llama3",
-        node: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        node: str | None = None,
+    ) -> dict[str, Any]:
         """
         Native Ollama /api/chat endpoint with tool-calling support.
         """
@@ -208,8 +203,6 @@ class ReasoningEngine:
         }
         if tools:
             payload["tools"] = self._convert_to_json_schema(tools)
-
-
 
         try:
             url = f"{self.ollama_url}/api/chat"
@@ -231,20 +224,18 @@ class ReasoningEngine:
         self,
         prompt: str,
         tool_executor: Callable,
-        tools: List[Dict[str, Any]],
+        tools: list[dict[str, Any]],
         model: str = "llama3",
         max_turns: int = 5,
         use_native_tools: bool = True,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Agentic reasoning loop. Dispatches to native (JSON) or legacy (XML)
         based on configuration. Default: Native (v12.6).
         """
         if use_native_tools:
             try:
-                return await self._reason_and_act_native(
-                    prompt, tool_executor, tools, model, max_turns
-                )
+                return await self._reason_and_act_native(prompt, tool_executor, tools, model, max_turns)
             except Exception as e:
                 logger.error(f"Native tool-calling failed, falling back to legacy: {e}")
 
@@ -254,10 +245,10 @@ class ReasoningEngine:
         self,
         prompt: str,
         tool_executor: Callable,
-        tools: List[Dict[str, Any]],
+        tools: list[dict[str, Any]],
         model: str,
         max_turns: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Native Ollama tool-calling loop (JSON-based).
         """
@@ -326,25 +317,21 @@ class ReasoningEngine:
 
                 messages.append(tool_msg)
 
-
         return {"success": True, "response": content, "trail": full_trail}
 
     async def _reason_and_act_legacy(
         self,
         prompt: str,
         tool_executor: Callable,
-        tools: List[Dict[str, Any]],
+        tools: list[dict[str, Any]],
         model: str,
         max_turns: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Agentic reasoning loop using XML-based ReAct pattern (Legacy).
         """
         # Node-aware model readiness
-        if not (
-            self.federation_config.get("nodes")
-            and "localhost" not in self.federation_config.get("nodes")
-        ):
+        if not (self.federation_config.get("nodes") and "localhost" not in self.federation_config.get("nodes")):
             await self._ensure_model_ready(model)
 
         history = [
@@ -382,9 +369,7 @@ class ReasoningEngine:
                 if turn == max_turns - 1:
                     break
                 if "<thought>" in content and "<call" not in content:
-                    clean_resp = re.sub(
-                        r"<thought>.*?</thought>", "", content, flags=re.DOTALL
-                    ).strip()
+                    clean_resp = re.sub(r"<thought>.*?</thought>", "", content, flags=re.DOTALL).strip()
                     return {"success": True, "response": clean_resp or content, "trail": full_trail}
                 break
 
@@ -395,9 +380,7 @@ class ReasoningEngine:
             action_key = (tool_name, tool_input)
             if action_key in executed_actions:
                 logger.warning(f"Circular reasoning detected for '{tool_name}'.")
-                current_prompt = (
-                    f"ERROR: Loop detected. Do NOT repeat '{tool_name}' with same input. Pivot now."
-                )
+                current_prompt = f"ERROR: Loop detected. Do NOT repeat '{tool_name}' with same input. Pivot now."
                 continue
 
             executed_actions.add(action_key)
@@ -411,14 +394,13 @@ class ReasoningEngine:
 
         return {"success": True, "response": content, "trail": full_trail}
 
-
     async def council_synthesis(
         self,
         prompt: str,
-        council_members: List[str],
+        council_members: list[str],
         *,
-        devil_advocate_index: Optional[int] = None,
-    ) -> Dict[str, Any]:
+        devil_advocate_index: int | None = None,
+    ) -> dict[str, Any]:
         """
         Council of Dozens: each member answers in parallel, then the first model
         synthesizes a single consensus response.
@@ -430,17 +412,14 @@ class ReasoningEngine:
         for i, model in enumerate(council_members):
             role = "Sovereign Council Member"
             if devil_advocate_index is not None and i == devil_advocate_index:
-                role = (
-                    "Advocatus Diaboli — challenge assumptions and surface risks "
-                    "before the council converges."
-                )
+                role = "Advocatus Diaboli — challenge assumptions and surface risks before the council converges."
             sys = f"You are {role} on the RoboFang Council. Be concise and substantive."
             combined = f"{prompt}\n\n(Respond in character for your role.)"
             tasks.append(self.ask(combined, system_prompt=sys, model=model))
 
         results = await asyncio.gather(*tasks)
-        member_responses: List[Dict[str, Any]] = []
-        for model, r in zip(council_members, results):
+        member_responses: list[dict[str, Any]] = []
+        for model, r in zip(council_members, results, strict=False):
             member_responses.append(
                 {
                     "model": model,
@@ -490,10 +469,10 @@ class ReasoningEngine:
         self,
         tool_name: str,
         tool_input: str,
-        council_members: List[str],
+        council_members: list[str],
         context: str = "",
-        member_roles: Optional[Dict[str, str]] = None,
-    ) -> Dict[str, Any]:
+        member_roles: dict[str, str] | None = None,
+    ) -> dict[str, Any]:
         """
         Multi-perspective adjudication using specialized personnel personas.
         """
@@ -514,9 +493,7 @@ class ReasoningEngine:
             tasks.append(self.ask(prompt, model=member))
 
         results = await asyncio.gather(*tasks)
-        votes = [
-            f"MEMBER {m}: {r['response']}" for m, r in zip(council_members, results) if r["success"]
-        ]
+        votes = [f"MEMBER {m}: {r['response']}" for m, r in zip(council_members, results, strict=False) if r["success"]]
 
         if not votes:
             return {"success": False, "error": "No quorum reached."}
@@ -536,14 +513,12 @@ class ReasoningEngine:
         }
 
     # Simplified utilities (Phase 1-3 migrations)
-    async def enrich_vibe(self, prompt: str, model: str = "llama3") -> Dict[str, Any]:
+    async def enrich_vibe(self, prompt: str, model: str = "llama3") -> dict[str, Any]:
         """Expands terse vibes into structured specs."""
         p = f"Expand into Structured Spec: {prompt}"
         return await self.ask(p, model=model)
 
-    async def satisficer_judge(
-        self, prompt: str, spec: str, results: str, model: str = "llama3"
-    ) -> Dict[str, Any]:
+    async def satisficer_judge(self, prompt: str, spec: str, results: str, model: str = "llama3") -> dict[str, Any]:
         """Empirical audit of agent work (PASS/FAIL)."""
         p = f"Judge success (PASS/FAIL):\nReq: {prompt}\nSpec: {spec}\nRes: {results}"
         res = await self.ask(p, model=model)
@@ -555,7 +530,7 @@ class ReasoningEngine:
             "critique": res["response"],
         }
 
-    async def refine_prompt(self, prompt: str, model: str = "llama3.2:3b") -> Dict[str, Any]:
+    async def refine_prompt(self, prompt: str, model: str = "llama3.2:3b") -> dict[str, Any]:
         """Refines prompts into industrial-grade engineering instructions."""
         sys = "You are a RoboFang Prompt Engineer. Refine the user request into OBJECTIVE, CONTEXT, CONSTRAINTS."
         return await self.ask(prompt, system_prompt=sys, model=model)

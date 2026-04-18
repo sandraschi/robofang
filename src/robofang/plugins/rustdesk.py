@@ -4,7 +4,7 @@ Fleet expansion bridge for RustDesk remote desktop coordination.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from robofang.core.connectors import BaseConnector
 
@@ -16,7 +16,7 @@ class RustDeskConnector(BaseConnector):
 
     connector_type = "rustdesk"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
 
     async def connect(self) -> bool:
@@ -37,6 +37,6 @@ class RustDeskConnector(BaseConnector):
         self.logger.info("RustDesk send_message: target=%s", target)
         return False
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         """Peer discovery and session log polling; not yet implemented."""
         return []

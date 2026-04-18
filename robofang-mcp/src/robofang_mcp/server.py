@@ -9,7 +9,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Annotated, Any, Dict, Optional
+from typing import Annotated, Any
 
 from fastmcp import Context, FastMCP
 from pydantic import Field
@@ -66,7 +66,7 @@ except Exception as e:
 @mcp.tool()
 async def robofang_status(
     sections: Annotated[
-        Optional[str],
+        str | None,
         Field(
             description="Comma-separated or 'all'. Include: activity, scheduling, config, hands, personas. Example: 'activity,personas' or 'all'. Omit for bridge health and connector summary only."
         ),
@@ -74,17 +74,15 @@ async def robofang_status(
     activity_limit: Annotated[
         int, Field(description="Max deliberations to include when sections includes activity.")
     ] = 20,
-    logs_limit: Annotated[
-        int, Field(description="Max log entries when sections includes activity.")
-    ] = 50,
-) -> Dict[str, Any]:
+    logs_limit: Annotated[int, Field(description="Max log entries when sections includes activity.")] = 50,
+) -> dict[str, Any]:
     """
     RoboFang status and optional deep inspection. No args: bridge health and connector summary only.
 
     Returns:
         dict: success, running, connectors_online; optional activity, scheduling, config, hands, personas when sections is set.
     """
-    out: Dict[str, Any] = await fetch_status()
+    out: dict[str, Any] = await fetch_status()
     if not out.get("success"):
         return out
     include = (sections or "").strip().lower()
@@ -115,20 +113,14 @@ async def robofang_status(
         sys_resp = await fetch_system()
         settings_resp = await fetch_fleet_settings()
         out["config"] = {
-            "system": sys_resp
-            if sys_resp.get("status") == "healthy"
-            else {"error": sys_resp.get("error")},
-            "fleet_settings": settings_resp
-            if "error" not in settings_resp
-            else {"error": settings_resp.get("error")},
+            "system": sys_resp if sys_resp.get("status") == "healthy" else {"error": sys_resp.get("error")},
+            "fleet_settings": settings_resp if "error" not in settings_resp else {"error": settings_resp.get("error")},
         }
     if "hands" in want:
         fleet_resp = await fetch_fleet()
         hands_resp = await fetch_hands()
         out["hands"] = {
-            "fleet": fleet_resp
-            if fleet_resp.get("success")
-            else {"error": fleet_resp.get("error")},
+            "fleet": fleet_resp if fleet_resp.get("success") else {"error": fleet_resp.get("error")},
             "autonomous_hands": hands_resp.get("hands", []) if hands_resp.get("success") else [],
         }
     if "personas" in want:
@@ -140,23 +132,19 @@ async def robofang_status(
 
 @mcp.tool()
 async def robofang_help(
-    category: Annotated[
-        Optional[str], Field(description="Help category: tools, council, connection, skills.")
-    ] = None,
-    topic: Annotated[
-        Optional[str], Field(description="Topic within category for full detail.")
-    ] = None,
+    category: Annotated[str | None, Field(description="Help category: tools, council, connection, skills.")] = None,
+    topic: Annotated[str | None, Field(description="Topic within category for full detail.")] = None,
     depth: Annotated[
-        Optional[str],
+        str | None,
         Field(
             description="'0'=one-line summary, '1'=categories, '2'=topics per category, '3'=full category, 'full'=entire tree."
         ),
     ] = "2",
     path: Annotated[
-        Optional[str],
+        str | None,
         Field(description="Shortcut: e.g. 'council.use_council' sets category and topic."),
     ] = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Multi-level detailed help for RoboFang MCP. Returns categories, topics, or full topic detail depending on depth/category/topic/path.
 
@@ -185,13 +173,10 @@ async def robofang_help(
         if depth_val == "1":
             return {
                 "help": "RoboFang MCP — Categories",
-                "categories": {
-                    k: (v.get("description", "") if isinstance(v, dict) else "")
-                    for k, v in cats.items()
-                },
+                "categories": {k: (v.get("description", "") if isinstance(v, dict) else "") for k, v in cats.items()},
             }
         if depth_val == "full" and not category and not topic:
-            result: Dict[str, Any] = {"help": "RoboFang MCP — Full help tree", "categories": {}}
+            result: dict[str, Any] = {"help": "RoboFang MCP — Full help tree", "categories": {}}
             for cat_name, cat_data in cats.items():
                 if not isinstance(cat_data, dict):
                     continue
@@ -208,9 +193,7 @@ async def robofang_help(
                 "categories": {
                     k: {
                         "description": (v.get("description", "") if isinstance(v, dict) else ""),
-                        "topics": list((v.get("topics") or {}).keys())
-                        if isinstance(v, dict)
-                        else [],
+                        "topics": list((v.get("topics") or {}).keys()) if isinstance(v, dict) else [],
                     }
                     for k, v in cats.items()
                 },
@@ -243,18 +226,12 @@ async def robofang_help(
 
 @mcp.tool()
 async def robofang_ask(
-    message: Annotated[
-        str, Field(description="The question or instruction to send to the orchestrator.")
-    ],
-    use_council: Annotated[
-        bool, Field(description="If true, run Council of Dozens synthesis.")
-    ] = False,
+    message: Annotated[str, Field(description="The question or instruction to send to the orchestrator.")],
+    use_council: Annotated[bool, Field(description="If true, run Council of Dozens synthesis.")] = False,
     use_rag: Annotated[bool, Field(description="If true, augment with RAG context.")] = True,
     subject: Annotated[str, Field(description="Security subject; default guest.")] = "guest",
-    persona: Annotated[
-        str, Field(description="Personality name; default sovereign.")
-    ] = "sovereign",
-) -> Dict[str, Any]:
+    persona: Annotated[str, Field(description="Personality name; default sovereign.")] = "sovereign",
+) -> dict[str, Any]:
     """
     Send a message to the RoboFang orchestrator.
 
@@ -278,7 +255,7 @@ async def robofang_ask(
 
 
 @mcp.tool()
-async def robofang_fleet() -> Dict[str, Any]:
+async def robofang_fleet() -> dict[str, Any]:
     """
     Return the full fleet registry: connectors (live + config), domain agents, summary. Same data as GET /fleet on the Bridge.
 
@@ -291,7 +268,7 @@ async def robofang_fleet() -> Dict[str, Any]:
 @mcp.tool()
 async def robofang_deliberations(
     limit: Annotated[int, Field(description="Max number of deliberation entries to return.")] = 50,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Return recent reasoning log entries (Council/ReAct deliberation steps).
 
@@ -305,7 +282,7 @@ async def robofang_deliberations(
 
 
 @mcp.tool()
-async def robofang_task_list() -> Dict[str, Any]:
+async def robofang_task_list() -> dict[str, Any]:
     """
     List all RoboFang agentic tasks (routines): scheduled actions like yahboom patrol, dawn patrol.
 
@@ -318,7 +295,7 @@ async def robofang_task_list() -> Dict[str, Any]:
 @mcp.tool()
 async def robofang_task_get(
     routine_id: Annotated[str, Field(description="Routine id from robofang_task_list.")],
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get a single agentic task (routine) by id.
 
@@ -336,13 +313,9 @@ async def robofang_task_create_from_phrase(
             description="Natural language task, e.g. 'yahboom robot patrol 7am daily', 'dawn patrol and report anomalies'."
         ),
     ],
-    report_email: Annotated[
-        Optional[str], Field(description="Optional email for report delivery.")
-    ] = None,
-    run_now: Annotated[
-        bool, Field(description="If true, run the task immediately and return run result.")
-    ] = False,
-) -> Dict[str, Any]:
+    report_email: Annotated[str | None, Field(description="Optional email for report delivery.")] = None,
+    run_now: Annotated[bool, Field(description="If true, run the task immediately and return run result.")] = False,
+) -> dict[str, Any]:
     """
     Create an agentic task from natural language. Bridge parses into name, time, recurrence, action_type.
 
@@ -356,14 +329,10 @@ async def robofang_task_create_from_phrase(
 async def robofang_task_run_from_phrase(
     phrase: Annotated[
         str,
-        Field(
-            description="Natural language task to run now, e.g. 'start yahboom robot patrol and report anomalies'."
-        ),
+        Field(description="Natural language task to run now, e.g. 'start yahboom robot patrol and report anomalies'."),
     ],
-    report_email: Annotated[
-        Optional[str], Field(description="Optional email for report delivery.")
-    ] = None,
-) -> Dict[str, Any]:
+    report_email: Annotated[str | None, Field(description="Optional email for report delivery.")] = None,
+) -> dict[str, Any]:
     """
     Start an agentic task from natural language and report back. Creates task if needed, runs now.
 
@@ -376,7 +345,7 @@ async def robofang_task_run_from_phrase(
 @mcp.tool()
 async def robofang_task_run(
     routine_id: Annotated[str, Field(description="Routine id from robofang_task_list.")],
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Run an existing agentic task (routine) by id once.
 
@@ -389,20 +358,12 @@ async def robofang_task_run(
 @mcp.tool()
 async def robofang_task_update(
     routine_id: Annotated[str, Field(description="Routine id to update.")],
-    name: Annotated[Optional[str], Field(description="New name; omit to keep current.")] = None,
-    time_local: Annotated[
-        Optional[str], Field(description="New local time; omit to keep current.")
-    ] = None,
-    recurrence: Annotated[
-        Optional[str], Field(description="New recurrence; omit to keep current.")
-    ] = None,
-    action_type: Annotated[
-        Optional[str], Field(description="New action_type; omit to keep current.")
-    ] = None,
-    enabled: Annotated[
-        Optional[bool], Field(description="Enable or disable; omit to keep current.")
-    ] = None,
-) -> Dict[str, Any]:
+    name: Annotated[str | None, Field(description="New name; omit to keep current.")] = None,
+    time_local: Annotated[str | None, Field(description="New local time; omit to keep current.")] = None,
+    recurrence: Annotated[str | None, Field(description="New recurrence; omit to keep current.")] = None,
+    action_type: Annotated[str | None, Field(description="New action_type; omit to keep current.")] = None,
+    enabled: Annotated[bool | None, Field(description="Enable or disable; omit to keep current.")] = None,
+) -> dict[str, Any]:
     """
     Update an agentic task (routine) by id. Pass only fields to change.
 
@@ -420,7 +381,7 @@ async def robofang_task_update(
 
 
 @mcp.tool()
-async def robofang_task_delete(routine_id: str) -> Dict[str, Any]:
+async def robofang_task_delete(routine_id: str) -> dict[str, Any]:
     """
     Delete an agentic task (routine) by id.
 
@@ -431,7 +392,7 @@ async def robofang_task_delete(routine_id: str) -> Dict[str, Any]:
 
 
 @mcp.tool()
-async def robofang_bootstrap_check() -> Dict[str, Any]:
+async def robofang_bootstrap_check() -> dict[str, Any]:
     """
     Check whether the RoboFang bridge is reachable and what state the stack is in.
     Use from IDE before the bridge is running to see connection status and next steps.
@@ -466,7 +427,7 @@ async def robofang_bootstrap_guide(
     include_ide: Annotated[
         bool, Field(description="If true, include IDE (Cursor/Antigrav) and robofang-mcp steps.")
     ] = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Return a step-by-step setup guide for the RoboFang stack.
 
@@ -590,9 +551,7 @@ async def robofang_agentic_workflow(
 
 @mcp.prompt()
 def robofang_quick_start(
-    bridge_url: Annotated[
-        str, Field(description="Bridge base URL for SSE/API.")
-    ] = "http://localhost:10871",
+    bridge_url: Annotated[str, Field(description="Bridge base URL for SSE/API.")] = "http://localhost:10871",
 ) -> str:
     """Get step-by-step instructions to connect and use the RoboFang hub (Bridge + MCP)."""
     return f"""You are helping set up the RoboFang MCP & robots hub.

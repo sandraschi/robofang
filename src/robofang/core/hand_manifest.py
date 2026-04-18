@@ -1,23 +1,23 @@
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import tomli
 from pydantic import BaseModel, Field
 
 
 class HandRequirementInstall(BaseModel):
-    macos: Optional[str] = None
-    windows: Optional[str] = None
-    linux_apt: Optional[str] = None
-    linux_dnf: Optional[str] = None
-    linux_pacman: Optional[str] = None
-    pip: Optional[str] = None
-    signup_url: Optional[str] = None
-    docs_url: Optional[str] = None
-    env_example: Optional[str] = None
-    manual_url: Optional[str] = None
-    estimated_time: Optional[str] = None
-    steps: List[str] = Field(default_factory=list)
+    macos: str | None = None
+    windows: str | None = None
+    linux_apt: str | None = None
+    linux_dnf: str | None = None
+    linux_pacman: str | None = None
+    pip: str | None = None
+    signup_url: str | None = None
+    docs_url: str | None = None
+    env_example: str | None = None
+    manual_url: str | None = None
+    estimated_time: str | None = None
+    steps: list[str] = Field(default_factory=list)
 
 
 class HandRequirement(BaseModel):
@@ -25,15 +25,15 @@ class HandRequirement(BaseModel):
     label: str
     requirement_type: str
     check_value: str
-    description: Optional[str] = None
-    install: Optional[HandRequirementInstall] = None
+    description: str | None = None
+    install: HandRequirementInstall | None = None
 
 
 class HandSettingOption(BaseModel):
     value: str
     label: str
-    provider_env: Optional[str] = None
-    binary: Optional[str] = None
+    provider_env: str | None = None
+    binary: str | None = None
 
 
 class HandSetting(BaseModel):
@@ -42,8 +42,8 @@ class HandSetting(BaseModel):
     description: str = ""
     setting_type: str
     default: str = ""
-    options: List[HandSettingOption] = Field(default_factory=list)
-    env_var: Optional[str] = None
+    options: list[HandSettingOption] = Field(default_factory=list)
+    env_var: str | None = None
 
 
 class HandMetric(BaseModel):
@@ -53,7 +53,7 @@ class HandMetric(BaseModel):
 
 
 class HandDashboard(BaseModel):
-    metrics: List[HandMetric] = Field(default_factory=list)
+    metrics: list[HandMetric] = Field(default_factory=list)
 
 
 class HandAgentConfig(BaseModel):
@@ -62,12 +62,12 @@ class HandAgentConfig(BaseModel):
     module: str = "builtin:chat"
     provider: str = "default"
     model: str = "default"
-    api_key_env: Optional[str] = None
-    base_url: Optional[str] = None
+    api_key_env: str | None = None
+    base_url: str | None = None
     max_tokens: int = 4096
     temperature: float = 0.7
     system_prompt: str
-    max_iterations: Optional[int] = None
+    max_iterations: int | None = None
 
 
 class HandDefinition(BaseModel):
@@ -76,15 +76,15 @@ class HandDefinition(BaseModel):
     description: str
     category: str
     icon: str = ""
-    tools: List[str] = Field(default_factory=list)
-    skills: List[str] = Field(default_factory=list)
-    mcp_servers: List[str] = Field(default_factory=list)
-    requires: List[HandRequirement] = Field(default_factory=list)
-    settings: List[HandSetting] = Field(default_factory=list)
+    tools: list[str] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
+    mcp_servers: list[str] = Field(default_factory=list)
+    requires: list[HandRequirement] = Field(default_factory=list)
+    settings: list[HandSetting] = Field(default_factory=list)
     agent: HandAgentConfig
     dashboard: HandDashboard = Field(default_factory=HandDashboard)
     # Optional SKILL.md content (OpenFang-compatible); injected into context at runtime
-    skill_content: Optional[str] = None
+    skill_content: str | None = None
 
 
 def load_hand_definition(path: str) -> HandDefinition:
@@ -94,7 +94,7 @@ def load_hand_definition(path: str) -> HandDefinition:
     return HandDefinition(**data)
 
 
-def resolve_hand_settings(settings: List[HandSetting], config: Dict[str, Any]) -> Dict[str, Any]:
+def resolve_hand_settings(settings: list[HandSetting], config: dict[str, Any]) -> dict[str, Any]:
     """
     Resolve user-provided settings against the hand definition.
     Returns prompt_block and env_vars.

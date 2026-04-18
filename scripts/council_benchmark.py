@@ -72,15 +72,11 @@ async def run_benchmark():
                 "members": COUNCIL_MEMBERS,
                 "response_length": len(council_resp.get("response", "")),
                 "latency_ms": round(latency_council, 2),
-                "overhead_percent": round(
-                    ((latency_council - latency_baseline) / latency_baseline) * 100, 2
-                ),
+                "overhead_percent": round(((latency_council - latency_baseline) / latency_baseline) * 100, 2),
             },
         }
         results.append(benchmark_entry)
-        logger.info(
-            f"Task {task['id']} complete. Council overhead: {benchmark_entry['council']['overhead_percent']}%"
-        )
+        logger.info(f"Task {task['id']} complete. Council overhead: {benchmark_entry['council']['overhead_percent']}%")
 
     # Save results
     output_path = Path("data/benchmarks")

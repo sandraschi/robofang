@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import subprocess
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import BaseConnector
 
@@ -22,12 +22,12 @@ class CalibreConnector(BaseConnector):
 
     connector_type = "calibre"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
         self._calibredb = config.get("calibredb_path", "calibredb")
         self._library = config.get("library_path", "")
 
-    def _cmd(self, *args: str) -> List[str]:
+    def _cmd(self, *args: str) -> list[str]:
         cmd = [self._calibredb, *list(args)]
         if self._library:
             cmd += ["--library-path", self._library]
@@ -97,7 +97,7 @@ class CalibreConnector(BaseConnector):
             self.logger.error(f"Calibre send_message error: {e}")
             return False
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         """Return recently added books from the Calibre library."""
         loop = asyncio.get_running_loop()
         import json as _json

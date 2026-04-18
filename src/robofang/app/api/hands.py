@@ -1,7 +1,6 @@
 """RoboFang Hands API Router: Control, Capabilities, and Registry."""
 
 import logging
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -22,11 +21,11 @@ router = APIRouter(prefix="/api/hands", tags=["Hands"])
 class RegisterHandRequest(BaseModel):
     id: str
     name: str
-    category: Optional[str] = "External"
-    description: Optional[str] = ""
-    repo_url: Optional[str] = ""
-    install_script: Optional[str] = "start.ps1"
-    tags: Optional[List[str]] = []
+    category: str | None = "External"
+    description: str | None = ""
+    repo_url: str | None = ""
+    install_script: str | None = "start.ps1"
+    tags: list[str] | None = []
 
 
 class AskRequest(BaseModel):

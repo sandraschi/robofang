@@ -1,6 +1,5 @@
 import json
 from pathlib import Path
-from typing import Dict
 
 
 class ContextGenerator:
@@ -13,10 +12,10 @@ class ContextGenerator:
         self.root = Path(root_dir)
         self.fed_map_path = self.root / "configs" / "federation_map.json"
 
-    def _load_federation_map(self) -> Dict:
+    def _load_federation_map(self) -> dict:
         if not self.fed_map_path.exists():
             return {}
-        with open(self.fed_map_path, "r", encoding="utf-8") as f:
+        with open(self.fed_map_path, encoding="utf-8") as f:
             return json.load(f)
 
     def generate_tool_manifest(self, domain_filter: str | None = None) -> str:

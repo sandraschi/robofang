@@ -54,11 +54,7 @@ def status():
     # We will try the known default local port: 10866
     try:
         r = httpx.get("http://localhost:10866/supervisor/health", timeout=2.0)
-        sup_status = (
-            "[bold green]ONLINE[/bold green]"
-            if r.status_code == 200
-            else f"[red]HTTP {r.status_code}[/red]"
-        )
+        sup_status = "[bold green]ONLINE[/bold green]" if r.status_code == 200 else f"[red]HTTP {r.status_code}[/red]"
     except httpx.ConnectError:
         sup_status = "[bold red]OFFLINE[/bold red]"
 

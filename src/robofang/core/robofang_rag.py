@@ -5,7 +5,7 @@ RoboFang RAG: semantic search and delta-sync. Wholly contained in this repo; use
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 from robofang.core.rag_base import BaseVectorStore
 
@@ -31,11 +31,11 @@ class RoboFangRAG(BaseVectorStore):
         if not self.tracking_file.exists():
             self.tracking_file.write_text("{}", encoding="utf-8")
 
-    def _load_tracking(self) -> Dict[str, float]:
-        with open(self.tracking_file, "r", encoding="utf-8") as f:
+    def _load_tracking(self) -> dict[str, float]:
+        with open(self.tracking_file, encoding="utf-8") as f:
             return json.load(f)
 
-    def _save_tracking(self, data: Dict[str, float]) -> None:
+    def _save_tracking(self, data: dict[str, float]) -> None:
         with open(self.tracking_file, "w", encoding="utf-8") as f:
             json.dump(data, f)
 
@@ -56,7 +56,7 @@ class RoboFangRAG(BaseVectorStore):
             logger.error("Error during RAG retrieval: %s", e)
             return f"Error retrieving semantic context: {e}"
 
-    def delta_sync(self, documents: List[Dict[str, Any]]) -> None:
+    def delta_sync(self, documents: list[dict[str, Any]]) -> None:
         """
         Only index new or modified documents.
         documents: List of dicts with 'id', 'content', 'metadata', optional 'timestamp'.

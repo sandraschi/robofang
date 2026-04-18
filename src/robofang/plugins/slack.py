@@ -7,7 +7,7 @@ fail. Enable "slack" in federation_map and set token/channel_id for real Slack.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from robofang.core.connectors import BaseConnector
 
@@ -30,14 +30,12 @@ else:
 
         connector_type = "slack"
 
-        def __init__(self, name: str, config: Dict[str, Any]):
+        def __init__(self, name: str, config: dict[str, Any]):
             super().__init__(name, config)
             self.active = False
 
         async def connect(self) -> bool:
-            self.logger.warning(
-                "SlackConnector: core SlackConnector not available or slack_sdk not installed."
-            )
+            self.logger.warning("SlackConnector: core SlackConnector not available or slack_sdk not installed.")
             return False
 
         async def disconnect(self) -> bool:
@@ -47,5 +45,5 @@ else:
         async def send_message(self, target: str, content: str, **kwargs) -> bool:
             return False
 
-        async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+        async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
             return []

@@ -24,14 +24,15 @@ import subprocess
 import sys
 import threading
 import time
-from typing import Deque, Optional
 
 import uvicorn
 from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 
 from robofang.core.heartbeat import HeartbeatService
+from robofang.utils.security import get_absolute_path, get_secure_bind_address
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 
@@ -39,9 +40,7 @@ from robofang.core.heartbeat import HeartbeatService
 def _load_fleet_stack_ports() -> dict:
     """Load web_port, bridge_port, supervisor_port from fleet schema. Single source of truth."""
     default = {"web_port": 10870, "bridge_port": 10871, "supervisor_port": 10872}
-    path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "configs", "fleet-stack-ports.json"
-    )
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", "fleet-stack-ports.json")
     if not os.path.isfile(path):
         return default
     try:
@@ -60,9 +59,7 @@ SUPERVISOR_PORT = int(os.environ.get("SUPERVISOR_PORT", _STACK_PORTS["supervisor
 BRIDGE_PORT = int(os.environ.get("PORT", _STACK_PORTS["bridge_port"]))
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 REPOS_ROOT = os.environ.get("ROBOFANG_REPOS_ROOT", os.path.dirname(_REPO_ROOT))
-FLEET_REGISTRY_PATH = os.path.join(
-    REPOS_ROOT, "mcp-central-docs", "operations", "fleet-registry.json"
-)
+FLEET_REGISTRY_PATH = os.path.join(REPOS_ROOT, "mcp-central-docs", "operations", "fleet-registry.json")
 
 # Command to start the bridge — same as running `python -m robofang.main`
 BRIDGE_CMD = [sys.executable, "-m", "robofang.main"]
@@ -187,7 +184,7 @@ class FleetHealthMonitor:
 
     def _check_fleet(self):
         try:
-            with open(FLEET_REGISTRY_PATH, "r") as f:
+            with open(FLEET_REGISTRY_PATH) as f:
                 registry = json.load(f)
                 fleet = registry.get("fleet", [])
         except Exception:
@@ -285,13 +282,13 @@ class BridgeProcess:
     """Thread-safe wrapper around the bridge subprocess."""
 
     def __init__(self) -> None:
-        self._proc: Optional[subprocess.Popen] = None
+        self._proc: subprocess.Popen | None = None
         self._lock = threading.Lock()
-        self._logs: Deque[str] = collections.deque(maxlen=LOG_BUFFER_SIZE)
-        self._started_at: Optional[float] = None
-        self._stopped_at: Optional[float] = None
-        self._exit_code: Optional[int] = None
-        self._reader_thread: Optional[threading.Thread] = None
+        self._logs: collections.deque[str] = collections.deque(maxlen=LOG_BUFFER_SIZE)
+        self._started_at: float | None = None
+        self._stopped_at: float | None = None
+        self._exit_code: int | None = None
+        self._reader_thread: threading.Thread | None = None
         self._crash_count: int = 0
 
     # ── Public API ─────────────────────────────────────────────────────────
@@ -456,7 +453,7 @@ class FleetManager:
 
     def get_market(self):
         try:
-            with open(FLEET_REGISTRY_PATH, "r") as f:
+            with open(FLEET_REGISTRY_PATH) as f:
                 return json.load(f)["fleet"]
         except Exception as e:
             logger.error(f"Failed to load fleet registry: {e}")
@@ -476,9 +473,7 @@ class FleetManager:
         def run_install():
             logger.info(f"Starting installation for {node_id}")
             path = node["repo_path"]
-            repo_url = (
-                f"https://github.com/sandraschi/{node_id}.git"  # Assumption for this environment
-            )
+            repo_url = f"https://github.com/sandraschi/{node_id}.git"  # Assumption for this environment
 
             def log(msg):
                 with self._lock:
@@ -486,10 +481,11 @@ class FleetManager:
                     logger.info(f"[{node_id}] {msg}")
 
             try:
+                git_bin = get_absolute_path("git")
                 if not os.path.exists(path):
                     log(f"Cloning {repo_url} to {path}...")
                     subprocess.run(
-                        ["git", "clone", "--depth", "1", repo_url, path],
+                        [git_bin, "clone", "--depth", "1", repo_url, path],
                         check=True,
                         capture_output=True,
                         text=True,
@@ -500,8 +496,9 @@ class FleetManager:
                 # Setup
                 if os.path.exists(os.path.join(path, "pyproject.toml")):
                     log("Detected Python project. Running uv sync...")
+                    uv_bin = get_absolute_path("uv")
                     subprocess.run(
-                        ["uv", "sync"],
+                        [uv_bin, "sync"],
                         cwd=path,
                         check=True,
                         capture_output=True,
@@ -509,10 +506,14 @@ class FleetManager:
                     )
                 elif os.path.exists(os.path.join(path, "package.json")):
                     log("Detected Node project. Running npm install...")
+                    npm_bin = get_absolute_path("npm")
+                    if os.name == "nt":
+                        npm_bin = get_absolute_path("npm.cmd")
+
+                    # S602: Avoid shell=True by using the .cmd directly on Windows
                     subprocess.run(
-                        ["npm.cmd", "install"],
+                        [npm_bin, "install"],
                         cwd=path,
-                        shell=True,
                         check=True,
                         capture_output=True,
                         text=True,
@@ -582,6 +583,10 @@ async def _startup_services():
             "Bridge auto-start FAILED: %s (check temp/bridge_stdout.log after bridge exits)",
             result.get("reason", "unknown"),
         )
+
+    # Initialize Prometheus instrumentation
+    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
+    logger.info("Prometheus metrics exposed on /metrics")
 
 
 app.add_middleware(
@@ -695,9 +700,9 @@ if __name__ == "__main__":
     logger.info(f"Bridge command: {' '.join(BRIDGE_CMD)}")
     logger.info(f"Bridge CWD:     {BRIDGE_CWD}")
     # Kill existing terminals before starting
-    os.system(
-        'taskkill /F /IM powershell.exe /T /FI "WINDOWTITLE eq RoboFang-Connector*" >nul 2>&1'
-    )
-    os.system('taskkill /F /IM cmd.exe /T /FI "WINDOWTITLE eq RoboFang-Connector*" >nul 2>&1')
+    os.system('taskkill /F /IM powershell.exe /T /FI "WINDOWTITLE eq RoboFang-Connector*" >nul 2>&1')  # noqa: S605, S607
+    os.system('taskkill /F /IM cmd.exe /T /FI "WINDOWTITLE eq RoboFang-Connector*" >nul 2>&1')  # noqa: S605, S607
 
-    uvicorn.run(app, host="0.0.0.0", port=SUPERVISOR_PORT, log_level="info")
+    bind_host = get_secure_bind_address()
+    logger.info(f"Supervisor binding to: {bind_host}:{SUPERVISOR_PORT}")
+    uvicorn.run(app, host=bind_host, port=SUPERVISOR_PORT, log_level="info")

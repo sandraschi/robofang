@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import subprocess
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import BaseConnector
 
@@ -47,7 +47,7 @@ class MCPBridgeConnector(BaseConnector):
 
     connector_type = "mcp_bridge"
 
-    def __init__(self, connector_id: str, config: Dict[str, Any]):
+    def __init__(self, connector_id: str, config: dict[str, Any]):
         super().__init__(connector_id, config)
         # SOTA: Prioritize 'mcp_backend' from federation_map over generic 'url'
         backend_url = config.get("mcp_backend") or config.get("url") or "http://127.0.0.1:8000/mcp"
@@ -58,13 +58,13 @@ class MCPBridgeConnector(BaseConnector):
 
         self._url: str = backend_url
         self._name: str = config.get("name", connector_id)
-        self._start_cmd: Optional[List[str]] = config.get("start_cmd")
-        self._start_cwd: Optional[str] = config.get("start_cwd")
-        self._env: Dict[str, str] = config.get("env", {})
+        self._start_cmd: list[str] | None = config.get("start_cmd")
+        self._start_cwd: str | None = config.get("start_cwd")
+        self._env: dict[str, str] = config.get("env", {})
         self._auto_start: bool = config.get("auto_start", True)
         self._timeout: int = config.get("timeout", 30)
-        self._proc: Optional[Any] = None  # subprocess.Popen if we launched it
-        self._client: Optional[Any] = None  # httpx.AsyncClient
+        self._proc: Any | None = None  # subprocess.Popen if we launched it
+        self._client: Any | None = None  # httpx.AsyncClient
 
     async def connect(self) -> bool:
         import httpx
@@ -87,9 +87,7 @@ class MCPBridgeConnector(BaseConnector):
                 self.active = True
                 self.logger.info(f"MCPBridgeConnector '{self._name}' sidecar up at {self._url}")
                 return True
-            self.logger.error(
-                f"MCPBridgeConnector '{self._name}' sidecar didn't respond after start"
-            )
+            self.logger.error(f"MCPBridgeConnector '{self._name}' sidecar didn't respond after start")
             return False
 
         self.logger.warning(f"MCPBridgeConnector '{self._name}' not reachable at {self._url}")
@@ -145,7 +143,7 @@ class MCPBridgeConnector(BaseConnector):
             self.logger.error(f"MCPBridgeConnector '{self._name}' send_message failed: {exc}")
             return False
 
-    async def call_tool(self, tool: str, arguments: Dict[str, Any] | None = None) -> Any:
+    async def call_tool(self, tool: str, arguments: dict[str, Any] | None = None) -> Any:
         """Call a tool and return the result payload (not just bool)."""
         import json as _json
 
@@ -182,7 +180,7 @@ class MCPBridgeConnector(BaseConnector):
             self.logger.error(f"MCPBridgeConnector '{self._name}' call_tool failed: {exc}")
             return None
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         """Return the tool list from the bridged server — used as health/discovery."""
         if not self.active or not self._client:
             return []
@@ -196,10 +194,7 @@ class MCPBridgeConnector(BaseConnector):
             resp.raise_for_status()
             result = resp.json()
             tools = result.get("result", {}).get("tools", [])
-            return [
-                {"name": t["name"], "description": t.get("description", "")[:120]}
-                for t in tools[:limit]
-            ]
+            return [{"name": t["name"], "description": t.get("description", "")[:120]} for t in tools[:limit]]
         except Exception as exc:
             self.logger.error(f"MCPBridgeConnector '{self._name}' tools/list failed: {exc}")
             return []

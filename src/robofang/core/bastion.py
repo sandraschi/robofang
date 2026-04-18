@@ -6,7 +6,7 @@ ensuring CPU and RAM usage stay within defined safety limits.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import psutil
 
@@ -37,7 +37,7 @@ class LocalBastionManager:
         self.ram_quota = ram_quota
         self.monitor_interval = monitor_interval
         self.logger = logging.getLogger("robofang.security.bastion")
-        self.tracked_pids: List[int] = []
+        self.tracked_pids: list[int] = []
 
     def register_process(self, pid: int):
         """Add a process ID to the tracked list."""
@@ -51,7 +51,7 @@ class LocalBastionManager:
             self.tracked_pids.remove(pid)
             self.logger.info(f"Bastion: Stopped tracking PID {pid}")
 
-    def check_health(self) -> Dict[str, Any]:
+    def check_health(self) -> dict[str, Any]:
         """
         Perform a comprehensive system health check relative to quotas.
 

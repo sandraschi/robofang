@@ -7,7 +7,7 @@ def synthesize(session_file: Path, synthesis_output: str):
     output_dir = root / "exchange" / "synthesized"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    with open(session_file, "r", encoding="utf-8") as f:
+    with open(session_file, encoding="utf-8") as f:
         session = json.load(f)
 
     consensus_md = f"""# Consensus Plan: {session["task"]}

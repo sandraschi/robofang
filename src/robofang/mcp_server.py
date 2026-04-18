@@ -6,7 +6,7 @@ Unified Gateway: same process as the Bridge; tools call the orchestrator directl
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastmcp import Context
 
@@ -16,7 +16,7 @@ logger = logging.getLogger("robofang.mcp")
 _orchestrator: Any = None
 
 
-def get_help_content() -> Dict[str, Any]:
+def get_help_content() -> dict[str, Any]:
     """Return structured help for dashboard /api/help (same as robofang_help categories)."""
     return dict(_HELP)
 
@@ -46,7 +46,7 @@ def register_mcp(mcp: Any, orchestrator: Any) -> None:
 
 # ─── Help content (multi-level, like yahboom_help) ────────────────────────
 
-_HELP: Dict[str, Any] = {
+_HELP: dict[str, Any] = {
     "categories": {
         "tools": {
             "description": "MCP tools exposed by RoboFang (MCP & robots hub).",
@@ -102,7 +102,7 @@ _HELP: Dict[str, Any] = {
 # ─── Tools ──────────────────────────────────────────────────────────────────
 
 
-async def robofang_status() -> Dict[str, Any]:
+async def robofang_status() -> dict[str, Any]:
     """
     Return RoboFang Bridge health and fleet summary.
     Use before planning multi-step workflows to confirm the hub is up and connectors are available.
@@ -110,9 +110,7 @@ async def robofang_status() -> Dict[str, Any]:
     if _orchestrator is None:
         return {"success": False, "error": "Orchestrator not initialized."}
     try:
-        connector_states = {
-            name: getattr(conn, "active", False) for name, conn in _orchestrator.connectors.items()
-        }
+        connector_states = {name: getattr(conn, "active", False) for name, conn in _orchestrator.connectors.items()}
         online = sum(1 for v in connector_states.values() if v)
         return {
             "success": True,
@@ -129,9 +127,9 @@ async def robofang_status() -> Dict[str, Any]:
 
 
 async def robofang_help(
-    category: Optional[str] = None,
-    topic: Optional[str] = None,
-) -> Dict[str, Any]:
+    category: str | None = None,
+    topic: str | None = None,
+) -> dict[str, Any]:
     """
     Multi-level help for RoboFang MCP.
     No args: list categories. category=: list topics. category= + topic=: full detail.
@@ -172,7 +170,7 @@ async def robofang_ask(
     use_rag: bool = True,
     subject: str = "guest",
     persona: str = "sovereign",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Send a message to the RoboFang orchestrator.
     use_council=True: run Council of Dozens synthesis. use_rag=True: augment with RAG context.
@@ -203,7 +201,7 @@ async def robofang_ask(
         return {"success": False, "error": str(e)}
 
 
-async def robofang_fleet() -> Dict[str, Any]:
+async def robofang_fleet() -> dict[str, Any]:
     """
     Return the full fleet registry: connectors (live + config), domain agents, summary.
     Same data as GET /fleet on the Bridge.
@@ -211,7 +209,7 @@ async def robofang_fleet() -> Dict[str, Any]:
     if _orchestrator is None:
         return {"success": False, "error": "Orchestrator not initialized."}
     try:
-        live: Dict[str, Any] = {}
+        live: dict[str, Any] = {}
         for name, conn in _orchestrator.connectors.items():
             live[name] = {
                 "id": name,
@@ -257,7 +255,7 @@ async def robofang_fleet() -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-async def robofang_deliberations(limit: int = 50) -> Dict[str, Any]:
+async def robofang_deliberations(limit: int = 50) -> dict[str, Any]:
     """
     Return recent reasoning log entries (Council/ReAct deliberation steps).
     limit: max entries (default 50).
@@ -386,9 +384,7 @@ if __name__ == "__main__":
         """Liveness check for RoboFang Substrate."""
         return "RoboFang Substrate is alive and reachable."
 
-    logger.info(
-        f"Starting RoboFang Substrate on {transport} (port {port if transport == 'sse' else 'N/A'})..."
-    )
+    logger.info(f"Starting RoboFang Substrate on {transport} (port {port if transport == 'sse' else 'N/A'})...")
 
     if transport == "sse":
         mcp_standalone.run(transport="sse", port=port)

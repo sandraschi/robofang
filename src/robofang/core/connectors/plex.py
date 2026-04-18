@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import BaseConnector
 
@@ -19,13 +19,13 @@ class PlexConnector(BaseConnector):
 
     connector_type = "plex"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
         import os
 
         self._url = config.get("url") or os.getenv("PLEX_URL", "http://localhost:32400")
         self._token = config.get("token") or os.getenv("PLEX_TOKEN", "")
-        self._server: Optional[Any] = None
+        self._server: Any | None = None
 
     async def connect(self) -> bool:
         try:
@@ -35,9 +35,7 @@ class PlexConnector(BaseConnector):
             return False
         loop = asyncio.get_running_loop()
         try:
-            self._server = await loop.run_in_executor(
-                None, lambda: PlexServer(self._url, self._token)
-            )
+            self._server = await loop.run_in_executor(None, lambda: PlexServer(self._url, self._token))
             self.logger.info(f"Plex connected: {self._server.friendlyName}")
             self.active = True
             return True
@@ -83,7 +81,7 @@ class PlexConnector(BaseConnector):
             self.logger.error(f"Plex control error: {e}")
             return False
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         """Return recently added media items."""
         if not self._server:
             return []
@@ -93,9 +91,7 @@ class PlexConnector(BaseConnector):
             def _recent():
                 items = []
                 for section in self._server.library.sections():
-                    for item in section.recentlyAdded(
-                        maxresults=limit // max(1, len(self._server.library.sections()))
-                    ):
+                    for item in section.recentlyAdded(maxresults=limit // max(1, len(self._server.library.sections()))):
                         items.append(
                             {
                                 "title": item.title,

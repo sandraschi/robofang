@@ -3,7 +3,6 @@
 import importlib
 import logging
 import pkgutil
-from typing import Dict, Optional, Type
 
 from robofang.core.connectors import BaseConnector
 
@@ -18,9 +17,9 @@ class PluginManager:
 
     def __init__(self, plugin_package: str = "robofang.plugins"):
         self.plugin_package = plugin_package
-        self.connectors: Dict[str, Type[BaseConnector]] = {}
+        self.connectors: dict[str, type[BaseConnector]] = {}
 
-    def discover_connectors(self) -> Dict[str, Type[BaseConnector]]:
+    def discover_connectors(self) -> dict[str, type[BaseConnector]]:
         """
         Scan the plugins package and local directories for connector classes.
         """
@@ -81,9 +80,7 @@ class PluginManager:
                     module_path = f"{self.plugin_package}.{name}"
                     self._scan_module_for_connectors(module_path)
         except ImportError:
-            logger.debug(
-                f"Plugin package {self.plugin_package} not found. Skipping dynamic discovery."
-            )
+            logger.debug(f"Plugin package {self.plugin_package} not found. Skipping dynamic discovery.")
 
         return self.connectors
 
@@ -94,11 +91,7 @@ class PluginManager:
             module = importlib.import_module(module_path)
             for attr_name in dir(module):
                 attr = getattr(module, attr_name)
-                if (
-                    isinstance(attr, type)
-                    and issubclass(attr, BaseConnector)
-                    and attr is not BaseConnector
-                ):
+                if isinstance(attr, type) and issubclass(attr, BaseConnector) and attr is not BaseConnector:
                     connector_type = getattr(
                         attr,
                         "connector_type",
@@ -109,7 +102,7 @@ class PluginManager:
         except Exception as e:
             logger.error(f"Failed to scan plugin {module_path}: {e}")
 
-    def load_connector(self, connector_type: str) -> Optional[Type[BaseConnector]]:
+    def load_connector(self, connector_type: str) -> type[BaseConnector] | None:
         """Lazily load a specific connector class by its type name."""
         if connector_type not in self.connectors:
             return None
@@ -129,7 +122,7 @@ class PluginManager:
             return None
 
     @classmethod
-    def load_all(cls) -> Dict[str, Type[BaseConnector]]:
+    def load_all(cls) -> dict[str, type[BaseConnector]]:
         """Legacy helper - now returns discovered but not necessarily loaded registry."""
         manager = cls()
         return manager.discover_connectors()

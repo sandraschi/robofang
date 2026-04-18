@@ -6,7 +6,6 @@ Implements a WebSocket server on port 4242 for real-time 3D world interaction.
 import asyncio
 import json
 import logging
-from typing import Set
 
 import websockets
 
@@ -18,15 +17,13 @@ class ResoniteServer:
     def __init__(self, host: str = "0.0.0.0", port: int = 4242):
         self.host = host
         self.port = port
-        self.clients: Set[websockets.WebSocketServerProtocol] = set()
+        self.clients: set[websockets.WebSocketServerProtocol] = set()
 
     async def register(self, websocket):
         self.clients.add(websocket)
         logger.info(f"Client connected. Total clients: {len(self.clients)}")
         try:
-            await self.send_system_message(
-                websocket, "Connected to RoboFang ResoniteLink Prototype v0.1.0"
-            )
+            await self.send_system_message(websocket, "Connected to RoboFang ResoniteLink Prototype v0.1.0")
             await self.listen(websocket)
         finally:
             self.clients.remove(websocket)

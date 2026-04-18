@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Dict, List
 
 
 class SkillBridge:
@@ -11,7 +10,7 @@ class SkillBridge:
     def __init__(self, skills_root: str = "C:/Users/sandr/.gemini/antigravity/skills"):
         self.skills_root = Path(skills_root)
 
-    def list_skills(self) -> List[Dict[str, str]]:
+    def list_skills(self) -> list[dict[str, str]]:
         """
         Lists all available skills in the repository.
         """
@@ -33,7 +32,7 @@ class SkillBridge:
         """
         skill_file = self.skills_root / skill_id / "SKILL.md"
         if skill_file.exists():
-            with open(skill_file, "r", encoding="utf-8") as f:
+            with open(skill_file, encoding="utf-8") as f:
                 return f.read()
         return f"Error: Skill {skill_id} not found."
 

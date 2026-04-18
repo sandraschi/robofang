@@ -33,7 +33,6 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Optional
 
 # Allow running from tools/ directly
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -47,7 +46,6 @@ from cloud_council_bridge import (
 from council_orchestrator import ADJUDICATORS, CouncilOrchestrator
 from equilibrium_synthesizer import synthesize
 from osc_council_bridge import parse_osc_url, query_osc_agent
-
 from robofang.core.reasoning import ReasoningEngine
 
 logger = logging.getLogger("RoboFang.council")
@@ -154,10 +152,7 @@ class AutonomousCouncil:
             logger.info(f"\n--- ROUND {i + 1}: {adjudicator_label} ---")
 
             if mock_mode:
-                output = (
-                    f"[MOCK] {adj['name']} ({adj['focus']}): "
-                    f"Analysis complete. No issues found in scope."
-                )
+                output = f"[MOCK] {adj['name']} ({adj['focus']}): Analysis complete. No issues found in scope."
                 await asyncio.sleep(0.05)
             else:
                 prompt = self.orchestrator.get_round_prompt(session_file)
@@ -169,12 +164,8 @@ class AutonomousCouncil:
                     # ── Embodied agent path (Resonite vbot / sensor agent) ──────────
                     try:
                         cfg = parse_osc_url(model)
-                        logger.info(
-                            f"  -> OSC agent: {cfg['scheme']}://{cfg['host']}:{cfg['port']}/{cfg['label']}"
-                        )
-                        osc_prompt = (
-                            f"[Council role: {adj['name']} | Lens: {adj['focus']}]\n\n" + prompt
-                        )
+                        logger.info(f"  -> OSC agent: {cfg['scheme']}://{cfg['host']}:{cfg['port']}/{cfg['label']}")
+                        osc_prompt = f"[Council role: {adj['name']} | Lens: {adj['focus']}]\n\n" + prompt
                         result = await query_osc_agent(
                             host=cfg["host"],
                             port=cfg["port"],
@@ -195,9 +186,7 @@ class AutonomousCouncil:
                         logger.info(f"  -> Cloud adviser: {cfg['provider']}/{cfg['model']}")
                         cloud_result = await query_cloud_adviser(
                             cloud_url=model,
-                            prompt=(
-                                f"[Council role: {adj['name']} | Lens: {adj['focus']}]\n\n" + prompt
-                            ),
+                            prompt=(f"[Council role: {adj['name']} | Lens: {adj['focus']}]\n\n" + prompt),
                             system_prompt=_system_prompt_for(adj),
                         )
                         output = cloud_result["response"] if cloud_result["success"] else None
@@ -213,15 +202,11 @@ class AutonomousCouncil:
                     # -- Ollama path --------------------------------------------------
                     logger.info(f"  -> Querying Ollama model: {model}")
                     for attempt in range(max_retries):
-                        result = await self.engine.ask(
-                            prompt, system_prompt=system_prompt, model=model
-                        )
+                        result = await self.engine.ask(prompt, system_prompt=system_prompt, model=model)
                         if result["success"]:
                             output = result["response"]
                             break
-                        logger.warning(
-                            f"  Attempt {attempt + 1} failed: {result.get('error')}. Retrying…"
-                        )
+                        logger.warning(f"  Attempt {attempt + 1} failed: {result.get('error')}. Retrying…")
                         await asyncio.sleep(1)
 
                 if output is None:
@@ -232,9 +217,7 @@ class AutonomousCouncil:
                     )
                     logger.error(f"  Adjudicator {adj['name']} could not respond.")
 
-            logger.info(
-                f"  Output: {output[:120]}…" if len(output) > 120 else f"  Output: {output}"
-            )
+            logger.info(f"  Output: {output[:120]}…" if len(output) > 120 else f"  Output: {output}")
             self.orchestrator.add_round_output(session_file, output)
             round_outputs.append(output)
 
@@ -255,9 +238,7 @@ class AutonomousCouncil:
                 f"You are the {chief['name']}. {chief['focus']}\n\n"
                 f"TASK: {task_desc}\n\n"
                 "COUNCIL DEBATE (all 11 rounds):\n\n"
-                + "\n\n---\n\n".join(
-                    f"[{ADJUDICATORS[j]['name']}]: {out}" for j, out in enumerate(round_outputs)
-                )
+                + "\n\n---\n\n".join(f"[{ADJUDICATORS[j]['name']}]: {out}" for j, out in enumerate(round_outputs))
                 + "\n\nSynthesise the above into a single, actionable Executive Plan. "
                 "Identify the top 3 risks, top 3 actions, and a one-sentence verdict."
             )
@@ -269,23 +250,19 @@ class AutonomousCouncil:
                 model=model,
             )
             synthesis = (
-                result["response"]
-                if result["success"]
-                else "[OFFLINE] Adjudicator-in-Chief could not reach Ollama."
+                result["response"] if result["success"] else "[OFFLINE] Adjudicator-in-Chief could not reach Ollama."
             )
 
         self.orchestrator.add_round_output(session_file, synthesis)
 
         # Tiebreaker: escalate to cheapest available cloud adviser if synthesis is split
-        tiebreaker_verdict: Optional[str] = None
+        tiebreaker_verdict: str | None = None
         if not mock_mode:
             tb = await tiebreaker_call(synthesis, task_desc)
             if tb.get("invoked"):
                 tiebreaker_verdict = tb["response"]
                 cost = tb.get("cost", 0.0)
-                logger.info(
-                    f"  [TIEBREAKER] {tb['adviser']} cast a deciding vote. Cost: ${cost:.4f}"
-                )
+                logger.info(f"  [TIEBREAKER] {tb['adviser']} cast a deciding vote. Cost: ${cost:.4f}")
                 logger.info(f"  [TIEBREAKER] Verdict: {tiebreaker_verdict[:120]}")
                 synthesis = (
                     synthesis
@@ -322,9 +299,7 @@ def main():
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
-    parser = argparse.ArgumentParser(
-        description="RoboFang Autonomous Council of Dozens — Live LLM Debate"
-    )
+    parser = argparse.ArgumentParser(description="RoboFang Autonomous Council of Dozens — Live LLM Debate")
     parser.add_argument("--task", type=str, required=True, help="Task name (short label)")
     parser.add_argument("--desc", type=str, required=True, help="Full task description")
     parser.add_argument(

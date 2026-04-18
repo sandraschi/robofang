@@ -1,7 +1,7 @@
 """Tapo Connector."""
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import BaseConnector
 
@@ -19,9 +19,9 @@ class TapoConnector(BaseConnector):
 
     connector_type = "tapo"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
-        self._devices: Dict[str, Any] = {}
+        self._devices: dict[str, Any] = {}
 
     async def connect(self) -> bool:
         try:
@@ -67,11 +67,7 @@ class TapoConnector(BaseConnector):
             return False
         # Enforce readonly
         dev_cfg = next(
-            (
-                d
-                for d in self.config.get("devices", [])
-                if (d.get("alias") or d.get("device_id")) == target
-            ),
+            (d for d in self.config.get("devices", []) if (d.get("alias") or d.get("device_id")) == target),
             {},
         )
         if dev_cfg.get("readonly"):
@@ -96,12 +92,12 @@ class TapoConnector(BaseConnector):
             self.logger.error(f"Tapo command error on {target}: {e}")
             return False
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         readings = []
         for alias, device in list(self._devices.items())[:limit]:
             try:
                 await device.update()
-                entry: Dict[str, Any] = {
+                entry: dict[str, Any] = {
                     "alias": alias,
                     "model": device.model,
                     "is_on": device.is_on,

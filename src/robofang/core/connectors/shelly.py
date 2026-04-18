@@ -1,7 +1,7 @@
 """Shelly Connector."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import BaseConnector
 
@@ -20,11 +20,11 @@ class ShellyConnector(BaseConnector):
 
     connector_type = "shelly"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
-        self._online: Dict[str, Dict[str, Any]] = {}  # alias → device info
+        self._online: dict[str, dict[str, Any]] = {}  # alias → device info
 
-    async def _get(self, host: str, path: str) -> Optional[Dict]:
+    async def _get(self, host: str, path: str) -> dict | None:
         import httpx
 
         try:
@@ -35,7 +35,7 @@ class ShellyConnector(BaseConnector):
         except Exception:
             return None
 
-    async def _post(self, host: str, path: str, data: Dict) -> Optional[Dict]:
+    async def _post(self, host: str, path: str, data: dict) -> dict | None:
         import httpx
 
         try:
@@ -99,7 +99,7 @@ class ShellyConnector(BaseConnector):
             self.logger.error(f"Shelly command error on {target}: {e}")
             return False
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         readings = []
         for alias, dev in list(self._online.items())[:limit]:
             host = dev["host"]

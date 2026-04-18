@@ -131,11 +131,7 @@ def fetch_unseen_emails() -> list[dict]:
                 if not data or data[0] is None:
                     continue
                 raw = data[0][1]
-                msg = (
-                    email.message_from_bytes(raw)
-                    if isinstance(raw, bytes)
-                    else email.message_from_string(raw)
-                )
+                msg = email.message_from_bytes(raw) if isinstance(raw, bytes) else email.message_from_string(raw)
                 from_addr = msg.get("From", "")
                 if "<" in from_addr and ">" in from_addr:
                     from_addr = from_addr.split("<")[1].split(">")[0].strip()
@@ -154,9 +150,7 @@ def fetch_unseen_emails() -> list[dict]:
                         body = body.decode(errors="replace")
                 body = (body or "").strip()
                 if body:
-                    out.append(
-                        {"from_addr": from_addr, "subject": subject, "body": body, "uid": uid}
-                    )
+                    out.append({"from_addr": from_addr, "subject": subject, "body": body, "uid": uid})
     except Exception as e:
         logger.warning("IMAP fetch failed: %s", e)
     return out
@@ -279,6 +273,11 @@ class MessagingBridge:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             return all(r is True for r in results if not isinstance(r, Exception))
         return False
+
+    async def send_emergency(self, message: str):
+        """High-priority broadcast with [EMERGENCY] prefix and explicit alerts."""
+        formatted = f"🚨 **[EMERGENCY] ROBOfang Fleet Alert** 🚨\n\n{message}"
+        return await self.broadcast(formatted)
 
 
 _bridge = MessagingBridge()

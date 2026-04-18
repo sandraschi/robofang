@@ -7,7 +7,7 @@ Fast heuristics only (no LLM call) to avoid latency.
 
 import logging
 import re
-from typing import Any, Dict
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -67,7 +67,7 @@ LONG_PROMPT_THRESHOLD = 400
 SHORT_PROMPT_THRESHOLD = 120
 
 
-def assess_difficulty(prompt: str) -> Dict[str, Any]:
+def assess_difficulty(prompt: str) -> dict[str, Any]:
     """
     Assess request difficulty from prompt text.
     Returns dict: level (simple|moderate|complex|ambitious), score (1-5), suggest_council (bool), reason (str).

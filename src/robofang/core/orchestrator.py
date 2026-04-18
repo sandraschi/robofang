@@ -7,10 +7,12 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Any, ClassVar, Dict, List, Optional, Set
+from typing import Any, ClassVar
 
 from robofang.bridges.journal_bridge import JournalBridge
 from robofang.core.difficulty import assess_difficulty
+from robofang.core.dtu import dtu as _dtu
+from robofang.core.escalation import escalator as _escalator
 from robofang.core.hands import HandsManager
 from robofang.core.installer import HandInstaller
 from robofang.core.knowledge import KnowledgeEngine
@@ -67,7 +69,7 @@ class _OrchestratorMemory:
     def store(self, key: str, value: Any) -> None:
         self._storage.set_fleet_config(self._PREFIX + key, value)
 
-    def recall(self, key: str) -> Optional[Any]:
+    def recall(self, key: str) -> Any | None:
         return self._storage.get_fleet_config(self._PREFIX + key)
 
 
@@ -77,7 +79,7 @@ class OrchestrationClient:
     Handles tool routing, fleet state, and cross-server communication.
     """
 
-    SENSITIVE_TOOLS: ClassVar[Set[str]] = {
+    SENSITIVE_TOOLS: ClassVar[set[str]] = {
         "connector_email",
         "connector_discord",
         "connector_moltbook",
@@ -87,23 +89,19 @@ class OrchestrationClient:
 
     def __init__(
         self,
-        config: Optional[Dict[str, Any]] = None,
-        fleet_config_path: Optional[Path] = None,
-        storage: Optional[RoboFangStorage] = None,
+        config: dict[str, Any] | None = None,
+        fleet_config_path: Path | None = None,
+        storage: RoboFangStorage | None = None,
     ):
         self.config = config or {}
-        self.fleet_config_path = fleet_config_path or (
-            _PKG_ROOT / "configs" / "federation_map.json"
-        )
+        self.fleet_config_path = fleet_config_path or (_PKG_ROOT / "configs" / "federation_map.json")
         self.logger = logging.getLogger("robofang.orchestrator")
-        self.topology: Dict[str, Any] = {}
-        self.connectors: Dict[str, Any] = {}
+        self.topology: dict[str, Any] = {}
+        self.connectors: dict[str, Any] = {}
         self._last_breeze_at: float = 0.0
         self.storage = storage or RoboFangStorage()
         self.moltbook = MoltbookClient(api_key=self.config.get("moltbook_api_key"))
-        self.reasoning = ReasoningEngine(
-            ollama_url=self.config.get("ollama_url", "http://localhost:11434")
-        )
+        self.reasoning = ReasoningEngine(ollama_url=self.config.get("ollama_url", "http://localhost:11434"))
         self.skills = SkillManager()
         self.security = SecurityManager(storage=self.storage)
         self.secrets = SecretsManager(storage=self.storage)
@@ -136,14 +134,16 @@ class OrchestrationClient:
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         self.installer = HandInstaller(manifest_path=manifest_path, hands_base_dir=hands_base_dir)
         self.lifecycle = LifecycleManager(self)
+        self.dtu = _dtu
+        self.escalator = _escalator
 
         # Load bundled and specialized hands
         plugins_dir = _PKG_ROOT / "src" / "robofang" / "plugins"
         self.hands.load_hands_from_dir(str(plugins_dir))
         self.hands.load_hands_from_dir(str(plugins_dir / "bundled"))
         self.running = False
-        self.heartbeat_task: Optional[asyncio.Task] = None
-        self.slow_task: Optional[asyncio.Task] = None
+        self.heartbeat_task: asyncio.Task | None = None
+        self.slow_task: asyncio.Task | None = None
 
         # Reasoning Log (Forensics Ring Buffer)
         self.reasoning_log = collections.deque(maxlen=100)
@@ -152,15 +152,15 @@ class OrchestrationClient:
         self._init_connectors()
         adn_connector = self.connectors.get("advanced-memory")
         self.journal_bridge = JournalBridge(adn_connector)
-        self._tool_registry: Dict[str, Any] = {}
+        self._tool_registry: dict[str, Any] = {}
         self._build_tool_bridge()
         # MCP per-tool discovery: mcp_<connector>_<tool_name> entries added by bridge after startup
         self._mcp_tool_prefix = "mcp_"
         # Optional: set by bridge for routines (yahboom invoke, email send)
-        self._connector_invoker: Optional[Any] = None
-        self._email_sender: Optional[Any] = None
+        self._connector_invoker: Any | None = None
+        self._email_sender: Any | None = None
         # Optional: set by bridge for inbox (process message -> reply text)
-        self._inbox_processor: Optional[Any] = None
+        self._inbox_processor: Any | None = None
 
     def _build_tool_bridge(self):
         """Flattens connectors and skills into a searchable tool registry."""
@@ -181,6 +181,23 @@ class OrchestrationClient:
                 "instance": connector,
                 "description": f"Fleet connector for {name}",
             }
+        # 3. Register System Management Tools (DTU, Escalation)
+        self._tool_registry["system_request_human_intervention"] = {
+            "type": "system",
+            "handler": self.escalator.request_help,
+            "description": "Request immediate human intervention/help. Use when stuck, blocked, or in case of critical error. Parameters: reason(str), context(dict).",
+        }
+        self._tool_registry["system_dtu_stage"] = {
+            "type": "system",
+            "handler": self.dtu.stage_change,
+            "description": "Stage a file modification in the DTU shadow proxy for auditing. Parameters: target_base(str), rel_path(str), content(str).",
+        }
+        self._tool_registry["system_dtu_commit"] = {
+            "type": "system",
+            "handler": self.dtu.commit_all,
+            "description": "Commit all staged DTU shadow files to the real volume. Parameters: target_base(str).",
+        }
+
         self.logger.info(f"Tool Bridge built with {len(self._tool_registry)} tools.")
 
     def clear_mcp_tools(self) -> None:
@@ -191,7 +208,7 @@ class OrchestrationClient:
         if to_remove:
             self.logger.info("Cleared %d MCP tool entries.", len(to_remove))
 
-    def register_mcp_tools(self, connector_id: str, tools: List[Dict[str, Any]]) -> None:
+    def register_mcp_tools(self, connector_id: str, tools: list[dict[str, Any]]) -> None:
         """Register per-tool entries for a FastMCP 3.1 backend so the council can call them by name."""
         for t in tools:
             name = t.get("name") or t.get("title") or ""
@@ -215,7 +232,7 @@ class OrchestrationClient:
         """Loads the current fleet topology from the federation map."""
         if self.fleet_config_path.exists():
             try:
-                with open(self.fleet_config_path, "r", encoding="utf-8") as f:
+                with open(self.fleet_config_path, encoding="utf-8") as f:
                     self.topology = json.load(f)
                 self.logger.info(f"Topology loaded from {self.fleet_config_path}")
             except Exception as e:
@@ -253,18 +270,14 @@ class OrchestrationClient:
                 for name, cfg in self.topology["connectors"].items()
                 if isinstance(cfg, dict) and cfg.get("enabled", False)
             ]
-            self.logger.info(
-                f"Connectors derived from federation_map connectors.*.enabled: {enabled_list}"
-            )
+            self.logger.info(f"Connectors derived from federation_map connectors.*.enabled: {enabled_list}")
         else:
             enabled_list = []
             self.logger.info("No connectors configured — starting with zero connectors.")
 
         for conn_type in enabled_list:
             if conn_type not in discovered:
-                self.logger.warning(
-                    f"Enabled connector '{conn_type}' not found in plugin registry — skipping."
-                )
+                self.logger.warning(f"Enabled connector '{conn_type}' not found in plugin registry — skipping.")
                 continue
 
             conn_class = manager.load_connector(conn_type)
@@ -285,10 +298,7 @@ class OrchestrationClient:
                 cfg = {**federation_cfg, **self.config.get(conn_type, {})}
                 self.connectors[conn_type] = conn_class(conn_type, cfg)
 
-        self.logger.info(
-            f"Initialized {len(self.connectors)} connector(s): "
-            f"{list(self.connectors.keys()) or 'none'}"
-        )
+        self.logger.info(f"Initialized {len(self.connectors)} connector(s): {list(self.connectors.keys()) or 'none'}")
 
     async def start(self):
         self.logger.info("Starting RoboFang Orchestrator...")
@@ -351,9 +361,7 @@ class OrchestrationClient:
                 # 1. Check connector health (iterate self.connectors, not a nonexistent connector_manager)
                 for name, connector in self.connectors.items():
                     if not getattr(connector, "active", False):
-                        self.logger.warning(
-                            f"Connector '{name}' reports inactive — attempting reconnect."
-                        )
+                        self.logger.warning(f"Connector '{name}' reports inactive — attempting reconnect.")
                         try:
                             await connector.connect()
                         except Exception as e:
@@ -366,13 +374,10 @@ class OrchestrationClient:
                     tmpl_path = templates_dir / tmpl_name
                     if tmpl_path.exists():
                         system_prompt_parts.append(
-                            f"## {tmpl_name.replace('.md', '')}\n"
-                            + tmpl_path.read_text(encoding="utf-8")
+                            f"## {tmpl_name.replace('.md', '')}\n" + tmpl_path.read_text(encoding="utf-8")
                         )
                 if system_prompt_parts:
-                    self.logger.debug(
-                        f"Soul synthesis loaded {len(system_prompt_parts)} template(s)."
-                    )
+                    self.logger.debug(f"Soul synthesis loaded {len(system_prompt_parts)} template(s).")
 
                 # 3. Pulse Reflection: Summarize fleet status and "think"
                 if self.moltbook.client:
@@ -419,23 +424,13 @@ class OrchestrationClient:
                         messages = await email_conn.get_messages(limit=20)
                         if messages and self._inbox_processor:
                             for msg in messages:
-                                body = (
-                                    msg.get("body") or msg.get("text")
-                                    if isinstance(msg, dict)
-                                    else str(msg)
-                                )
+                                body = msg.get("body") or msg.get("text") if isinstance(msg, dict) else str(msg)
                                 if not body:
                                     continue
                                 try:
                                     reply = await self._inbox_processor(body)
-                                    self.logger.info(
-                                        "[ORCHESTRATOR] Inbox processed, reply: %s", reply[:80]
-                                    )
-                                    if (
-                                        getattr(email_conn, "reply", None)
-                                        and isinstance(msg, dict)
-                                        and msg.get("id")
-                                    ):
+                                    self.logger.info("[ORCHESTRATOR] Inbox processed, reply: %s", reply[:80])
+                                    if getattr(email_conn, "reply", None) and isinstance(msg, dict) and msg.get("id"):
                                         await email_conn.reply(msg["id"], reply)
                                 except Exception as e:
                                     self.logger.warning("Inbox message process failed: %s", e)
@@ -479,16 +474,16 @@ class OrchestrationClient:
                 await asyncio.sleep(60)
         self.logger.info("[ORCHESTRATOR] Slow loop stopped.")
 
-    async def register_agent(self, body: Dict[str, Any]) -> Dict[str, Any]:
+    async def register_agent(self, body: dict[str, Any]) -> dict[str, Any]:
         """Register a new agent with Moltbook."""
         self.logger.info(f"Registering agent: {body.get('name')}")
         return await self.moltbook.post("/register", body)
 
-    async def get_moltbook_feed(self) -> Dict[str, Any]:
+    async def get_moltbook_feed(self) -> dict[str, Any]:
         """Fetch the Moltbook feed."""
         return await self.moltbook.get("/feed")
 
-    async def onboard_hand(self, hand_id: str) -> Dict[str, Any]:
+    async def onboard_hand(self, hand_id: str) -> dict[str, Any]:
         """Install a new Hand from the fleet manifest."""
         result = self.installer.install(hand_id)
         if result["success"]:
@@ -506,7 +501,7 @@ class OrchestrationClient:
         use_rag: bool = True,
         refine_prompt: bool = False,
         priority: str = "asap",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Live reasoning via the reasoning engine with optional RAG context."""
         if not await self.security.is_authorized(subject, "reasoning:ask"):
             return {
@@ -533,9 +528,7 @@ class OrchestrationClient:
                 difficulty["score"],
             )
         elif use_council and difficulty["level"] == "simple":
-            self.logger.info(
-                "Difficulty simple; user requested Council — using Council as requested."
-            )
+            self.logger.info("Difficulty simple; user requested Council — using Council as requested.")
         self._log_reasoning(
             "Ask",
             "thought",
@@ -577,9 +570,7 @@ class OrchestrationClient:
             self.logger.info("Using Council of Dozens (capacity=%s): %s", capacity, council)
             # Second member (index 1) is devil's advocate when council has ≥2 members
             devil_index = 1 if len(council) >= 2 else None
-            result = await self.reasoning.council_synthesis(
-                final_prompt, council, devil_advocate_index=devil_index
-            )
+            result = await self.reasoning.council_synthesis(final_prompt, council, devil_advocate_index=devil_index)
         else:
             self._log_reasoning("Ask", "thought", "Reasoning (single agent).")
             result = await self.reasoning.ask(final_prompt, system_prompt=system_prompt)
@@ -588,13 +579,11 @@ class OrchestrationClient:
             result["difficulty"] = difficulty
         return result
 
-    async def list_skills(self) -> List[Dict[str, Any]]:
+    async def list_skills(self) -> list[dict[str, Any]]:
         """List all discovered skills."""
         return self.skills.list_skills()
 
-    async def run_skill(
-        self, skill_id: str, user_input: str, subject: str = "agent:cortex"
-    ) -> Dict[str, Any]:
+    async def run_skill(self, skill_id: str, user_input: str, subject: str = "agent:cortex") -> dict[str, Any]:
         """Execute a skill-augmented prompt."""
         if not await self.security.is_authorized(subject, "skills:run", skill_id):
             return {
@@ -628,9 +617,7 @@ class OrchestrationClient:
             content[:500] + ("..." if len(content) > 500 else ""),
         )
 
-    async def execute_tool(
-        self, tool_name: str, approval_gate: bool = True, **kwargs
-    ) -> Dict[str, Any]:
+    async def execute_tool(self, tool_name: str, approval_gate: bool = True, **kwargs) -> dict[str, Any]:
         """Gateway for agentic tool execution with optional Council Approval Gate."""
         # --- SECURITY MOAT: DefenseClaw Action Validation ---
         if not await self.security.validate_action(tool_name, kwargs, orchestrator=self):
@@ -640,15 +627,12 @@ class OrchestrationClient:
             }
 
         if tool_name not in self._tool_registry:
-
             # OpenFang adapter: map hand tool names to MCP connector + tool
             resolved = openfang_resolve(tool_name)
             if resolved and self._connector_invoker:
                 connector_id, mcp_tool_name = resolved
                 try:
-                    result = await self._connector_invoker(
-                        connector_id, mcp_tool_name, kwargs or {}
-                    )
+                    result = await self._connector_invoker(connector_id, mcp_tool_name, kwargs or {})
                     return result if isinstance(result, dict) else {"success": True, "data": result}
                 except Exception as e:
                     self.logger.error(
@@ -707,23 +691,23 @@ class OrchestrationClient:
                 return await self.run_skill(tool["id"], kwargs.get("input", ""))
 
             if tool["type"] == "mcp" and self._connector_invoker:
-                return await self._connector_invoker(
-                    tool["connector"], tool["mcp_tool"], kwargs or {}
-                )
+                return await self._connector_invoker(tool["connector"], tool["mcp_tool"], kwargs or {})
 
             if tool["type"] == "connector":
                 # For now, generic send_message if it's a social/comm connector
                 connector = tool["instance"]
                 if hasattr(connector, "send_message"):
-                    success = await connector.send_message(
-                        kwargs.get("target"), kwargs.get("content")
-                    )
+                    success = await connector.send_message(kwargs.get("target"), kwargs.get("content"))
                     return {"success": success}
 
                 return {
                     "success": False,
                     "error": f"Connector {tool_name} has no default 'send_message' action.",
                 }
+
+            if tool.get("type") == "system":
+                handler = tool["handler"]
+                return await handler(**kwargs)
 
         except Exception as e:
             self.logger.error(f"Tool execution failed ({tool_name}): {e}")
@@ -746,13 +730,13 @@ class OrchestrationClient:
         self.logger.warning(f"No connector registered for channel: {channel}")
         return False
 
-    async def get_routing_rules(self) -> Dict[str, Any]:
+    async def get_routing_rules(self) -> dict[str, Any]:
         """Returns the current channel-to-agent mapping."""
         return self.topology.get("routing", {})
 
     async def process_mission(
         self, vibe: str, foreman_model: str = "llama3", worker_model: str = "llama3"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Full 3-Phase DARK INTEGRATION workflow.
         1. Vibe Enrichment (Foreman/Architect)
@@ -768,6 +752,9 @@ class OrchestrationClient:
 
         self.logger.info(f"INITIATING MISSION: {vibe[:50]}...")
 
+        # DTU Shadow Prep (Simple Version)
+        self.dtu.clear()
+        self.logger.info("DTU Shadow cleared and prepared for pre-flight.")
 
         # PHASE 1: ENRICH
         self._log_reasoning("Foreman", "thought", f"Enriching Vibe: {vibe[:100]}...")
@@ -781,13 +768,17 @@ class OrchestrationClient:
 
         spec = enrichment["response"]
         self.logger.info("PHASE 1 (ENRICH) COMPLETE: Spec generated.")
-        self._log_reasoning("Foreman", "system", "Specification finalized. Passing to Worker.")
+
+        # Security: Foreman Spec Signing
+        signing_secret = os.getenv("ROBOFANG_FOREMAN_SECRET", "SOTA_DEV_SECRET")
+        spec_signature = self.security.bastio.sign_spec(spec, signing_secret)
+        self.logger.info(f"Foreman Spec signed. Signature: {spec_signature[:8]}...")
+
+        self._log_reasoning("Foreman", "system", "Specification finalized and signed. Passing to Worker.")
 
         # PHASE 2: EXECUTE (Labor)
         # Flatten tools for ReAct
-        tools_list = [
-            {"name": k, "description": v["description"]} for k, v in self._tool_registry.items()
-        ]
+        tools_list = [{"name": k, "description": v["description"]} for k, v in self._tool_registry.items()]
 
         # Use reason_and_act which calls execute_tool (Approval Gate integrated)
         self._log_reasoning("Worker", "thought", "Initiating Agentic ReAct loop.")
@@ -825,6 +816,22 @@ class OrchestrationClient:
             f"Verdict: {verdict} | Critique: {audit.get('critique', '')[:100]}...",
         )
 
+        # PHAST 4: DTU COMMIT (if approved)
+        if audit.get("passed"):
+            self.logger.info("Satisficer PASSED. Committing DTU shadow to production...")
+            # For this MVP, we assume dev repos root; ideally this is passed in vibe/spec
+            repo_target = os.environ.get("ROBOFANG_REPOS_ROOT", "D:/Dev/repos")
+            commit_result = self.dtu.commit_all(repo_target)
+            if commit_result["ok"]:
+                self.logger.info(f"DTU COMMIT SUCCESS: {len(commit_result['files'])} files updated.")
+                self._log_reasoning("DTU", "commit", f"Atomic commit successful: {len(commit_result['files'])} files.")
+            else:
+                self.logger.error(f"DTU COMMIT FAILED: {commit_result['reason']}")
+                self._log_reasoning("DTU", "error", f"Commit failed: {commit_result['reason']}")
+        else:
+            self.logger.warning("Satisficer FAILED. Staged files in DTU shadow will not be committed.")
+            self._log_reasoning("DTU", "rollback", "Shadow staging abandoned due to audit failure.")
+
         return {
             "success": True,
             "vibe": vibe,
@@ -851,17 +858,13 @@ class OrchestrationClient:
             self.logger.error(f"Failed to persist topology: {e}")
             return False
 
-    def update_topology(self, updates: Dict[str, Any]) -> bool:
+    def update_topology(self, updates: dict[str, Any]) -> bool:
         """Merges updates into the topology and persists to disk.
 
         Supports updating 'nodes', 'connectors', 'domains', etc.
         """
         for key, value in updates.items():
-            if (
-                isinstance(value, dict)
-                and key in self.topology
-                and isinstance(self.topology[key], dict)
-            ):
+            if isinstance(value, dict) and key in self.topology and isinstance(self.topology[key], dict):
                 self.topology[key].update(value)
             else:
                 self.topology[key] = value
@@ -876,10 +879,10 @@ class OrchestrationClient:
 
     # --- Routines (scheduled actions: dawn patrol, etc.) ---
 
-    def list_routines(self) -> List[Dict[str, Any]]:
+    def list_routines(self) -> list[dict[str, Any]]:
         return _list_routines(self.storage)
 
-    def get_routine(self, routine_id: str) -> Optional[Dict[str, Any]]:
+    def get_routine(self, routine_id: str) -> dict[str, Any] | None:
         return _get_routine(self.storage, routine_id)
 
     def create_routine(
@@ -888,14 +891,14 @@ class OrchestrationClient:
         time_local: str,
         recurrence: str,
         action_type: str,
-        params: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        params: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         return _create_routine(self.storage, name, time_local, recurrence, action_type, params)
 
-    def routine_should_run_now(self, routine: Dict[str, Any]) -> bool:
+    def routine_should_run_now(self, routine: dict[str, Any]) -> bool:
         return _routine_should_run_now(routine)
 
-    async def run_routine(self, routine_id: str) -> Dict[str, Any]:
+    async def run_routine(self, routine_id: str) -> dict[str, Any]:
         """Execute a routine by id. Dispatches by action_type (e.g. dawn_patrol)."""
         routines = _list_routines(self.storage)
         routine = next((r for r in routines if r.get("id") == routine_id), None)
@@ -914,13 +917,13 @@ class OrchestrationClient:
         self,
         routine_id: str,
         *,
-        name: Optional[str] = None,
-        time_local: Optional[str] = None,
-        recurrence: Optional[str] = None,
-        action_type: Optional[str] = None,
-        params: Optional[Dict[str, Any]] = None,
-        enabled: Optional[bool] = None,
-    ) -> Optional[Dict[str, Any]]:
+        name: str | None = None,
+        time_local: str | None = None,
+        recurrence: str | None = None,
+        action_type: str | None = None,
+        params: dict[str, Any] | None = None,
+        enabled: bool | None = None,
+    ) -> dict[str, Any] | None:
         return _update_routine(
             self.storage,
             routine_id,
@@ -935,7 +938,7 @@ class OrchestrationClient:
     def delete_routine(self, routine_id: str) -> bool:
         return _delete_routine(self.storage, routine_id)
 
-    async def _run_dawn_patrol(self, routine: Dict[str, Any]) -> Dict[str, Any]:
+    async def _run_dawn_patrol(self, routine: dict[str, Any]) -> dict[str, Any]:
         """
         Yahboom robocar patrol with video, analyze for unusual activity, email report.
         Requires _connector_invoker and _email_sender to be set by the bridge.
@@ -947,8 +950,8 @@ class OrchestrationClient:
         started = datetime.utcnow().isoformat() + "Z"
 
         # 1. Invoke yahboom patrol (with record); connector may expose patrol + record
-        video_path: Optional[str] = None
-        patrol_out: Dict[str, Any] = {}
+        video_path: str | None = None
+        patrol_out: dict[str, Any] = {}
         if self._connector_invoker:
             try:
                 patrol_out = await self._connector_invoker(
@@ -970,9 +973,7 @@ class OrchestrationClient:
         if video_path and self.reasoning:
             try:
                 analysis_summary = await self._analyze_patrol_video(video_path)
-                unusual = (
-                    "unusual" in analysis_summary.lower() or "anomaly" in analysis_summary.lower()
-                )
+                unusual = "unusual" in analysis_summary.lower() or "anomaly" in analysis_summary.lower()
             except Exception as e:
                 analysis_summary = f"Analysis error: {e}"
         elif not video_path:
@@ -1018,6 +1019,4 @@ class OrchestrationClient:
     async def _analyze_patrol_video(self, video_path: str) -> str:
         """Stub: in production call vision model or motion detector. Returns summary."""
         # Placeholder: could POST frames to Ollama vision or run opencv motion check
-        return (
-            "Video analysis placeholder. Integrate vision model or motion detector for production."
-        )
+        return "Video analysis placeholder. Integrate vision model or motion detector for production."

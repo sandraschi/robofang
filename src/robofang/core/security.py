@@ -4,8 +4,10 @@ Provides a sovereign gating layer for agentic actions and resource access.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+import os
+from typing import Any
 
+from robofang.core.bastio import BastioGateway
 from robofang.core.storage import RoboFangStorage
 
 logger = logging.getLogger(__name__)
@@ -19,15 +21,16 @@ class SecurityManager:
 
     def __init__(
         self,
-        config: Optional[Dict[str, Any]] = None,
-        storage: Optional[RoboFangStorage] = None,
+        config: dict[str, Any] | None = None,
+        storage: RoboFangStorage | None = None,
     ):
         self.config = config or {}
         self.logger = logging.getLogger("robofang.core.security")
         self.storage = storage or RoboFangStorage()
+        self.bastio = BastioGateway(api_key=os.getenv("ROBOFANG_BASTIO_API_KEY"))
 
         # Load policies from storage or use defaults
-        self.registry: Dict[str, Dict[str, Any]] = self.storage.load_all_security_policies()
+        self.registry: dict[str, dict[str, Any]] = self.storage.load_all_security_policies()
 
         if not self.registry:
             self.logger.info("Initializing default security policies...")
@@ -51,9 +54,7 @@ class SecurityManager:
             for sub, policy in self.registry.items():
                 self.storage.save_security_policy(sub, policy["role"], list(policy["permissions"]))
 
-    async def is_authorized(
-        self, subject: str, action: str, resource: Optional[str] = None
-    ) -> bool:
+    async def is_authorized(self, subject: str, action: str, resource: str | None = None) -> bool:
         """
         Check if a subject (agent or user) is authorized to perform an action.
 
@@ -84,11 +85,11 @@ class SecurityManager:
         self.logger.warning(f"Access Denied: {subject} lacks permission '{action}'")
         return False
 
-    def get_subject_policy(self, subject: str) -> Optional[Dict[str, Any]]:
+    def get_subject_policy(self, subject: str) -> dict[str, Any] | None:
         """Retrieve the policy for a specific subject."""
         return self.registry.get(subject)
 
-    def define_policy(self, subject: str, role: str, permissions: List[str]):
+    def define_policy(self, subject: str, role: str, permissions: list[str]):
         """Define or update a security policy and persist it."""
         self.registry[subject] = {"role": role, "permissions": set(permissions)}
         self.storage.save_security_policy(subject, role, permissions)
@@ -131,10 +132,8 @@ class SecurityManager:
             # SOTA API for DefenseClaw MCP: 'validate_action'
             # We pass action name and JSON-stringified params for deep inspection
             import json
-            result = await defenseclaw.call_tool(
-                "validate_action", 
-                {"action": action, "params": json.dumps(params)}
-            )
+
+            result = await defenseclaw.call_tool("validate_action", {"action": action, "params": json.dumps(params)})
             if result and isinstance(result, dict):
                 is_approved = result.get("approved", True)
                 if not is_approved:
@@ -144,4 +143,3 @@ class SecurityManager:
         except Exception as e:
             self.logger.error(f"DefenseClaw validation failed: {e}")
             return False  # Fail-closed for actions for maximum safety
-

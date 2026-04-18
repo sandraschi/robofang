@@ -5,8 +5,11 @@ Provides a security layer for all external LLM traffic, ensuring it passes
 through the Bastio filter for threat scoring and safety validation.
 """
 
+import hashlib
+import hmac
+import json
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import aiohttp
 
@@ -21,7 +24,7 @@ class BastioGateway:
 
     def __init__(
         self,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         base_url: str = "https://api.bastio.com",
         timeout: int = 30,
     ):
@@ -31,8 +34,8 @@ class BastioGateway:
         self.logger = logging.getLogger("robofang.security.bastio")
 
     async def proxy_request(
-        self, endpoint: str, payload: Dict[str, Any], source_agent: str = "unknown"
-    ) -> Dict[str, Any]:
+        self, endpoint: str, payload: dict[str, Any], source_agent: str = "unknown"
+    ) -> dict[str, Any]:
         """
         Proxy an LLM request through the Bastio security layer.
 
@@ -57,9 +60,7 @@ class BastioGateway:
             }
 
         try:
-            async with aiohttp.ClientSession(
-                timeout=aiohttp.ClientTimeout(total=self.timeout)
-            ) as session:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=self.timeout)) as session:
                 headers = {
                     "Authorization": f"Bearer {self.api_key}",
                     "X-RoboFang-Agent": source_agent,
@@ -77,9 +78,7 @@ class BastioGateway:
                     result = await resp.json()
                     threat_score = resp.headers.get("X-Bastio-Threat-Score", "0.0")
 
-                    self.logger.info(
-                        f"Security Pulse: Agent={source_agent} ThreatScore={threat_score}"
-                    )
+                    self.logger.info(f"Security Pulse: Agent={source_agent} ThreatScore={threat_score}")
 
                     return {
                         **result,
@@ -105,10 +104,25 @@ class BastioGateway:
             self.logger.error(f"Bastio Gateway Critical Failure: {e}")
             return {"success": False, "error": str(e)}
 
-    def get_security_status(self) -> Dict[str, Any]:
+    def get_security_status(self) -> dict[str, Any]:
         """Check the status of the Bastio integration."""
         return {
             "enabled": self.api_key is not None,
             "gateway_url": self.base_url,
             "mode": "Proxy",
         }
+
+    def sign_spec(self, spec: dict[str, Any], secret: str) -> str:
+        """
+        Signs an execution spec using HMAC-SHA256.
+        Used by the Foreman to finalize an execution plan.
+        """
+        payload = json.dumps(spec, sort_keys=True).encode()
+        return hmac.new(secret.encode(), payload, hashlib.sha256).hexdigest()
+
+    def verify_spec(self, spec: dict[str, Any], signature: str, secret: str) -> bool:
+        """
+        Verifies that a spec was signed by a trusted identity (Foreman).
+        """
+        expected = self.sign_spec(spec, secret)
+        return hmac.compare_digest(expected, signature)

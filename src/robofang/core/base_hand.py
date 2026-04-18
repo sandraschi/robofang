@@ -3,7 +3,7 @@ RoboFang Base Hand: Core abstractions for autonomous processes.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from robofang.core.hand_manifest import (
     HandDefinition,
@@ -18,14 +18,14 @@ class Hand:
     Base class for an autonomous agentic process (a "Hand").
     """
 
-    def __init__(self, definition: HandDefinition, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, definition: HandDefinition, config: dict[str, Any] | None = None):
         self.definition = definition
         self.active = False
-        self.last_run: Optional[float] = None
-        self.next_run: Optional[float] = None
+        self.last_run: float | None = None
+        self.next_run: float | None = None
         self.pulse_interval = 300  # Default 5 minutes
         self.config = config or {}
-        self.state: Dict[str, Any] = {}
+        self.state: dict[str, Any] = {}
         self.logger = logging.getLogger(f"robofang.hands.{self.definition.id}")
 
         # Resolve settings to get prompt block and env vars

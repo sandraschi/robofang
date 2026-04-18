@@ -141,7 +141,7 @@ class CouncilOrchestrator:
 
     @staticmethod
     def _load_json(path: Path) -> dict:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
 
     # ------------------------------------------------------------------
@@ -167,7 +167,7 @@ class CouncilOrchestrator:
 
     def step_session(self, session_file: Path) -> str:
         """Advance to the next adjudicator; return their label."""
-        with open(session_file, "r", encoding="utf-8") as f:
+        with open(session_file, encoding="utf-8") as f:
             session = json.load(f)
 
         current_idx = 0
@@ -189,7 +189,7 @@ class CouncilOrchestrator:
 
     def add_round_output(self, session_file: Path, output: str) -> None:
         """Record the output of the current adjudicator round."""
-        with open(session_file, "r", encoding="utf-8") as f:
+        with open(session_file, encoding="utf-8") as f:
             session = json.load(f)
 
         new_round = {
@@ -207,7 +207,7 @@ class CouncilOrchestrator:
 
     def get_round_prompt(self, session_file: Path) -> str:
         """Build the full prompt for the current adjudicator including debate history."""
-        with open(session_file, "r", encoding="utf-8") as f:
+        with open(session_file, encoding="utf-8") as f:
             session = json.load(f)
 
         round_num = len(session["rounds"]) + 1
@@ -229,7 +229,7 @@ class CouncilOrchestrator:
 
     def finalize_debate(self, session_file: Path) -> None:
         """Mark a session as complete."""
-        with open(session_file, "r", encoding="utf-8") as f:
+        with open(session_file, encoding="utf-8") as f:
             session = json.load(f)
         session["status"] = "COMPLETE"
         with open(session_file, "w", encoding="utf-8") as f:

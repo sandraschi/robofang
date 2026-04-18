@@ -1,7 +1,7 @@
 """Moltbook Connector."""
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import BaseConnector
 
@@ -16,7 +16,7 @@ class MoltbookConnector(BaseConnector):
 
     connector_type = "moltbook"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
         import os
 
@@ -49,7 +49,7 @@ class MoltbookConnector(BaseConnector):
             self.logger.warning(f"Moltbook post failed: {result.get('error')}")
         return ok
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         result = await self._client.get("/feed", params={"limit": str(limit)})
         if result.get("success"):
             data = result.get("data", {})
