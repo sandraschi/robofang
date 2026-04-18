@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import BaseConnector
 
@@ -17,10 +17,10 @@ class DiscordConnector(BaseConnector):
 
     connector_type = "discord"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
-        self._client: Optional[Any] = None
-        self._bot_task: Optional[asyncio.Task] = None
+        self._client: Any | None = None
+        self._bot_task: asyncio.Task | None = None
         self._ready = asyncio.Event()
 
     async def connect(self) -> bool:
@@ -50,7 +50,7 @@ class DiscordConnector(BaseConnector):
         self._bot_task = asyncio.create_task(client.start(token))
         try:
             await asyncio.wait_for(self._ready.wait(), timeout=15.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             self.logger.warning("Discord bot did not become ready within 15s.")
             return False
         return self.active
@@ -74,25 +74,21 @@ class DiscordConnector(BaseConnector):
         if not channel_id:
             return False
         try:
-            channel = self._client.get_channel(channel_id) or await self._client.fetch_channel(
-                channel_id
-            )
+            channel = self._client.get_channel(channel_id) or await self._client.fetch_channel(channel_id)
             await channel.send(content)
             return True
         except Exception as e:
             self.logger.error(f"Discord send error: {e}")
             return False
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         if not self._client or not self.active:
             return []
         channel_id = self.config.get("channel_id")
         if not channel_id:
             return []
         try:
-            channel = self._client.get_channel(int(channel_id)) or await self._client.fetch_channel(
-                int(channel_id)
-            )
+            channel = self._client.get_channel(int(channel_id)) or await self._client.fetch_channel(int(channel_id))
             return [
                 {
                     "id": str(m.id),

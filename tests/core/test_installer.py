@@ -8,7 +8,6 @@ from unittest.mock import patch
 
 import pytest
 import yaml
-
 from robofang.core.installer import HandInstaller, HandManifestItem, _github_owner_repo
 
 
@@ -218,9 +217,7 @@ def test_install_clone_success(mock_run, installer, manifest_path, hands_base):
 
 @patch("robofang.core.installer.subprocess.run")
 def test_install_clone_failure_returns_error(mock_run, installer, manifest_path):
-    mock_run.return_value = type(
-        "R", (), {"returncode": 1, "stdout": "", "stderr": "fatal: repository not found"}
-    )()
+    mock_run.return_value = type("R", (), {"returncode": 1, "stdout": "", "stderr": "fatal: repository not found"})()
     manifest_path.write_text(
         yaml.safe_dump(
             {

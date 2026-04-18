@@ -1,7 +1,7 @@
 """RoboFang Connectors API Router: Lifecycle, Status, and Topology."""
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -21,7 +21,7 @@ router = APIRouter(prefix="/api/connectors", tags=["Connectors"])
 
 
 class StopConnectorsRequest(BaseModel):
-    connector_ids: List[str]
+    connector_ids: list[str]
 
 
 class ConnectorActionRequest(BaseModel):
@@ -90,7 +90,7 @@ async def connectors_topology():
 
 
 @router.post("/topology")
-async def connectors_update_topology(topo_update: Dict[str, Any]):
+async def connectors_update_topology(topo_update: dict[str, Any]):
     """Update connector topology settings."""
     try:
         orchestrator.update_topology({"connectors": topo_update})

@@ -7,7 +7,7 @@ import json
 import logging
 import sqlite3
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class RoboFangStorage:
     Ensures that fleet state survives reboots.
     """
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         if not db_path:
             # Default to repo_root/data/RoboFang.db
             repo_root = Path(__file__).parent.parent.parent.parent
@@ -101,7 +101,7 @@ class RoboFangStorage:
 
     # --- Security Policy Operations ---
 
-    def save_security_policy(self, subject: str, role: str, permissions: List[str]):
+    def save_security_policy(self, subject: str, role: str, permissions: list[str]):
         """Persist a security policy to the database."""
         with self._get_connection() as conn:
             conn.execute(
@@ -113,7 +113,7 @@ class RoboFangStorage:
             )
             conn.commit()
 
-    def load_all_security_policies(self) -> Dict[str, Dict[str, Any]]:
+    def load_all_security_policies(self) -> dict[str, dict[str, Any]]:
         """Load all security policies into memory."""
         policies = {}
         with self._get_connection() as conn:
@@ -127,9 +127,7 @@ class RoboFangStorage:
 
     # --- Persona Operations ---
 
-    def save_persona(
-        self, name: str, system_prompt: str, metadata: Optional[Dict[str, Any]] = None
-    ):
+    def save_persona(self, name: str, system_prompt: str, metadata: dict[str, Any] | None = None):
         """Persist a persona to the database."""
         with self._get_connection() as conn:
             conn.execute(
@@ -141,7 +139,7 @@ class RoboFangStorage:
             )
             conn.commit()
 
-    def load_all_personas(self) -> Dict[str, Dict[str, Any]]:
+    def load_all_personas(self) -> dict[str, dict[str, Any]]:
         """Load all personas into memory."""
         personas = {}
         with self._get_connection() as conn:
@@ -153,12 +151,10 @@ class RoboFangStorage:
                 }
         return personas
 
-    def load_persona(self, name: str) -> Optional[Dict[str, Any]]:
+    def load_persona(self, name: str) -> dict[str, Any] | None:
         """Load a single persona."""
         with self._get_connection() as conn:
-            cursor = conn.execute(
-                "SELECT system_prompt, metadata FROM personas WHERE name = ?", (name,)
-            )
+            cursor = conn.execute("SELECT system_prompt, metadata FROM personas WHERE name = ?", (name,))
             row = cursor.fetchone()
             if row:
                 return {"system_prompt": row[0], "metadata": json.loads(row[1])}
@@ -166,7 +162,7 @@ class RoboFangStorage:
 
     # --- Secret Operations ---
 
-    def save_secret(self, key_name: str, value: str, metadata: Optional[Dict[str, Any]] = None):
+    def save_secret(self, key_name: str, value: str, metadata: dict[str, Any] | None = None):
         """Persist a secret to the database."""
         with self._get_connection() as conn:
             conn.execute(
@@ -178,7 +174,7 @@ class RoboFangStorage:
             )
             conn.commit()
 
-    def get_secret(self, key_name: str) -> Optional[str]:
+    def get_secret(self, key_name: str) -> str | None:
         """Retrieve a secret by name."""
         with self._get_connection() as conn:
             cursor = conn.execute("SELECT value FROM secrets WHERE key_name = ?", (key_name,))
@@ -201,7 +197,7 @@ class RoboFangStorage:
             )
             conn.commit()
 
-    def get_fleet_config(self, key: str) -> Optional[Any]:
+    def get_fleet_config(self, key: str) -> Any | None:
         """Retrieve a value by key; returns None if missing."""
         with self._get_connection() as conn:
             cursor = conn.execute("SELECT value FROM fleet_config WHERE key = ?", (key,))
@@ -215,9 +211,7 @@ class RoboFangStorage:
 
     # --- Audit Log Operations ---
 
-    def log_event(
-        self, level: str, source: str, event: str, details: Optional[Dict[str, Any]] = None
-    ):
+    def log_event(self, level: str, source: str, event: str, details: dict[str, Any] | None = None):
         """Persist a critical event to the audit log."""
         with self._get_connection() as conn:
             conn.execute(
@@ -229,7 +223,7 @@ class RoboFangStorage:
             )
             conn.commit()
 
-    def get_audit_logs(self, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_audit_logs(self, limit: int = 100) -> list[dict[str, Any]]:
         """Retrieve the most recent audit logs."""
         logs = []
         with self._get_connection() as conn:
@@ -256,7 +250,7 @@ class RoboFangStorage:
         self,
         content: str,
         author: str = "guest",
-        thread_id: Optional[int] = None,
+        thread_id: int | None = None,
     ) -> int:
         """Persist a forum post. Returns the new post id."""
         with self._get_connection() as conn:
@@ -270,7 +264,7 @@ class RoboFangStorage:
             conn.commit()
             return cursor.lastrowid or 0
 
-    def get_forum_feed(self, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_forum_feed(self, limit: int = 100) -> list[dict[str, Any]]:
         """Retrieve the most recent forum posts (newest first)."""
         posts = []
         with self._get_connection() as conn:

@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any, ClassVar, Dict, List, Optional
+from typing import Any, ClassVar
 
 from .base import BaseConnector
 
@@ -16,7 +16,7 @@ class HueConnector(BaseConnector):
     """
 
     connector_type = "hue"
-    _COLOURS: ClassVar[Dict[str, List[float]]] = {
+    _COLOURS: ClassVar[dict[str, list[float]]] = {
         "red": [0.675, 0.322],
         "green": [0.408, 0.517],
         "blue": [0.167, 0.040],
@@ -25,9 +25,9 @@ class HueConnector(BaseConnector):
         "cool": [0.240, 0.270],
     }
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
-        self._bridge: Optional[Any] = None
+        self._bridge: Any | None = None
 
     async def connect(self) -> bool:
         try:
@@ -48,9 +48,7 @@ class HueConnector(BaseConnector):
                 return b
 
             self._bridge = await loop.run_in_executor(None, _conn)
-            lights = await loop.run_in_executor(
-                None, lambda: self._bridge.get_light_objects("name")
-            )
+            lights = await loop.run_in_executor(None, lambda: self._bridge.get_light_objects("name"))
             self.logger.info(f"Hue bridge connected. Lights: {list(lights.keys())}")
             self.active = True
             return True
@@ -72,11 +70,7 @@ class HueConnector(BaseConnector):
 
         def _set():
             lights = self._bridge.get_light_objects("name")
-            targets = (
-                list(lights.values())
-                if target == "all"
-                else ([lights[target]] if target in lights else [])
-            )
+            targets = list(lights.values()) if target == "all" else ([lights[target]] if target in lights else [])
             if not targets:
                 return False
             for light in targets:
@@ -100,14 +94,12 @@ class HueConnector(BaseConnector):
             self.logger.error(f"Hue command error: {e}")
             return False
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         if not self._bridge:
             return []
         loop = asyncio.get_running_loop()
         try:
-            lights = await loop.run_in_executor(
-                None, lambda: self._bridge.get_light_objects("name")
-            )
+            lights = await loop.run_in_executor(None, lambda: self._bridge.get_light_objects("name"))
             return [
                 {
                     "name": n,

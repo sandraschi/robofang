@@ -4,7 +4,7 @@ Ensures consistent character logic across federated models.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from robofang.core.storage import RoboFangStorage
 
@@ -19,17 +19,16 @@ class PersonalityEngine:
 
     def __init__(
         self,
-        config: Optional[Dict[str, Any]] = None,
-        storage: Optional[RoboFangStorage] = None,
+        config: dict[str, Any] | None = None,
+        storage: RoboFangStorage | None = None,
     ):
         self.config = config or {}
         self.logger = logging.getLogger("robofang.core.personality")
         self.storage = storage or RoboFangStorage()
 
         # Load from storage or use defaults
-        self.personas: Dict[str, str] = {
-            name: persona["system_prompt"]
-            for name, persona in self.storage.load_all_personas().items()
+        self.personas: dict[str, str] = {
+            name: persona["system_prompt"] for name, persona in self.storage.load_all_personas().items()
         }
 
         if not self.personas:
@@ -66,6 +65,6 @@ class PersonalityEngine:
         self.storage.save_persona(name, prompt)
         self.logger.info(f"New persona registered and persisted: {name}")
 
-    def list_personas(self) -> Dict[str, str]:
+    def list_personas(self) -> dict[str, str]:
         """List all available personas."""
         return self.personas

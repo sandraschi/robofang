@@ -1,7 +1,7 @@
 """Slack Connector."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import BaseConnector
 
@@ -17,9 +17,9 @@ class SlackConnector(BaseConnector):
 
     connector_type = "slack"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
-        self._client: Optional[Any] = None
+        self._client: Any | None = None
 
     async def connect(self) -> bool:
         try:
@@ -64,7 +64,7 @@ class SlackConnector(BaseConnector):
             self.logger.error("Slack send_message error: %s", e)
             return False
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         if not self._client or not self.active:
             return []
         channel_id = self.config.get("channel_id")

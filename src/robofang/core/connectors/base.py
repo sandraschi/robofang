@@ -3,7 +3,7 @@
 import abc
 import logging
 from email.header import decode_header as _decode_header
-from typing import Any, Dict, List
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def _decode_mime_header(value: str) -> str:
 class BaseConnector(abc.ABC):
     """Base class for all RoboFang sovereign connectors."""
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         self.name = name
         self.config = config
         self.logger = logging.getLogger(f"robofang.connectors.{name}")
@@ -47,7 +47,7 @@ class BaseConnector(abc.ABC):
         """Send a message / command to a specific target."""
 
     @abc.abstractmethod
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         """Retrieve recent messages / readings from the service."""
 
     async def ping(self) -> bool:

@@ -6,7 +6,7 @@ Used by /api/fleet/discover and /api/fleet/add-from-external.
 import logging
 import re
 import subprocess
-from typing import Any, Dict, List, Optional
+from typing import Any
 from urllib.parse import quote
 
 import httpx
@@ -23,12 +23,12 @@ def _registry_name_to_id(name: str) -> str:
     return name.replace("/", "-").replace(".", "-").lower()
 
 
-async def discover_registry(limit: int = 50) -> List[Dict[str, Any]]:
+async def discover_registry(limit: int = 50) -> list[dict[str, Any]]:
     """
     Fetch discoverable MCP servers from the official MCP Registry API.
     Returns list of { id, name, description, repo_url?, source: "registry" }.
     """
-    items: List[Dict[str, Any]] = []
+    items: list[dict[str, Any]] = []
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
             url = f"{REGISTRY_BASE}{REGISTRY_SERVERS_PATH}"
@@ -61,7 +61,7 @@ async def discover_registry(limit: int = 50) -> List[Dict[str, Any]]:
     return items
 
 
-async def get_registry_server_repo(server_name: str) -> Optional[str]:
+async def get_registry_server_repo(server_name: str) -> str | None:
     """Fetch latest version for a server and return repository URL if present."""
     try:
         encoded = quote(server_name, safe="")
@@ -82,12 +82,12 @@ async def get_registry_server_repo(server_name: str) -> Optional[str]:
         return None
 
 
-def discover_docker() -> List[Dict[str, Any]]:
+def discover_docker() -> list[dict[str, Any]]:
     """
     List MCP servers from Docker MCP catalog (docker mcp catalog server ls).
     Returns list of { id, name, source: "docker" }. May return [] if Docker CLI unavailable.
     """
-    items: List[Dict[str, Any]] = []
+    items: list[dict[str, Any]] = []
     try:
         result = subprocess.run(
             ["docker", "mcp", "catalog", "server", "ls"],
@@ -122,7 +122,7 @@ GITHUB_RE = re.compile(
 )
 
 
-def normalize_github_repo_url(url: str) -> Optional[str]:
+def normalize_github_repo_url(url: str) -> str | None:
     """Return clone URL for a GitHub repo (https://github.com/owner/repo)."""
     if not url or not url.strip():
         return None

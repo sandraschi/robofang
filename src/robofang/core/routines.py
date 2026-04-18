@@ -8,7 +8,7 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ def _today_iso() -> str:
     return datetime.now().strftime("%Y-%m-%d")
 
 
-def list_routines(storage: Any) -> List[Dict[str, Any]]:
+def list_routines(storage: Any) -> list[dict[str, Any]]:
     """Load routines from storage. Returns list of routine dicts."""
     out = storage.get_fleet_config(ROUTINES_KEY)
     if not out or not isinstance(out, list):
@@ -27,7 +27,7 @@ def list_routines(storage: Any) -> List[Dict[str, Any]]:
     return out
 
 
-def save_routines(storage: Any, routines: List[Dict[str, Any]]) -> None:
+def save_routines(storage: Any, routines: list[dict[str, Any]]) -> None:
     storage.set_fleet_config(ROUTINES_KEY, routines)
 
 
@@ -37,8 +37,8 @@ def create_routine(
     time_local: str,
     recurrence: str,
     action_type: str,
-    params: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    params: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Append a routine and return it. time_local like '07:00', recurrence 'daily' or 'weekly'."""
     routines = list_routines(storage)
     rid = f"routine_{int(time.time() * 1000)}"
@@ -58,7 +58,7 @@ def create_routine(
     return routine
 
 
-def should_run_now(routine: Dict[str, Any]) -> bool:
+def should_run_now(routine: dict[str, Any]) -> bool:
     """True if current local time matches routine time and it has not run today."""
     if not routine.get("enabled", True):
         return False
@@ -88,7 +88,7 @@ def mark_run(storage: Any, routine_id: str) -> None:
     save_routines(storage, routines)
 
 
-def get_routine(storage: Any, routine_id: str) -> Optional[Dict[str, Any]]:
+def get_routine(storage: Any, routine_id: str) -> dict[str, Any] | None:
     """Return a routine by id or None."""
     for r in list_routines(storage):
         if r.get("id") == routine_id:
@@ -100,13 +100,13 @@ def update_routine(
     storage: Any,
     routine_id: str,
     *,
-    name: Optional[str] = None,
-    time_local: Optional[str] = None,
-    recurrence: Optional[str] = None,
-    action_type: Optional[str] = None,
-    params: Optional[Dict[str, Any]] = None,
-    enabled: Optional[bool] = None,
-) -> Optional[Dict[str, Any]]:
+    name: str | None = None,
+    time_local: str | None = None,
+    recurrence: str | None = None,
+    action_type: str | None = None,
+    params: dict[str, Any] | None = None,
+    enabled: bool | None = None,
+) -> dict[str, Any] | None:
     """Update a routine by id. Returns updated routine or None if not found."""
     routines = list_routines(storage)
     for r in routines:

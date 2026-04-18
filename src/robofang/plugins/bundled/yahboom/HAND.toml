@@ -1,0 +1,12 @@
+id = "yahboom"
+name = "Yahboom Demonstrator"
+description = "Baseline demonstrator bot for fleet connectivity and basic actuation."
+category = "embodiment"
+icon = "robot"
+version = "1.0.0"
+
+[dashboard]
+metrics = [
+    { label = "Signal", memory_key = "yahboom_signal" },
+    { label = "Activity", memory_key = "yahboom_activity" }
+]

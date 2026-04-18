@@ -1,7 +1,7 @@
 """Home Assistant Connector."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import BaseConnector
 
@@ -21,7 +21,7 @@ class HomeAssistantConnector(BaseConnector):
 
     connector_type = "homeassistant"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
         import os
 
@@ -32,7 +32,7 @@ class HomeAssistantConnector(BaseConnector):
             "Content-Type": "application/json",
         }
 
-    async def _api(self, method: str, path: str, data: Optional[Dict] = None) -> Optional[Any]:
+    async def _api(self, method: str, path: str, data: dict | None = None) -> Any | None:
         import httpx
 
         try:
@@ -74,9 +74,7 @@ class HomeAssistantConnector(BaseConnector):
         try:
             if target.startswith("event:"):
                 event_type = target.split(":", 1)[1]
-                result = await self._api(
-                    "POST", f"/events/{event_type}", {"entity_id": content, **kwargs}
-                )
+                result = await self._api("POST", f"/events/{event_type}", {"entity_id": content, **kwargs})
                 return result is not None
 
             domain, service = target.split(".", 1)
@@ -93,7 +91,7 @@ class HomeAssistantConnector(BaseConnector):
             self.logger.error(f"HA send_message error: {e}")
             return False
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         """Return state of all HA entities (or logbook recent events)."""
         result = await self._api("GET", "/states")
         if not result:

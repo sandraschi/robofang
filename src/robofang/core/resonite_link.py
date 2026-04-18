@@ -6,7 +6,8 @@ Implements the new WebSocket JSON protocol for real-time 3D interaction.
 import asyncio
 import json
 import logging
-from typing import Any, Callable, Dict, Optional, Set
+from collections.abc import Callable
+from typing import Any
 
 import websockets
 
@@ -21,10 +22,10 @@ class ResoniteLinkClient:
 
     def __init__(self, host: str = "localhost", port: int = 4242):
         self.uri = f"ws://{host}:{port}"
-        self.ws: Optional[websockets.WebSocketClientProtocol] = None
+        self.ws: websockets.WebSocketClientProtocol | None = None
         self.logger = logging.getLogger("robofang.resonite.link")
-        self.callbacks: Dict[str, Callable] = {}
-        self._background_tasks: Set[asyncio.Task] = set()
+        self.callbacks: dict[str, Callable] = {}
+        self._background_tasks: set[asyncio.Task] = set()
         self.running = False
 
     async def connect(self):
@@ -48,7 +49,7 @@ class ResoniteLinkClient:
             await self.ws.close()
             self.logger.info("Disconnected from ResoniteLink")
 
-    async def send_command(self, action: str, payload: Dict[str, Any]):
+    async def send_command(self, action: str, payload: dict[str, Any]):
         """Send a JSON command over ResoniteLink."""
         if not self.ws or not self.running:
             self.logger.warning("ResoniteLink not connected. Cannot send command.")
@@ -83,12 +84,10 @@ class ResoniteLinkClient:
         self.callbacks[update_type] = callback
 
     # High-level actions
-    async def spawn_object(self, template_url: str, position: Dict[str, float]):
+    async def spawn_object(self, template_url: str, position: dict[str, float]):
         """Spawn a 3D object in the current world."""
         return await self.send_command("spawn", {"template": template_url, "position": position})
 
     async def set_component_value(self, component_id: str, field: str, value: Any):
         """Set a specific field on a Resonite component."""
-        return await self.send_command(
-            "write", {"id": component_id, "field": field, "value": value}
-        )
+        return await self.send_command("write", {"id": component_id, "field": field, "value": value})

@@ -49,7 +49,5 @@ class CollectorHand(Hand):
         if orchestrator.moltbook.client:
             await orchestrator.moltbook.post(
                 "/post",
-                {
-                    "content": f"[Collector Hand] Autonomous check complete. {len(active_connectors)} systems nominal."
-                },
+                {"content": f"[Collector Hand] Autonomous check complete. {len(active_connectors)} systems nominal."},
             )

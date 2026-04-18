@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Dict, List
 
 from fastapi import APIRouter
 from pydantic import BaseModel
@@ -24,7 +23,7 @@ class HeartbeatResponse(BaseModel):
     integrity: str
     council_active: bool
     fleet_node_count: int
-    system_pressure: Dict[str, float]
+    system_pressure: dict[str, float]
     heartbeat_latency_ms: float
     timestamp: str
 
@@ -40,11 +39,11 @@ class HealthReport(BaseModel):
     success: bool
     cohesion_score: int
     risk_level: str
-    anomalies: List[str]
-    discoveries: List[Discovery]
+    anomalies: list[str]
+    discoveries: list[Discovery]
 
 
-def _system_pressure() -> Dict[str, float]:
+def _system_pressure() -> dict[str, float]:
     """Real CPU and memory usage via psutil."""
     try:
         import psutil
@@ -64,9 +63,7 @@ async def get_heartbeat():
     pulse = supervisor.get_pulse()
     latency_ms = (time.perf_counter() - t0) * 1000.0
     nodes = supervisor.fleet_nodes
-    fleet_count = (
-        len(nodes) if isinstance(nodes, list) else (len(nodes) if isinstance(nodes, dict) else 0)
-    )
+    fleet_count = len(nodes) if isinstance(nodes, list) else (len(nodes) if isinstance(nodes, dict) else 0)
     council_active = pulse.get("council_active", False)
     return {
         "status": "nominal" if pulse.get("integrity") == "nominal" else "caution",

@@ -2,7 +2,7 @@ import logging
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 from urllib.parse import urlparse
 
 import yaml
@@ -15,7 +15,7 @@ INSTALL_SCRIPT_TIMEOUT = 600
 DEPS_INSTALL_TIMEOUT = 300
 
 
-def _install_deps(target_dir: Path) -> Optional[str]:
+def _install_deps(target_dir: Path) -> str | None:
     """Install Python deps so the MCP server is usable. uv sync if pyproject.toml else pip install -e ..
     Return None on success, else error message."""
     pyproject = target_dir / "pyproject.toml"
@@ -40,9 +40,7 @@ def _install_deps(target_dir: Path) -> Optional[str]:
         except FileNotFoundError:
             logger.info("uv not in PATH, using pip install -e .")
         except subprocess.TimeoutExpired:
-            return (
-                "uv sync timed out. Run uv sync or pip install -e . manually in the hand directory."
-            )
+            return "uv sync timed out. Run uv sync or pip install -e . manually in the hand directory."
     # pip install -e .
     try:
         r = subprocess.run(
@@ -61,7 +59,7 @@ def _install_deps(target_dir: Path) -> Optional[str]:
     return None
 
 
-def _github_owner_repo(repo_url: str) -> Optional[Tuple[str, str]]:
+def _github_owner_repo(repo_url: str) -> tuple[str, str] | None:
     """Return (owner, repo) if repo_url is a GitHub HTTPS/SSH URL, else None."""
     url = (repo_url or "").strip().rstrip("/").replace(".git", "")
     if "github.com" not in url:
@@ -89,8 +87,8 @@ class HandManifestItem(BaseModel):
     category: str
     description: str
     repo_url: str
-    install_script: Optional[str] = "start.ps1"
-    tags: List[str] = Field(default_factory=list)
+    install_script: str | None = "start.ps1"
+    tags: list[str] = Field(default_factory=list)
 
 
 class HandInstaller:
@@ -101,20 +99,20 @@ class HandInstaller:
         self.hands_base_dir = hands_base_dir
         self.hands_base_dir.mkdir(parents=True, exist_ok=True)
 
-    def get_manifest(self) -> List[HandManifestItem]:
+    def get_manifest(self) -> list[HandManifestItem]:
         if not self.manifest_path.exists():
             logger.error(f"Manifest not found at {self.manifest_path}")
             return []
 
         try:
-            with open(self.manifest_path, "r", encoding="utf-8") as f:
+            with open(self.manifest_path, encoding="utf-8") as f:
                 data = yaml.safe_load(f)
             return [HandManifestItem(**h) for h in data.get("hands", [])]
         except Exception as e:
             logger.error(f"Failed to load manifest: {e}")
             return []
 
-    def install(self, hand_id: str) -> Dict[str, Any]:
+    def install(self, hand_id: str) -> dict[str, Any]:
         items = self.get_manifest()
         item = next((i for i in items if i.id == hand_id), None)
 
@@ -145,9 +143,7 @@ class HandInstaller:
                     timeout=GIT_CLONE_TIMEOUT,
                 )
                 if r.returncode != 0:
-                    err = (
-                        r.stderr or r.stdout or ""
-                    ).strip() or f"gh repo clone exit {r.returncode}"
+                    err = (r.stderr or r.stdout or "").strip() or f"gh repo clone exit {r.returncode}"
                     logger.error("gh repo clone failed for %s: %s", hand_id, err)
                     return {"success": False, "error": f"gh repo clone failed: {err}"}
             except FileNotFoundError:
@@ -179,9 +175,7 @@ class HandInstaller:
                                     timeout=INSTALL_SCRIPT_TIMEOUT,
                                 )
                                 if r.returncode != 0:
-                                    err = (
-                                        r.stderr or r.stdout or ""
-                                    ).strip() or f"exit {r.returncode}"
+                                    err = (r.stderr or r.stdout or "").strip() or f"exit {r.returncode}"
                                     logger.warning("Install script failed (%s): %s", cmd[0], err)
                                     return {
                                         "success": False,
@@ -231,7 +225,7 @@ class HandInstaller:
         data = {}
         if self.manifest_path.exists():
             try:
-                with open(self.manifest_path, "r", encoding="utf-8") as f:
+                with open(self.manifest_path, encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
             except Exception as e:
                 logger.error("Failed to load manifest for append: %s", e)

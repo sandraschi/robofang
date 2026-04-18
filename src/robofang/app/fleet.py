@@ -3,7 +3,7 @@ import logging
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import psutil
 from robofang.core.state import orchestrator
@@ -48,7 +48,7 @@ def stop_all_connectors():
         stop_connector(name)
 
 
-def get_active_connectors_with_ports() -> List[Dict[str, Any]]:
+def get_active_connectors_with_ports() -> list[dict[str, Any]]:
     """Return list of active connectors and their ports found in MCP_BACKENDS."""
     active = []
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
@@ -73,7 +73,7 @@ def get_active_connectors_with_ports() -> List[Dict[str, Any]]:
 # MCP backend port map
 # ---------------------------------------------------------------------------
 
-MCP_BACKENDS: Dict[str, str] = {
+MCP_BACKENDS: dict[str, str] = {
     # Wave 1 — Home / Media
     "plex": "http://localhost:10740",
     "calibre": "http://localhost:10720",
@@ -127,7 +127,7 @@ def update_backends_from_topology():
 # Repository Mapping
 # ---------------------------------------------------------------------------
 
-_REPO_MAP_TEMPLATE: Dict[str, str] = {
+_REPO_MAP_TEMPLATE: dict[str, str] = {
     "plex": "plex-mcp",
     "calibre": "calibre-mcp",
     "home-assistant": "home-assistant-mcp",
@@ -167,8 +167,8 @@ _REPO_MAP_TEMPLATE: Dict[str, str] = {
 }
 
 
-def _build_repo_map() -> Dict[str, str]:
-    out: Dict[str, str] = {}
+def _build_repo_map() -> dict[str, str]:
+    out: dict[str, str] = {}
     root = (os.getenv("ROBOFANG_REPOS_ROOT") or "").strip()
     if not root:
         return out
@@ -182,7 +182,7 @@ def _build_repo_map() -> Dict[str, str]:
     return out
 
 
-REPO_MAP: Dict[str, str] = _build_repo_map()
+REPO_MAP: dict[str, str] = _build_repo_map()
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -205,7 +205,7 @@ def _fleet_github_owner() -> str:
     return os.getenv("ROBOFANG_FLEET_OWNER", "robofang").strip() or "robofang"
 
 
-def _load_fleet_analysis() -> Dict[str, Any]:
+def _load_fleet_analysis() -> dict[str, Any]:
     """Load fleet_analysis.json (written by scripts/analyze_fleet_fastmcp.py)."""
     try:
         base = _hands_base_dir()
@@ -224,9 +224,9 @@ def _load_fleet_analysis() -> Dict[str, Any]:
     return {}
 
 
-def _load_fleet_registry() -> List[Dict[str, Any]]:
+def _load_fleet_registry() -> list[dict[str, Any]]:
     """Load fleet from registry JSON."""
-    paths_to_try: List[Path] = []
+    paths_to_try: list[Path] = []
     env_path = (os.getenv("ROBOFANG_FLEET_REGISTRY") or "").strip()
     if env_path:
         paths_to_try.append(Path(env_path))
@@ -248,9 +248,9 @@ def _load_fleet_registry() -> List[Dict[str, Any]]:
     return []
 
 
-def _read_repo_metadata(repo_path: Path) -> Dict[str, Any]:
+def _read_repo_metadata(repo_path: Path) -> dict[str, Any]:
     """Read robofang.json and optionally llm.txt from repo root."""
-    out: Dict[str, Any] = {}
+    out: dict[str, Any] = {}
     if not repo_path.exists() or not repo_path.is_dir():
         return out
     jpath = repo_path / "robofang.json"
@@ -280,7 +280,7 @@ def _read_repo_metadata(repo_path: Path) -> Dict[str, Any]:
     return out
 
 
-FLEET_CATALOG_GITHUB: List[Dict[str, Any]] = [
+FLEET_CATALOG_GITHUB: list[dict[str, Any]] = [
     {
         "id": "blender-mcp",
         "name": "Blender",
@@ -455,10 +455,10 @@ FLEET_CATALOG_GITHUB: List[Dict[str, Any]] = [
 ]
 
 
-def _fleet_catalog() -> List[Dict[str, Any]]:
+def _fleet_catalog() -> list[dict[str, Any]]:
     """Catalog = full fleet from registry + manifest-only entries; dedupe by id."""
     seen: set = set()
-    out: List[Dict[str, Any]] = []
+    out: list[dict[str, Any]] = []
     base = _hands_base_dir()
     owner = _fleet_github_owner()
     registry = _load_fleet_registry()
@@ -617,7 +617,7 @@ def _port_from_url(url: str) -> int:
         return 0
 
 
-def _fleet_installer_catalog() -> List[Dict[str, Any]]:
+def _fleet_installer_catalog() -> list[dict[str, Any]]:
     """Installer catalog enriched for Fleet Installer UI."""
     catalog = []
     base = _hands_base_dir()
@@ -702,9 +702,7 @@ async def auto_launch_enabled_connectors():
     for name, cfg in connectors.items():
         if isinstance(cfg, dict) and cfg.get("enabled"):
             if name not in REPO_MAP:
-                logger.warning(
-                    "Fleet Automation: Connector '%s' enabled but no REPO_MAP entry.", name
-                )
+                logger.warning("Fleet Automation: Connector '%s' enabled but no REPO_MAP entry.", name)
                 continue
             repo_path = Path(REPO_MAP[name])
             if not repo_path.exists() or not repo_path.is_dir():

@@ -7,7 +7,7 @@ import logging
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import BaseConnector, _decode_mime_header
 
@@ -27,7 +27,7 @@ class EmailConnector(BaseConnector):
 
     connector_type = "email"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
         self.smtp_host = config.get("smtp_host", "")
         self.smtp_port = int(config.get("smtp_port", 587))
@@ -85,11 +85,7 @@ class EmailConnector(BaseConnector):
             msg.attach(MIMEText(content, "plain"))
             if html:
                 msg.attach(MIMEText(html, "html"))
-            recipients = (
-                [target]
-                + (cc if isinstance(cc, list) else [])
-                + (bcc if isinstance(bcc, list) else [])
-            )
+            recipients = [target] + (cc if isinstance(cc, list) else []) + (bcc if isinstance(bcc, list) else [])
             with smtplib.SMTP(self.smtp_host, self.smtp_port) as s:
                 s.starttls()
                 s.login(self.smtp_user, self.smtp_password)
@@ -105,7 +101,7 @@ class EmailConnector(BaseConnector):
 
     async def get_messages(
         self, limit: int = 10, folder: str = "INBOX", unread_only: bool = False
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Fetch emails from IMAP folder."""
         if not self.imap_host:
             return []

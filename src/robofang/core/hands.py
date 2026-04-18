@@ -8,7 +8,7 @@ import importlib.util
 import logging
 import os
 import time
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from robofang.core.base_hand import Hand
 from robofang.core.hand_manifest import (
@@ -25,9 +25,9 @@ class HandsManager:
 
     def __init__(self, orchestrator: Any):
         self.orchestrator = orchestrator
-        self.hands: Dict[str, Hand] = {}
-        self._loop_task: Optional[asyncio.Task] = None
-        self._background_tasks: Set[asyncio.Task] = set()
+        self.hands: dict[str, Hand] = {}
+        self._loop_task: asyncio.Task | None = None
+        self._background_tasks: set[asyncio.Task] = set()
         self.running = False
 
     def register_hand(self, hand: Hand):
@@ -50,10 +50,8 @@ class HandsManager:
                         skill_path = os.path.join(entry.path, "SKILL.md")
                         if os.path.exists(skill_path):
                             try:
-                                with open(skill_path, "r", encoding="utf-8") as f:
-                                    definition = definition.model_copy(
-                                        update={"skill_content": f.read()}
-                                    )
+                                with open(skill_path, encoding="utf-8") as f:
+                                    definition = definition.model_copy(update={"skill_content": f.read()})
                             except Exception as e:
                                 logger.warning(f"Could not load SKILL.md for {definition.id}: {e}")
 
@@ -126,7 +124,7 @@ class HandsManager:
 
             await asyncio.sleep(10)  # Check every 10 seconds
 
-    def get_hands_status(self) -> List[Dict[str, Any]]:
+    def get_hands_status(self) -> list[dict[str, Any]]:
         """Return a summary of all hands for the dashboard."""
         return [
             {
@@ -143,15 +141,11 @@ class HandsManager:
             for h in self.hands.values()
         ]
 
-    def _get_hand_metrics(self, hand: Hand) -> Dict[str, Any]:
+    def _get_hand_metrics(self, hand: Hand) -> dict[str, Any]:
         """Fetch metrics defined in hand.dashboard.metrics from orchestrator memory."""
         metrics = {}
         for m in hand.definition.dashboard.metrics:
             # Placeholder: fetch from orchestrator's memory/knowledge system
-            val = (
-                self.orchestrator.memory.recall(m.memory_key)
-                if hasattr(self.orchestrator, "memory")
-                else 0
-            )
+            val = self.orchestrator.memory.recall(m.memory_key) if hasattr(self.orchestrator, "memory") else 0
             metrics[m.label] = val or 0
         return metrics

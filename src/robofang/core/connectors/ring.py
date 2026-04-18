@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import BaseConnector
 
@@ -21,9 +21,9 @@ class RingConnector(BaseConnector):
 
     connector_type = "ring"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
-        self._ring: Optional[Any] = None
+        self._ring: Any | None = None
 
     async def connect(self) -> bool:
         try:
@@ -86,7 +86,7 @@ class RingConnector(BaseConnector):
         # Ring API is mostly read-only (no remote relay triggers via ring_doorbell lib)
         return False
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         """Return recent motion/doorbell events."""
         if not self._ring:
             return []
@@ -97,8 +97,7 @@ class RingConnector(BaseConnector):
                 results = []
                 for device in self._ring.video_doorbells + self._ring.stickup_cams:
                     for event in device.history(
-                        limit=limit
-                        // max(1, len(self._ring.video_doorbells + self._ring.stickup_cams))
+                        limit=limit // max(1, len(self._ring.video_doorbells + self._ring.stickup_cams))
                     ):
                         results.append(
                             {

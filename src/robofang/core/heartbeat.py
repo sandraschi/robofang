@@ -3,7 +3,9 @@ import hashlib
 import logging
 import os
 import subprocess
-from typing import Any, Dict
+from typing import Any
+
+from robofang.utils.security import get_absolute_path
 
 logger = logging.getLogger("robofang.heartbeat")
 
@@ -54,9 +56,7 @@ class HeartbeatService:
             # Verify Git Remote (Anti-Poisoning)
             remote_audit = self._verify_git_remote(repo_path)
             if not remote_audit["success"]:
-                findings.append(
-                    f"POISON_ALERT ({repo_name}): Unknown remote found: {remote_audit['remote']}"
-                )
+                findings.append(f"POISON_ALERT ({repo_name}): Unknown remote found: {remote_audit['remote']}")
                 logger.critical(
                     "SECURITY ALERT: Unknown remote detected in %s: %s",
                     repo_name,
@@ -67,24 +67,16 @@ class HeartbeatService:
             if repo_name == "robofang":
                 hash_audit = self._verify_file_hashes(repo_path)
                 if not hash_audit["success"]:
-                    findings.extend(
-                        [f"HASH_MISMATCH ({repo_name}): {m}" for m in hash_audit["mismatches"]]
-                    )
+                    findings.extend([f"HASH_MISMATCH ({repo_name}): {m}" for m in hash_audit["mismatches"]])
                     for mismatch in hash_audit["mismatches"]:
-                        logger.critical(
-                            "SECURITY ALERT: Hash mismatch in %s: %s", repo_name, mismatch
-                        )
+                        logger.critical("SECURITY ALERT: Hash mismatch in %s: %s", repo_name, mismatch)
 
         if not findings:
-            logger.info(
-                "Integrity Audit PASSED: No unauthorized remotes or hash mismatches detected."
-            )
+            logger.info("Integrity Audit PASSED: No unauthorized remotes or hash mismatches detected.")
         else:
-            logger.warning(
-                "Integrity Audit COMPLETED with %d findings.", len(findings) + len(findings)
-            )
+            logger.warning("Integrity Audit COMPLETED with %d findings.", len(findings) + len(findings))
 
-    def _verify_file_hashes(self, repo_path: str) -> Dict[str, Any]:
+    def _verify_file_hashes(self, repo_path: str) -> dict[str, Any]:
         # Baseline: SHA-256 hashes for v12.3 stable (Modular Deconstruction)
         baseline = {
             "src/robofang/main.py": "8EF63037E6159616F1A0EE6C090C75A9A11011E47A3A3C020F59C89F2C4DA615",
@@ -115,11 +107,12 @@ class HeartbeatService:
 
         return {"success": len(mismatches) == 0, "mismatches": mismatches}
 
-    def _verify_git_remote(self, path: str) -> Dict[str, Any]:
+    def _verify_git_remote(self, path: str) -> dict[str, Any]:
         """Checks if the 'origin' remote matches the authorized baseline."""
         try:
             # We use subprocess here for pure git interaction
-            cmd = ["git", "-C", path, "remote", "get-url", "origin"]
+            git_bin = get_absolute_path("git")
+            cmd = [git_bin, "-C", path, "remote", "get-url", "origin"]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             url = result.stdout.strip()
 

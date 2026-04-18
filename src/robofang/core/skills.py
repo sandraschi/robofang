@@ -2,7 +2,7 @@
 
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import yaml
 
@@ -15,7 +15,7 @@ class SkillLoader:
     def __init__(self, skills_dir: str = "C:/Users/sandr/.gemini/antigravity/skills"):
         self.skills_dir = Path(skills_dir)
 
-    def load_skill(self, skill_id: str) -> Optional[Dict[str, Any]]:
+    def load_skill(self, skill_id: str) -> dict[str, Any] | None:
         """Loads a specific skill by its ID (folder name)."""
         skill_path = self.skills_dir / skill_id / "SKILL.md"
         if not skill_path.exists():
@@ -23,7 +23,7 @@ class SkillLoader:
             return None
 
         try:
-            with open(skill_path, "r", encoding="utf-8") as f:
+            with open(skill_path, encoding="utf-8") as f:
                 content = f.read()
 
             # Parse YAML frontmatter
@@ -47,7 +47,7 @@ class SkillLoader:
             logger.error(f"Failed to load skill {skill_id}: {e}")
             return None
 
-    def list_available_skills(self) -> List[Dict[str, Any]]:
+    def list_available_skills(self) -> list[dict[str, Any]]:
         """Lists metadata for all available skills."""
         skills = []
         if not self.skills_dir.exists():
@@ -81,13 +81,13 @@ class SkillManager:
         """Reloads all skills into memory."""
         self.registry = {s["id"]: s for s in self.loader.list_available_skills()}
 
-    def get_skill_prompt(self, skill_id: str) -> Optional[str]:
+    def get_skill_prompt(self, skill_id: str) -> str | None:
         """Returns the core prompt for a skill."""
         skill_data = self.loader.load_skill(skill_id)
         if skill_data:
             return skill_data["prompt"]
         return None
 
-    def list_skills(self) -> List[Dict[str, Any]]:
+    def list_skills(self) -> list[dict[str, Any]]:
         """Returns the current skill registry."""
         return list(self.registry.values())

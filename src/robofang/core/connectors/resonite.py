@@ -1,7 +1,7 @@
 """Resonite Connector."""
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 from .base import BaseConnector
 
@@ -16,13 +16,11 @@ class ResoniteConnector(BaseConnector):
 
     connector_type = "resonite"
 
-    def __init__(self, name: str, config: Dict[str, Any]):
+    def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
         from robofang.core.resonite_link import ResoniteLinkClient
 
-        self.client = ResoniteLinkClient(
-            host=config.get("host", "localhost"), port=config.get("port", 4242)
-        )
+        self.client = ResoniteLinkClient(host=config.get("host", "localhost"), port=config.get("port", 4242))
 
     async def connect(self) -> bool:
         ok = await self.client.connect()
@@ -46,5 +44,5 @@ class ResoniteConnector(BaseConnector):
             value=content,
         )
 
-    async def get_messages(self, limit: int = 10) -> List[Dict[str, Any]]:
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         return []  # requires caching from the _listen loop

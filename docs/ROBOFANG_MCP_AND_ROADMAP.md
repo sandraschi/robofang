@@ -6,7 +6,7 @@ Thorough overview of the RoboFang MCP & robotics hub, the role of **robofang-mcp
 
 ## Implementation status (MCP 3.1 Unified Gateway)
 
-**Done.** The Bridge runs a FastMCP 3.1 server in the same process (unified gateway). MCP over SSE: connect to `http://localhost:PORT/sse` (default PORT 10871). The **Autonomous Hands (Substrate)** system is fully operational, managing background agents (Mar 2026).
+**Done.** The Bridge runs a FastMCP 3.1 server in the same process (unified gateway). v1.8.0 (OpenClaw++) introduces industrial safety (DTU, Bastio) and the Noetix Bumi biped centerpiece.
 
 ---
 
@@ -137,9 +137,9 @@ The **RightNow-AI robofang** (Rust "agent OS", 2026) is a different product. Thi
 | **MCP backend map** | Hardcoded in `main.py` | Derive from `federation_map.json` (+ env override); single place to add new backends. |
 | **Tool bridge** | Skills + connectors, minimal schema | Structured tool schemas per connector/skill; optional MCP tools/list discovery for backends. |
 | **Council / Dark** | 3-phase flow, reasoning log | Ensure all phases and Bastio/DTU outcomes logged; consider per-role prompts. |
-| **Safety** | DTU, Bastion, Bastio | Bastio: spec signing; launch: configurable base path + audit log. |
-| **Observability** | Ring buffer, /logs, /deliberations | Optional persistent log sink; /fleet/health for aggregated health. |
-| **Federation** | federation_map + connectors | Add yahboom (and others) to map; document; ensure dashboard and robofang-mcp can use them. |
-| **Docs** | README, SAFETY.md | QUICKSTART.md; README subsection “Relationship to MCP” and robofang-mcp. |
+| **Safety** | DTU, Bastion, Bastio | [COMPLETED] HMAC-signed specs, DTU shadow proxy, absolute path subprocess hardening. |
+| **Observability** | Ring buffer, /logs, /metrics | [COMPLETED] Prometheus metrics endpoint, fleet cohesion tracking. |
+| **Federation** | federation_map + connectors | [COMPLETED] Bumi and Yahboom embodied controllers registered. |
+| **Docs** | README, Sub-readmes | [COMPLETED] OpenClaw++ Documentation Overhaul (v1.8.0). |
 
 This document should be updated when robofang-mcp is implemented or when the Bridge API or federation map schema change in a way that affects the roadmap.

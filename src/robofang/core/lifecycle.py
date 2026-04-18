@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import time
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -12,9 +12,9 @@ class LifecycleManager:
     def __init__(self, orchestrator: Any, ttl_seconds: int = 1800):
         self.orchestrator = orchestrator
         self.ttl_seconds = ttl_seconds
-        self.last_used: Dict[str, float] = {}
-        self.locked_hands: Set[str] = set()  # Hands that shouldn't be auto-slumbered
-        self._monitor_task: Optional[asyncio.Task] = None
+        self.last_used: dict[str, float] = {}
+        self.locked_hands: set[str] = set()  # Hands that shouldn't be auto-slumbered
+        self._monitor_task: asyncio.Task | None = None
         self.running = False
 
     def record_usage(self, hand_id: str):
@@ -63,9 +63,7 @@ class LifecycleManager:
                 # Get the hand instance from HandsManager
                 hand = self.orchestrator.hands.hands.get(hand_id)
                 if hand and hand.active:
-                    logger.info(
-                        f"Hand '{hand_id}' idle for >{self.ttl_seconds}s. Initiating slumber."
-                    )
+                    logger.info(f"Hand '{hand_id}' idle for >{self.ttl_seconds}s. Initiating slumber.")
                     await self.slumber(hand_id)
 
     async def slumber(self, hand_id: str):

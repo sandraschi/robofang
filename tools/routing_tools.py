@@ -1,9 +1,8 @@
 """RoboFang Routing Tools: Management of fleet topology and message routing."""
 
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 
 from fastmcp import Context, FastMCP
-
 from robofang.core.orchestrator import OrchestrationClient
 
 mcp = FastMCP("RoboFang-routing")
@@ -16,7 +15,7 @@ async def fang_routing(
     operation: Literal["get_routing_rules", "update_routing", "test_routing"],
     channel: str | None = None,
     agent: str | None = None,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     RoboFang routing operations (OpenClaw Parity).
 

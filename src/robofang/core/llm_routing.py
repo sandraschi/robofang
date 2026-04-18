@@ -6,15 +6,15 @@ difficulty + priority. Supports load/unload policy and capacity awareness later.
 import json
 import logging
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
 _CONFIG_PATH = Path(__file__).resolve().parent.parent.parent / "configs" / "llm_model_tiers.json"
-_config: Optional[Dict[str, Any]] = None
+_config: dict[str, Any] | None = None
 
 
-def _load_config() -> Dict[str, Any]:
+def _load_config() -> dict[str, Any]:
     global _config
     if _config is not None:
         return _config
@@ -38,7 +38,7 @@ def get_capacity_hint() -> str:
     return _load_config().get("capacity_hint", "single_gpu_24gb")
 
 
-def get_tiers() -> Dict[str, List[str]]:
+def get_tiers() -> dict[str, list[str]]:
     """Tier name -> list of model names."""
     return _load_config().get("tiers", {})
 
@@ -61,7 +61,7 @@ def route_tier(difficulty_level: str, priority: str = "asap") -> str:
     return "small"
 
 
-def pick_model_for_tier(tier: str, available_models: Optional[List[str]] = None) -> Optional[str]:
+def pick_model_for_tier(tier: str, available_models: list[str] | None = None) -> str | None:
     """
     Pick one model in the given tier. If available_models is provided (e.g. from Ollama /api/tags),
     return the first tier model that is available; otherwise return the first in config.
@@ -82,9 +82,9 @@ def pick_model_for_tier(tier: str, available_models: Optional[List[str]] = None)
 
 
 def resolve_models_for_council(
-    council_members: List[str],
+    council_members: list[str],
     capacity_hint: str = "single_gpu_24gb",
-) -> List[str]:
+) -> list[str]:
     """
     Given requested council members, return a subset that fits capacity.
     For single_gpu_24gb we prefer small/medium only; avoid loading 3x large.

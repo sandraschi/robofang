@@ -71,9 +71,7 @@ def test_fleet_discover_registry(mock_registry, mock_docker, client):
     assert mock_registry.call_args.kwargs.get("limit") == 10
 
 
-@patch(
-    "robofang.main.discover_docker", return_value=[{"id": "foo", "name": "foo", "source": "docker"}]
-)
+@patch("robofang.main.discover_docker", return_value=[{"id": "foo", "name": "foo", "source": "docker"}])
 @patch("robofang.main.discover_registry", new_callable=AsyncMock, return_value=[])
 def test_fleet_discover_docker(mock_registry, mock_docker, client):
     r = client.get("/api/fleet/discover", params={"source": "docker"})

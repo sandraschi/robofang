@@ -38,6 +38,4 @@ class PersonalAssistantHand(Hand):
                 pa_bills = float(orchestrator.config.get("pa_bills_total", 0))
             orchestrator.memory.store("pa_bills_total", pa_bills)
 
-        self.logger.info(
-            "PA Hand pulse complete. Logistics optimized (Employer sufficiently annoyed)."
-        )
+        self.logger.info("PA Hand pulse complete. Logistics optimized (Employer sufficiently annoyed).")

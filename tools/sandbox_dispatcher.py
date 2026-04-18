@@ -4,7 +4,7 @@ import os
 import sys
 import time
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 # Add src to path so RoboFang.core is importable when run standalone
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
@@ -12,6 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 try:
     from robofang.core.bastio import BastioGateway
     from robofang.core.bastion import LocalBastionManager
+    from robofang.utils.security import get_absolute_path
 except ImportError:
     LocalBastionManager = None  # type: ignore
     BastioGateway = None  # type: ignore
@@ -36,13 +37,9 @@ class SandboxDispatcher:
 
         # Security primitives — both are optional
         self.bastion = LocalBastionManager() if LocalBastionManager else None
-        self.bastio = (
-            BastioGateway(api_key=os.environ.get("BASTIO_API_KEY")) if BastioGateway else None
-        )
+        self.bastio = BastioGateway(api_key=os.environ.get("BASTIO_API_KEY")) if BastioGateway else None
 
-    async def prepare_task(
-        self, task_data: Dict[str, Any], safety_mode: bool = True
-    ) -> Dict[str, Any]:
+    async def prepare_task(self, task_data: dict[str, Any], safety_mode: bool = True) -> dict[str, Any]:
         """Prepare task metadata for sandboxed execution."""
         task_id = task_data.get("id") or f"task_{int(time.time())}"
 
@@ -112,20 +109,16 @@ class SandboxDispatcher:
         if process and self.bastion:
             self.bastion.register_process(process.pid)
             health = self.bastion.check_health()
-            self.logger.info(
-                f"Bastion health: {health['status']} (CPU: {health['metrics']['system']['cpu']}%)"
-            )
+            self.logger.info(f"Bastion health: {health['status']} (CPU: {health['metrics']['system']['cpu']}%)")
 
         return task_id
 
-    def _launch_wsb(self, script_path: Path, env: Dict[str, str]):
+    def _launch_wsb(self, script_path: Path, env: dict[str, str]):
         """
         Launch script inside a Windows Sandbox instance using agent_template.wsb.
         """
         if not self.wsb_template.exists():
-            self.logger.warning(
-                f"WSB template not found at {self.wsb_template}. Cannot launch sandbox."
-            )
+            self.logger.warning(f"WSB template not found at {self.wsb_template}. Cannot launch sandbox.")
             return None
 
         try:
@@ -139,7 +132,12 @@ class SandboxDispatcher:
             self.logger.info(f"Triggering WindowsSandbox with config: {temp_wsb!r}")
 
             # Direct launch via subprocess list is safer than shell strings
-            subprocess.Popen(["WindowsSandbox.exe", str(temp_wsb)], shell=False)
+            wsb_bin = get_absolute_path("WindowsSandbox.exe")
+            # If not in PATH, use default system location
+            if wsb_bin == "WindowsSandbox.exe":
+                wsb_bin = r"C:\Windows\System32\WindowsSandbox.exe"
+
+            subprocess.Popen([wsb_bin, str(temp_wsb)], shell=False)  # noqa: S603
             self.logger.info("WSB instance triggered.")
             return None
 
@@ -173,7 +171,7 @@ class SandboxDispatcher:
         # TODO Phase 5: subprocess call to SbieCtrl.exe
         return None
 
-    def poll_result(self, task_id: str, timeout: int = 300) -> Dict[str, Any]:
+    def poll_result(self, task_id: str, timeout: int = 300) -> dict[str, Any]:
         """Poll for task completion (updated by the guest provisioning script)."""
         task_dir = self.exchange_dir / task_id
         manifest_path = task_dir / "task.json"
@@ -186,16 +184,8 @@ class SandboxDispatcher:
                     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
                     if manifest.get("status") == "COMPLETED":
                         # Collect results
-                        stdout = (
-                            (task_dir / "stdout.txt").read_text()
-                            if (task_dir / "stdout.txt").exists()
-                            else ""
-                        )
-                        stderr = (
-                            (task_dir / "stderr.txt").read_text()
-                            if (task_dir / "stderr.txt").exists()
-                            else ""
-                        )
+                        stdout = (task_dir / "stdout.txt").read_text() if (task_dir / "stdout.txt").exists() else ""
+                        stderr = (task_dir / "stderr.txt").read_text() if (task_dir / "stderr.txt").exists() else ""
                         manifest["stdout"] = stdout
                         manifest["stderr"] = stderr
                         return manifest

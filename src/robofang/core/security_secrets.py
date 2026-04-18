@@ -4,7 +4,6 @@ RoboFang Secrets Manager: Secure encryption for connector credentials.
 """
 
 import logging
-from typing import Optional
 
 from robofang.core.storage import RoboFangStorage
 
@@ -18,11 +17,11 @@ class SecretsManager:
     For RoboFang, we use a dedicated storage category with plan for future encryption.
     """
 
-    def __init__(self, storage: Optional[RoboFangStorage] = None):
+    def __init__(self, storage: RoboFangStorage | None = None):
         self.storage = storage or RoboFangStorage()
         self.logger = logging.getLogger("robofang.core.security.secrets")
 
-    async def get_secret(self, key_name: str) -> Optional[str]:
+    async def get_secret(self, key_name: str) -> str | None:
         """Retrieves a secret by name from the sovereign vault."""
         if not self.storage:
             self.logger.warning("SecretsManager: No storage available.")

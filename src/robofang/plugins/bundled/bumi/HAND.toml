@@ -1,0 +1,13 @@
+id = "bumi"
+name = "Noetix Bumi"
+description = "Biped Kid-Friendly Android (1m height). Real-world centerpiece for embodied fleet orchestration."
+category = "embodiment"
+icon = "android"
+version = "1.0.0"
+
+[dashboard]
+metrics = [
+    { label = "Battery", memory_key = "bumi_battery" },
+    { label = "Cohesion", memory_key = "bumi_cohesion" },
+    { label = "Gait Stability", memory_key = "bumi_gait" }
+]

@@ -1,7 +1,7 @@
 """HTTP client for Moltbook API (moltbook.com)."""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
@@ -10,17 +10,17 @@ logger = logging.getLogger(__name__)
 MOLTBOOK_BASE = "https://www.moltbook.com/api/v1"
 
 
-def _dialogic_success(message: str, data: Any = None) -> Dict[str, Any]:
+def _dialogic_success(message: str, data: Any = None) -> dict[str, Any]:
     """Return dialogic success response."""
-    result: Dict[str, Any] = {"success": True, "message": message}
+    result: dict[str, Any] = {"success": True, "message": message}
     if data is not None:
         result["data"] = data
     return result
 
 
-def _dialogic_error(message: str, error: str | None = None) -> Dict[str, Any]:
+def _dialogic_error(message: str, error: str | None = None) -> dict[str, Any]:
     """Return dialogic error response."""
-    result: Dict[str, Any] = {"success": False, "message": message}
+    result: dict[str, Any] = {"success": False, "message": message}
     if error:
         result["error"] = error
     return result
@@ -29,12 +29,12 @@ def _dialogic_error(message: str, error: str | None = None) -> Dict[str, Any]:
 class MoltbookClient:
     """Client for Moltbook REST API."""
 
-    def __init__(self, api_key: Optional[str] = None, base_url: str = MOLTBOOK_BASE) -> None:
+    def __init__(self, api_key: str | None = None, base_url: str = MOLTBOOK_BASE) -> None:
         self.api_key = api_key
         self.base_url = base_url
-        self._client: Optional[httpx.AsyncClient] = None
+        self._client: httpx.AsyncClient | None = None
 
-    def _headers(self) -> Dict[str, str]:
+    def _headers(self) -> dict[str, str]:
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
@@ -49,7 +49,7 @@ class MoltbookClient:
             )
         return self._client
 
-    async def get(self, path: str, params: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
+    async def get(self, path: str, params: dict[str, str] | None = None) -> dict[str, Any]:
         """GET request to Moltbook API."""
         try:
             client = await self._get_client()
@@ -63,7 +63,7 @@ class MoltbookClient:
             logger.exception("Moltbook request error: %s", e)
             return _dialogic_error("Moltbook request failed", error=str(e))
 
-    async def post(self, path: str, json_data: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+    async def post(self, path: str, json_data: dict[str, Any] | None = None) -> dict[str, Any]:
         """POST request to Moltbook API."""
         try:
             client = await self._get_client()

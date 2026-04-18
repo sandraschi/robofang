@@ -2,7 +2,6 @@
 
 import logging
 from pathlib import Path
-from typing import List, Optional
 
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
@@ -34,25 +33,25 @@ router = APIRouter(prefix="/api/fleet", tags=["Fleet"])
 
 class AddFromExternalRequest(BaseModel):
     source: str  # "registry" | "docker" | "github"
-    id: Optional[str] = None  # registry/docker server id
-    repo_url: Optional[str] = None  # required for github; optional override for registry
-    name: Optional[str] = None
+    id: str | None = None  # registry/docker server id
+    repo_url: str | None = None  # required for github; optional override for registry
+    name: str | None = None
 
 
 class CatalogItemForInstall(BaseModel):
-    id: Optional[str] = None
-    name: Optional[str] = None
-    category: Optional[str] = None
-    description: Optional[str] = None
+    id: str | None = None
+    name: str | None = None
+    category: str | None = None
+    description: str | None = None
     repo_url: str
 
 
 class OnboardFromGitHubRequest(BaseModel):
-    items: List[CatalogItemForInstall]
+    items: list[CatalogItemForInstall]
 
 
 class OnboardRequest(BaseModel):
-    hand_ids: List[str]
+    hand_ids: list[str]
 
 
 # ---------------------------------------------------------------------------
@@ -175,9 +174,7 @@ async def fleet_onboard_from_github(req: OnboardFromGitHubRequest):
     for item in req.items:
         repo_url = (item.repo_url or "").strip()
         if not repo_url:
-            results.append(
-                {"hand_id": item.id or "", "success": False, "message": "Missing repo_url"}
-            )
+            results.append({"hand_id": item.id or "", "success": False, "message": "Missing repo_url"})
             continue
         try:
             hand_id = (item.id or Path(repo_url).name.replace(".git", "")).strip()
@@ -205,7 +202,7 @@ async def fleet_onboard_from_github(req: OnboardFromGitHubRequest):
     return {"success": True, "results": results}
 
 
-def _install_preflight() -> Optional[str]:
+def _install_preflight() -> str | None:
     import shutil
 
     if shutil.which("gh") is None:
@@ -234,9 +231,7 @@ async def fleet_onboard(req: OnboardRequest):
         if hand_id not in manifest_ids:
             catalog_entry = next((c for c in FLEET_CATALOG_GITHUB if c.get("id") == hand_id), None)
             if not catalog_entry:
-                results.append(
-                    {"hand_id": hand_id, "success": False, "message": "Hand not in catalog."}
-                )
+                results.append({"hand_id": hand_id, "success": False, "message": "Hand not in catalog."})
                 continue
             owner = _fleet_github_owner()
             repo_url = f"https://github.com/{owner}/{hand_id}"
@@ -318,8 +313,5 @@ async def fleet_manifest():
     hands = orchestrator.installer.get_manifest()
     return {
         "success": True,
-        "hands": [
-            {"id": h.id, "name": h.name, "category": h.category, "repo_url": h.repo_url}
-            for h in hands
-        ],
+        "hands": [{"id": h.id, "name": h.name, "category": h.category, "repo_url": h.repo_url} for h in hands],
     }

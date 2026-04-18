@@ -16,7 +16,7 @@ Architecture:
 import asyncio
 import json
 import logging
-from typing import Any, Dict, Optional, Set
+from typing import Any
 
 from robofang.core.orchestrator import OrchestrationClient
 from robofang.core.resonite_link import ResoniteLinkClient
@@ -27,18 +27,18 @@ logger = logging.getLogger("embodied_sentience")
 
 
 class SentientLoop:
-    def __init__(self, config: Optional[Dict[str, Any]] = None):
+    def __init__(self, config: dict[str, Any] | None = None):
         self.config = config or {}
         self.orchestrator = OrchestrationClient(config=self.config)
         self.resonite = ResoniteLinkClient(
             host=self.config.get("resonite_host", "localhost"),
             port=self.config.get("resonite_port", 4242),
         )
-        self._background_tasks: Set[asyncio.Task] = set()
+        self._background_tasks: set[asyncio.Task] = set()
         self.running = False
         self.perception_queue = asyncio.Queue()
 
-    async def _on_resonite_update(self, data: Dict[str, Any]):
+    async def _on_resonite_update(self, data: dict[str, Any]):
         """Callback for incoming Resonite world updates."""
         logger.info(f"PERCEIVE (Resonite): {data.get('type')} update received.")
         await self.perception_queue.put(
@@ -128,9 +128,7 @@ class SentientLoop:
 
         # 1. Update Resonite if connected
         if self.resonite.running:
-            await self.resonite.send_command(
-                "log", {"message": f"Sentient Decision: {cognition_results}"}
-            )
+            await self.resonite.send_command("log", {"message": f"Sentient Decision: {cognition_results}"})
             if "move" in cognition_results.lower():
                 await self.resonite.spawn_object("vbot_scout", {"x": 1.0, "y": 0, "z": 0})
 

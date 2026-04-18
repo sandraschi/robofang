@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
 import httpx
 
@@ -14,7 +14,7 @@ def get_bridge_url() -> str:
     return (os.getenv("ROBOFANG_BRIDGE_URL") or DEFAULT_BRIDGE_URL).rstrip("/")
 
 
-async def bridge_get(path: str, params: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+async def bridge_get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
     url = f"{get_bridge_url()}{path}"
     async with httpx.AsyncClient(timeout=30.0) as client:
         r = await client.get(url, params=params)
@@ -22,7 +22,7 @@ async def bridge_get(path: str, params: Optional[Dict[str, Any]] = None) -> Dict
         return r.json()
 
 
-async def bridge_post(path: str, json: Dict[str, Any]) -> Dict[str, Any]:
+async def bridge_post(path: str, json: dict[str, Any]) -> dict[str, Any]:
     url = f"{get_bridge_url()}{path}"
     async with httpx.AsyncClient(timeout=60.0) as client:
         r = await client.post(url, json=json)
@@ -30,7 +30,7 @@ async def bridge_post(path: str, json: Dict[str, Any]) -> Dict[str, Any]:
         return r.json()
 
 
-async def bridge_patch(path: str, json: Dict[str, Any]) -> Dict[str, Any]:
+async def bridge_patch(path: str, json: dict[str, Any]) -> dict[str, Any]:
     url = f"{get_bridge_url()}{path}"
     async with httpx.AsyncClient(timeout=30.0) as client:
         r = await client.patch(url, json=json)
@@ -38,7 +38,7 @@ async def bridge_patch(path: str, json: Dict[str, Any]) -> Dict[str, Any]:
         return r.json()
 
 
-async def fetch_status() -> Dict[str, Any]:
+async def fetch_status() -> dict[str, Any]:
     """GET /health; derive connector counts from health.connectors."""
     try:
         health = await bridge_get("/health")
@@ -59,7 +59,7 @@ async def fetch_status() -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-async def fetch_help() -> Dict[str, Any]:
+async def fetch_help() -> dict[str, Any]:
     """GET /api/help."""
     try:
         return await bridge_get("/api/help")
@@ -73,7 +73,7 @@ async def fetch_ask(
     use_rag: bool = True,
     subject: str = "guest",
     persona: str = "sovereign",
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """POST /ask."""
     try:
         return await bridge_post(
@@ -90,7 +90,7 @@ async def fetch_ask(
         return {"success": False, "error": str(e)}
 
 
-async def fetch_fleet() -> Dict[str, Any]:
+async def fetch_fleet() -> dict[str, Any]:
     """GET /fleet."""
     try:
         data = await bridge_get("/fleet")
@@ -99,10 +99,10 @@ async def fetch_fleet() -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-async def fetch_deliberations(limit: int = 50, since_id: Optional[int] = None) -> Dict[str, Any]:
+async def fetch_deliberations(limit: int = 50, since_id: int | None = None) -> dict[str, Any]:
     """GET /deliberations."""
     try:
-        params: Dict[str, Any] = {"limit": min(max(1, limit), 100)}
+        params: dict[str, Any] = {"limit": min(max(1, limit), 100)}
         if since_id is not None:
             params["since_id"] = since_id
         return await bridge_get("/deliberations", params=params)
@@ -110,7 +110,7 @@ async def fetch_deliberations(limit: int = 50, since_id: Optional[int] = None) -
         return {"success": False, "error": str(e)}
 
 
-async def fetch_system() -> Dict[str, Any]:
+async def fetch_system() -> dict[str, Any]:
     """GET /system — uptime, memory, connector states."""
     try:
         return await bridge_get("/system")
@@ -120,12 +120,12 @@ async def fetch_system() -> Dict[str, Any]:
 
 async def fetch_logs(
     limit: int = 50,
-    level: Optional[str] = None,
-    category: Optional[str] = None,
-) -> Dict[str, Any]:
+    level: str | None = None,
+    category: str | None = None,
+) -> dict[str, Any]:
     """GET /logs — bridge log ring buffer."""
     try:
-        params: Dict[str, Any] = {"limit": min(max(1, limit), 300)}
+        params: dict[str, Any] = {"limit": min(max(1, limit), 300)}
         if level:
             params["level"] = level
         if category:
@@ -135,7 +135,7 @@ async def fetch_logs(
         return {"success": False, "error": str(e)}
 
 
-async def fetch_hands() -> Dict[str, Any]:
+async def fetch_hands() -> dict[str, Any]:
     """GET /api/hands — autonomous hands status."""
     try:
         return await bridge_get("/api/hands")
@@ -143,7 +143,7 @@ async def fetch_hands() -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-async def fetch_routines() -> Dict[str, Any]:
+async def fetch_routines() -> dict[str, Any]:
     """GET /api/routines — stored routines (scheduling)."""
     try:
         return await bridge_get("/api/routines")
@@ -151,7 +151,7 @@ async def fetch_routines() -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-async def fetch_personas() -> Dict[str, Any]:
+async def fetch_personas() -> dict[str, Any]:
     """GET /personality/personas — council/personality names."""
     try:
         return await bridge_get("/personality/personas")
@@ -159,7 +159,7 @@ async def fetch_personas() -> Dict[str, Any]:
         return {"success": False, "error": str(e)}
 
 
-async def fetch_fleet_settings() -> Dict[str, Any]:
+async def fetch_fleet_settings() -> dict[str, Any]:
     """GET /api/settings/fleet — fleet config (e.g. GitHub owner)."""
     try:
         return await bridge_get("/api/settings/fleet")
@@ -170,7 +170,7 @@ async def fetch_fleet_settings() -> Dict[str, Any]:
 # ─── Agentic tasks (routines) CRUD ──────────────────────────────────────────
 
 
-async def fetch_routine(routine_id: str) -> Dict[str, Any]:
+async def fetch_routine(routine_id: str) -> dict[str, Any]:
     """GET /api/routines/{routine_id}."""
     try:
         return await bridge_get(f"/api/routines/{routine_id}")
@@ -180,12 +180,12 @@ async def fetch_routine(routine_id: str) -> Dict[str, Any]:
 
 async def create_routine_from_phrase(
     phrase: str,
-    report_email: Optional[str] = None,
+    report_email: str | None = None,
     run_now: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """POST /api/routines/from-phrase. run_now=True runs immediately and returns run_result (e.g. patrol report)."""
     try:
-        payload: Dict[str, Any] = {"phrase": phrase, "run_now": run_now}
+        payload: dict[str, Any] = {"phrase": phrase, "run_now": run_now}
         if report_email:
             payload["report_email"] = report_email
         return await bridge_post("/api/routines/from-phrase", payload)
@@ -193,7 +193,7 @@ async def create_routine_from_phrase(
         return {"success": False, "error": str(e)}
 
 
-async def run_routine(routine_id: str) -> Dict[str, Any]:
+async def run_routine(routine_id: str) -> dict[str, Any]:
     """POST /api/routines/{routine_id}/run."""
     try:
         return await bridge_post(f"/api/routines/{routine_id}/run", {})
@@ -203,16 +203,16 @@ async def run_routine(routine_id: str) -> Dict[str, Any]:
 
 async def update_routine(
     routine_id: str,
-    name: Optional[str] = None,
-    time_local: Optional[str] = None,
-    recurrence: Optional[str] = None,
-    action_type: Optional[str] = None,
-    params: Optional[Dict[str, Any]] = None,
-    enabled: Optional[bool] = None,
-) -> Dict[str, Any]:
+    name: str | None = None,
+    time_local: str | None = None,
+    recurrence: str | None = None,
+    action_type: str | None = None,
+    params: dict[str, Any] | None = None,
+    enabled: bool | None = None,
+) -> dict[str, Any]:
     """PATCH /api/routines/{routine_id}."""
     try:
-        payload: Dict[str, Any] = {}
+        payload: dict[str, Any] = {}
         if name is not None:
             payload["name"] = name
         if time_local is not None:
@@ -230,7 +230,7 @@ async def update_routine(
         return {"success": False, "error": str(e)}
 
 
-async def delete_routine(routine_id: str) -> Dict[str, Any]:
+async def delete_routine(routine_id: str) -> dict[str, Any]:
     """DELETE /api/routines/{routine_id}."""
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:

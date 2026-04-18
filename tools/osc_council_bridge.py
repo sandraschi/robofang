@@ -39,7 +39,9 @@ Usage
 import asyncio
 import logging
 import uuid
-from typing import Any, Dict, Optional
+from typing import Any
+
+from robofang.utils.security import get_secure_bind_address
 
 logger = logging.getLogger("RoboFang.osc_council_bridge")
 
@@ -53,8 +55,7 @@ try:
 except ImportError:
     _HAS_PYTHONOSC = False
     logger.warning(
-        "python-osc not installed. OSC council bridge will be unavailable. "
-        "Install with: uv pip install python-osc"
+        "python-osc not installed. OSC council bridge will be unavailable. Install with: uv pip install python-osc"
     )
 
 
@@ -62,9 +63,9 @@ except ImportError:
 # Internal state: pending round registry
 # ---------------------------------------------------------------------------
 
-_pending_rounds: Dict[str, asyncio.Future] = {}
-_listener_task: Optional[asyncio.Task] = None
-_listener_port: Optional[int] = None
+_pending_rounds: dict[str, asyncio.Future] = {}
+_listener_task: asyncio.Task | None = None
+_listener_port: int | None = None
 
 
 def _osc_response_handler(address: str, round_id: str, response: str):
@@ -90,7 +91,8 @@ async def _ensure_listener(listen_port: int = 9010) -> None:
     dispatcher = Dispatcher()
     dispatcher.map("/RoboFang/council/response", _osc_response_handler)
 
-    server = AsyncIOOSCUDPServer(("0.0.0.0", listen_port), dispatcher, asyncio.get_event_loop())
+    bind_address = get_secure_bind_address()
+    server = AsyncIOOSCUDPServer((bind_address, listen_port), dispatcher, asyncio.get_event_loop())
     transport, _protocol = await server.create_serve_endpoint()
     _listener_port = listen_port
 
@@ -117,7 +119,7 @@ async def query_osc_agent(
     prompt: str,
     timeout: float = 15.0,
     listen_port: int = 9010,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Send a council prompt to an OSC endpoint and wait for a response.
 
@@ -176,7 +178,7 @@ async def query_osc_agent(
             "agent": adjudicator,
             "round_id": round_id,
         }
-    except asyncio.TimeoutError:
+    except TimeoutError:
         _pending_rounds.pop(round_id, None)
         return {
             "success": False,
@@ -188,7 +190,7 @@ async def query_osc_agent(
         }
 
 
-def parse_osc_url(osc_url: str) -> Dict[str, Any]:
+def parse_osc_url(osc_url: str) -> dict[str, Any]:
     """
     Parse an OSC/Resonite adjudicator URL into connection parameters.
 

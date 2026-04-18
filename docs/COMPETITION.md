@@ -1,40 +1,38 @@
-# Comparison: RoboFang vs Competitors
+# Comparison: RoboFang (OpenClaw++) vs Competitors
 
-How RoboFang situates itself relative to OpenClaw and OpenFang.
-
----
-
-## Concept Focus
-
-| Project | Primary Focus | Methodology |
-|---------|---------------|-------------|
-| **OpenClaw** | **Communication** | Maximizing messaging channels and community plugins. |
-| **OpenFang** | **Infrastructure** | Building a secure, high-performance "Agent OS" in Rust. |
-| **RoboFang** | **Embodiment** | Bridging AI agents with physical/virtual robotics and a federated fleet. |
+In the April 2026 agentic landscape, RoboFang distinguishes itself through **Industrial Safety** and **Physical Agency**.
 
 ---
 
-## Feature Matrix
+## 🏗️ The 2026 Landscape
 
-| Capability | RoboFang | OpenClaw | OpenFang |
-|------------|:--------:|:--------:|:--------:|
-| Language | Python 3.12 | Node.js 22 | Rust |
-| Local-First | Primary | Secondary | Secondary |
-| Robotics (Physical) | ✅ Yes | ❌ No | ❌ No |
-| Robotics (Virtual) | ✅ Yes | ❌ No | ❌ No |
-| Multi-Model Debate | ✅ Yes | ⚠️ Limited | ❌ No |
-| MCP Federation | ✅ Yes | ⚠️ Partial | ⚠️ Partial |
-| Security Sandboxing | ⚠️ Logical | ⚠️ Logical | ✅ WASM |
+| Project | Focus | Posture | Embodiment |
+|---------|-------|---------|------------|
+| **OpenClaw (Legacy)** | Communication | Permissive / Chat-driven | None (Virtual only) |
+| **OpenFang (Rust)** | Systems | Secure / WASM | Industrial IoT |
+| **RoboFang (v1.8.0)** | **Sovereign Agency** | **Industrial / DTU-Gated** | **Bipedal (Bumi) & Yahboom** |
 
 ---
 
-## Strategic Advantages
+## 🛡️ Strategic Advantages of RoboFang v1.8.0
 
-### 1. The Embodiment Gap
-RoboFang is the only framework that treats **joint control**, **LiDAR point clouds**, and **VR world spawning** as first-class primitives.
+### 1. Deterministic Safety (OpenClaw++ Standard)
+Legacy OpenClaw relies on "one-shot" reasoning where an agent's hallucination can immediately impact the filesystem. RoboFang's **Enrich → Execute → Audit** pipeline ensures that every high-level action is staged in the **Dark Twin Universe (DTU)** and cryptographically audited by a separate **Satisficer** model before final commit.
 
-### 2. Zero Per-Token Research
-By prioritizing local Ollama inference, RoboFang enables low-cost, high-frequency research loops that are financially unsustainable on cloud-based frameworks.
+### 2. Physical & Virtual Embodiment
+While other frameworks focus on text manipulation or API calls, RoboFang treats **actuators** and **sensors** as first-class primitives.
+- **Bumi Biped Integration**: Specialized kinematics support for 1m-class humanoid robots.
+- **Yahboom Prototyping**: Immediate out-of-the-box support for the Yahboom baseline robotics stack.
+- **Resonite VR Bridge**: Participate in the Council of Dozens from within high-fidelity 3D environments.
 
-### 3. Federated Fleet
-Instead of "one server to rule them all", RoboFang orchestrates a fleet of specialized MCP servers, each providing a clean tool surface for a specific domain (Plex, Blender, Docker, etc.).
+### 3. Tailscale Sovereignty
+RoboFang eliminates the security risks of public-facing endpoints. By leveraging **Tailscale Secure Bindings**, your entire fleet is networked across a private, encrypted mesh. You can monitor your robot's logs from your phone without ever exposing your hub to the physical local network.
+
+---
+
+## 📊 Summary: Why v1.8.0?
+
+RoboFang is not just a chat interface for tools; it is an **Industrial Substrate**. It is designed for users who require:
+1.  **High-Value Reasoning**: Multi-model consensus for complex tasks.
+2.  **Safety Guarantees**: HMAC-signed specifications and DTU shadow staging.
+3.  **Physical Presence**: The ability to drive real-world hardware via the Noetix Bumi centerpiece.

@@ -145,7 +145,7 @@ def _load_manifest(root: Path) -> list[dict]:
     if not manifest.exists():
         return []
     try:
-        with open(manifest, "r", encoding="utf-8") as f:
+        with open(manifest, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         return data.get("hands", [])
     except Exception:

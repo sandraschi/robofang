@@ -1,9 +1,8 @@
 """RoboFang Agent Tools: Interaction with agents and Moltbook registration."""
 
-from typing import Any, Dict, Literal, Optional
+from typing import Any, Literal
 
 from fastmcp import Context, FastMCP
-
 from robofang.core.orchestrator import OrchestrationClient
 
 mcp = FastMCP("RoboFang-agent")
@@ -14,12 +13,12 @@ orchestrator = OrchestrationClient()
 async def fang_agent(
     ctx: Context,
     operation: Literal["register", "list", "get_feed", "post_journal"],
-    name: Optional[str] = None,
-    bio: Optional[str] = None,
-    personality: Optional[str] = None,
-    goals: Optional[str] = None,
-    content: Optional[str] = None,
-) -> Dict[str, Any]:
+    name: str | None = None,
+    bio: str | None = None,
+    personality: str | None = None,
+    goals: str | None = None,
+    content: str | None = None,
+) -> dict[str, Any]:
     """
     RoboFang agent and journal operations.
 

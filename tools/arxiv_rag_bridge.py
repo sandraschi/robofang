@@ -22,7 +22,6 @@ import logging
 import re
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Optional
 
 logger = logging.getLogger("RoboFang.arxiv_rag")
 
@@ -32,7 +31,7 @@ logger = logging.getLogger("RoboFang.arxiv_rag")
 # ---------------------------------------------------------------------------
 
 
-def _extract_with_pymupdf(path: Path) -> Optional[str]:
+def _extract_with_pymupdf(path: Path) -> str | None:
     """Extract plain text from a PDF using PyMuPDF (fitz). Best-effort."""
     try:
         import fitz  # PyMuPDF
@@ -54,7 +53,7 @@ def _extract_with_pymupdf(path: Path) -> Optional[str]:
     return None
 
 
-def _extract_with_pdfminer(path: Path) -> Optional[str]:
+def _extract_with_pdfminer(path: Path) -> str | None:
     """Extract plain text using pdfminer.six. Slower but more robust."""
     try:
         from pdfminer.high_level import extract_text
@@ -70,7 +69,7 @@ def _extract_with_pdfminer(path: Path) -> Optional[str]:
     return None
 
 
-def _extract_plain_text_sidecar(path: Path) -> Optional[str]:
+def _extract_plain_text_sidecar(path: Path) -> str | None:
     """Fall back to a .txt sidecar file if it exists next to the PDF."""
     txt_path = path.with_suffix(".txt")
     if txt_path.exists():
@@ -90,14 +89,9 @@ def extract_text_from_pdf(path: Path) -> str:
         if result:
             return result
     # Hard fallback — at least give the title
-    logger.error(
-        f"No PDF extraction backend available for {path.name}. "
-        "Install PyMuPDF: `uv pip install pymupdf`"
-    )
+    logger.error(f"No PDF extraction backend available for {path.name}. Install PyMuPDF: `uv pip install pymupdf`")
     return (
-        f"## Extraction Failed\n\n"
-        f"Could not extract text from `{path.name}`. "
-        "Install PyMuPDF or pdfminer.six and retry."
+        f"## Extraction Failed\n\nCould not extract text from `{path.name}`. Install PyMuPDF or pdfminer.six and retry."
     )
 
 
@@ -108,7 +102,7 @@ def extract_text_from_pdf(path: Path) -> str:
 _ARXIV_ID_RE = re.compile(r"(\d{4}\.\d{4,5})(v\d+)?")
 
 
-def _guess_arxiv_id(path: Path) -> Optional[str]:
+def _guess_arxiv_id(path: Path) -> str | None:
     """Try to extract arXiv ID from filename."""
     m = _ARXIV_ID_RE.search(path.stem)
     return m.group(1) if m else None
@@ -125,7 +119,7 @@ def _truncate(text: str, max_chars: int = 800) -> str:
 # ---------------------------------------------------------------------------
 
 
-def parse_arxiv_paper(file_path: str, extra_tags: Optional[List[str]] = None) -> Dict:
+def parse_arxiv_paper(file_path: str, extra_tags: list[str] | None = None) -> dict:
     """
     Extract semantic content from an arXiv PDF and structure it for ADN ingestion.
     Returns a dict with title, content (markdown), tags, and metadata.
@@ -200,7 +194,7 @@ def parse_arxiv_paper(file_path: str, extra_tags: Optional[List[str]] = None) ->
 # ---------------------------------------------------------------------------
 
 
-def push_to_adn(data: Dict, folder: str = "research/arxiv", dry_run: bool = False) -> None:
+def push_to_adn(data: dict, folder: str = "research/arxiv", dry_run: bool = False) -> None:
     """
     Push structured paper data to Advanced Memory (ADN) as a note.
 
@@ -276,9 +270,7 @@ def push_to_adn(data: Dict, folder: str = "research/arxiv", dry_run: bool = Fals
 def main():
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    parser = argparse.ArgumentParser(
-        description="RoboFang ArXiv RAG Bridge — parse PDF and push to ADN memory"
-    )
+    parser = argparse.ArgumentParser(description="RoboFang ArXiv RAG Bridge — parse PDF and push to ADN memory")
     parser.add_argument("path", help="Path to the arXiv PDF file")
     parser.add_argument(
         "--dry-run",

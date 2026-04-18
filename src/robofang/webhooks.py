@@ -8,7 +8,6 @@ Triggers re-scans, alerts, and HRI reactions.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks
 from pydantic import BaseModel
@@ -21,8 +20,8 @@ router = APIRouter(prefix="/hooks")
 
 class WebhookPayload(BaseModel):
     event: str
-    data: Optional[dict] = None
-    secret: Optional[str] = None
+    data: dict | None = None
+    secret: str | None = None
 
 
 @router.post("/repo")
@@ -59,7 +58,5 @@ async def hook_audit_signoff(payload: WebhookPayload, background_tasks: Backgrou
     logger.info("Audit sign-off hook triggered")
     op_id = payload.data.get("operation_id", "Unknown")
     status = payload.data.get("status", "pending")
-    background_tasks.add_task(
-        notify, f"🗳️ **Audit Sign-off**: Op `{op_id}` status set to `{status}`."
-    )
+    background_tasks.add_task(notify, f"🗳️ **Audit Sign-off**: Op `{op_id}` status set to `{status}`.")
     return {"success": True, "action": "recorded"}
