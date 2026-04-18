@@ -1,6 +1,6 @@
-# Installation & Deployment (v1.8.0)
-
-Follow these steps to deploy the **OpenClaw++** industrial stack on your sovereign machine.
+1: # Installation & Deployment (v1.8.0)
+2: 
+3: Follow these steps to deploy the RoboFang stack on your local machine.
 
 ---
 

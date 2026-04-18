@@ -5,22 +5,22 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 
 ---
 
-## [1.8.0] — 2026-04-18 "OpenClaw++ Industrialization"
+## [1.8.0] — 2026-04-18 "OpenClaw++ Transition"
 
 ### Added
-- **Embodiment Centerpiece**: Established **Noetix Bumi Android** (1m biped) as the primary fleet centerpiece. Created specialized `Hand` controllers for Bumi and Yahboom robots.
-- **Mission Loop (3-Phase)**: Implemented the "OpenClaw++" reasoning pipeline: **Enrich (Foreman)** → **Execute (Labor)** → **Audit (Satisficer)**.
+- **Embodied Agency**: Established **Noetix Bumi Android** (1m biped) as the primary centerpiece for physical agency.
+- **Mission Loop (3-Phase)**: Implemented a robust reasoning pipeline: **Enrich (Foreman)** → **Execute (Labor)** → **Audit (Satisficer)**.
 - **Dark Twin Universe (DTU)**: Filesystem shadow proxy for pre-flight change staging (`core/dtu.py`).
 - **Bastio Moat**: Integrated HMAC-SHA256 signing for Foreman specifications; plans are now cryptographically verified before execution.
 - **Secure Bindings**: Dynamic Tailscale IP detection (`robofang.utils.security`); services now bind to the secure private network by default instead of `0.0.0.0`.
 - **Escalation Service**: Programmatic human intervention requests via the new `Escalator` plugin.
-- **Observability**: Prometheus metrics (`/metrics`) for real-time fleet health and cohesion tracking.
-- **Ruff Security Audit**: Resolved 121 security-critical warnings (S603, S607, S104) and refactored subprocess calls for absolute path safety.
+- **Observability**: Prometheus metrics (`/metrics`) for real-time fleet health tracking.
+- **Ruff Security Audit**: Resolved 100+ security-critical warnings and refactored subprocess calls for absolute path safety.
 
 ### Changed
 - **Package Management**: Standardized on `uv` for all development and deployment workflows.
 - **Architecture**: Refactored `OrchestrationClient` to unify mission processing via the DTU/Bastio pipeline.
-- **Documentation**: Overhauled README and technical docs for "OpenClaw++" standards.
+- **Documentation**: Overhauled README and technical docs for v1.8.0.
 
 ---
 
