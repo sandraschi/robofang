@@ -1,0 +1,124 @@
+{
+  "hands": {
+    "blender-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\blender-mcp",
+      "installed": false
+    },
+    "gimp-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\gimp-mcp",
+      "installed": false
+    },
+    "rustdesk-mcp": {
+      "fastmcp_version": "3.1",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\rustdesk-mcp",
+      "installed": true
+    },
+    "plex-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\plex-mcp",
+      "installed": false
+    },
+    "caliber-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\caliber-mcp",
+      "installed": false
+    },
+    "noetix-bumi-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\noetix-bumi-mcp",
+      "installed": false
+    },
+    "daw-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\daw-mcp",
+      "installed": false
+    },
+    "svg-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\svg-mcp",
+      "installed": false
+    },
+    "robotics-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\robotics-mcp",
+      "installed": false
+    },
+    "vrchat-mcp": {
+      "fastmcp_version": "3.1",
+      "mcpb_present": true,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\vrchat-mcp",
+      "installed": true
+    },
+    "avatar-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\avatar-mcp",
+      "installed": false
+    },
+    "virtualization-mcp": {
+      "fastmcp_version": "3.1",
+      "mcpb_present": true,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\virtualization-mcp",
+      "installed": true
+    },
+    "advanced-memory-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\advanced-memory-mcp",
+      "installed": false
+    },
+    "osc-mcp": {
+      "fastmcp_version": "not_found",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\osc-mcp",
+      "installed": true
+    },
+    "ring-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\ring-mcp",
+      "installed": false
+    },
+    "tapo-camera-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\tapo-camera-mcp",
+      "installed": false
+    },
+    "kyutai-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\kyutai-mcp",
+      "installed": false
+    },
+    "autohotkey-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\autohotkey-mcp",
+      "installed": false
+    },
+    "speech-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\speech-mcp",
+      "installed": false
+    },
+    "worldlabs-mcp": {
+      "fastmcp_version": "not_scanned",
+      "mcpb_present": false,
+      "path": "D:\\Dev\\repos\\robofang\\hands\\worldlabs-mcp",
+      "installed": false
+    }
+  }
+}

@@ -2,6 +2,11 @@
 
 **A Comprehensive Orchestration Substrate for Agentic Fleets and Physical Agency.**
 
+> [!IMPORTANT]
+> **Canonical Documentation**
+> The core design, integration specs, and standard operating procedures for RoboFang have been migrated to the `mcp-central-docs` repository. 
+> Please see `mcp-central-docs/projects/robofang` for the canonical knowledge base.
+
 ---
 
 [![Status: Alpha](https://img.shields.io/badge/Status-Alpha-red.svg)](README.md)
@@ -45,11 +50,9 @@ uv run python -m robofang.main
 ```
 
 ## 📖 Documentation
-- [**Installation Guide**](docs/INSTALLATION.md) — UV, Tailscale, and hardware setup.
-- [**Architecture**](docs/ARCHITECTURE.md) — The mission loop and service topology.
-- [**Advanced Features**](docs/ADVANCED_FEATURES.md) — DTU, Hmac-Signing, and agent hierarchies.
-- [**Robotics & Physical Agency**](docs/ROBOTICS.md) — Factual deep-dive into the Bumi breakthrough.
-- [**Competitive Analysis**](docs/COMPETITION.md) — RoboFang vs. other orchestration frameworks.
+> [!NOTE]
+> Detailed documentation is natively managed in the `mcp-central-docs` Fleet standard.
+> See `mcp-central-docs/projects/robofang/` for detailed architectural plans, guides, and integration information.
 
 ---
 *Engineering for sovereign agency. Every line of code is a step towards physical presence.*

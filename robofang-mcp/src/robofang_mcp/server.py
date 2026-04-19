@@ -282,144 +282,112 @@ async def robofang_deliberations(
 
 
 @mcp.tool()
-async def robofang_task_list() -> dict[str, Any]:
-    """
-    List all RoboFang agentic tasks (routines): scheduled actions like yahboom patrol, dawn patrol.
-
-    Returns:
-        dict: success; routines (list of {id, name, time_local, recurrence, action_type, enabled, last_run}).
-    """
-    return await fetch_routines()
-
-
-@mcp.tool()
-async def robofang_task_get(
-    routine_id: Annotated[str, Field(description="Routine id from robofang_task_list.")],
-) -> dict[str, Any]:
-    """
-    Get a single agentic task (routine) by id.
-
-    Returns:
-        dict: success; routine (id, name, time_local, recurrence, action_type, enabled, last_run, ...) or error.
-    """
-    return await fetch_routine(routine_id)
-
-
-@mcp.tool()
-async def robofang_task_create_from_phrase(
-    phrase: Annotated[
+async def robofang_tasks(
+    operation: Annotated[
         str,
-        Field(
-            description="Natural language task, e.g. 'yahboom robot patrol 7am daily', 'dawn patrol and report anomalies'."
-        ),
+        Field(description="Operation to perform: list, get, create_from_phrase, run_from_phrase, run, update, delete"),
     ],
-    report_email: Annotated[str | None, Field(description="Optional email for report delivery.")] = None,
-    run_now: Annotated[bool, Field(description="If true, run the task immediately and return run result.")] = False,
-) -> dict[str, Any]:
-    """
-    Create an agentic task from natural language. Bridge parses into name, time, recurrence, action_type.
-
-    Returns:
-        dict: success; created routine (id, name, ...) or, if run_now, run result (e.g. patrol report). On failure error.
-    """
-    return await create_routine_from_phrase(phrase, report_email=report_email, run_now=run_now)
-
-
-@mcp.tool()
-async def robofang_task_run_from_phrase(
+    routine_id: Annotated[str | None, Field(description="Routine id needed for get, run, update, delete")] = None,
     phrase: Annotated[
-        str,
-        Field(description="Natural language task to run now, e.g. 'start yahboom robot patrol and report anomalies'."),
-    ],
-    report_email: Annotated[str | None, Field(description="Optional email for report delivery.")] = None,
+        str | None, Field(description="Natural language task phrasing needed for create_from_phrase, run_from_phrase")
+    ] = None,
+    report_email: Annotated[str | None, Field(description="Optional email for report delivery")] = None,
+    run_now: Annotated[bool, Field(description="Used in create_from_phrase")] = False,
+    name: Annotated[str | None, Field(description="New name for update")] = None,
+    time_local: Annotated[str | None, Field(description="New local time for update")] = None,
+    recurrence: Annotated[str | None, Field(description="New recurrence for update")] = None,
+    action_type: Annotated[str | None, Field(description="New action_type for update")] = None,
+    enabled: Annotated[bool | None, Field(description="Enable or disable for update")] = None,
 ) -> dict[str, Any]:
     """
-    Start an agentic task from natural language and report back. Creates task if needed, runs now.
-
-    Returns:
-        dict: success; run result (patrol output, report, etc.) or error.
+    Manage RoboFang agentic tasks (routines). Uses FastMCP 3.2 Portmanteau pattern.
     """
-    return await create_routine_from_phrase(phrase, report_email=report_email, run_now=True)
+    if operation == "list":
+        return await fetch_routines()
+    elif operation == "get":
+        if not routine_id:
+            return {"error": "routine_id required for get"}
+        return await fetch_routine(routine_id)
+    elif operation == "create_from_phrase":
+        if not phrase:
+            return {"error": "phrase required for create_from_phrase"}
+        return await create_routine_from_phrase(phrase, report_email=report_email, run_now=run_now)
+    elif operation == "run_from_phrase":
+        if not phrase:
+            return {"error": "phrase required for run_from_phrase"}
+        return await create_routine_from_phrase(phrase, report_email=report_email, run_now=True)
+    elif operation == "run":
+        if not routine_id:
+            return {"error": "routine_id required for run"}
+        return await bridge_run_routine(routine_id)
+    elif operation == "update":
+        if not routine_id:
+            return {"error": "routine_id required for update"}
+        return await bridge_update_routine(
+            routine_id,
+            name=name,
+            time_local=time_local,
+            recurrence=recurrence,
+            action_type=action_type,
+            enabled=enabled,
+        )
+    elif operation == "delete":
+        if not routine_id:
+            return {"error": "routine_id required for delete"}
+        return await bridge_delete_routine(routine_id)
+    else:
+        return {"error": f"Unknown operation: {operation}"}
 
 
 @mcp.tool()
-async def robofang_task_run(
-    routine_id: Annotated[str, Field(description="Routine id from robofang_task_list.")],
+async def robofang_bootstrap(
+    operation: Annotated[str, Field(description="Operation to perform: check, guide")],
+    include_ide: Annotated[bool, Field(description="If true, include IDE steps for guide")] = True,
 ) -> dict[str, Any]:
     """
-    Run an existing agentic task (routine) by id once.
-
-    Returns:
-        dict: success; run result (e.g. patrol report) or error.
-    """
-    return await bridge_run_routine(routine_id)
-
-
-@mcp.tool()
-async def robofang_task_update(
-    routine_id: Annotated[str, Field(description="Routine id to update.")],
-    name: Annotated[str | None, Field(description="New name; omit to keep current.")] = None,
-    time_local: Annotated[str | None, Field(description="New local time; omit to keep current.")] = None,
-    recurrence: Annotated[str | None, Field(description="New recurrence; omit to keep current.")] = None,
-    action_type: Annotated[str | None, Field(description="New action_type; omit to keep current.")] = None,
-    enabled: Annotated[bool | None, Field(description="Enable or disable; omit to keep current.")] = None,
-) -> dict[str, Any]:
-    """
-    Update an agentic task (routine) by id. Pass only fields to change.
-
-    Returns:
-        dict: success; updated routine or error.
-    """
-    return await bridge_update_routine(
-        routine_id,
-        name=name,
-        time_local=time_local,
-        recurrence=recurrence,
-        action_type=action_type,
-        enabled=enabled,
-    )
-
-
-@mcp.tool()
-async def robofang_task_delete(routine_id: str) -> dict[str, Any]:
-    """
-    Delete an agentic task (routine) by id.
-
-    Returns:
-        dict: success or error.
-    """
-    return await bridge_delete_routine(routine_id)
-
-
-@mcp.tool()
-async def robofang_bootstrap_check() -> dict[str, Any]:
-    """
-    Check whether the RoboFang bridge is reachable and what state the stack is in.
-    Use from IDE before the bridge is running to see connection status and next steps.
-    Returns: bridge_url, bridge_reachable, service name/version if up, connectors count, and next_step hint.
+    Bootstrap RoboFang MCP bridge reachability and setup guide. Uses FastMCP 3.2 Portmanteau pattern.
     """
     from robofang_mcp._bridge import get_bridge_url
 
     bridge_url = get_bridge_url()
     out = await fetch_status()
-    if out.get("success") and out.get("running"):
+    bridge_up = out.get("success") and out.get("running")
+
+    if operation == "check":
+        if bridge_up:
+            return {
+                "success": True,
+                "bridge_url": bridge_url,
+                "bridge_reachable": True,
+                "service": out.get("service", "RoboFang-bridge"),
+                "version": out.get("version", "?"),
+                "connectors_online": out.get("connectors_online", 0),
+                "connectors_total": out.get("connectors_total", 0),
+                "next_step": "Bridge is up. Optional: start Sovereign Hub (port 10864).",
+            }
         return {
             "success": True,
             "bridge_url": bridge_url,
-            "bridge_reachable": True,
-            "service": out.get("service", "RoboFang-bridge"),
-            "version": out.get("version", "?"),
-            "connectors_online": out.get("connectors_online", 0),
-            "connectors_total": out.get("connectors_total", 0),
-            "next_step": "Bridge is up. Optional: start the Sovereign Hub (port 10864), run this MCP server for IDE access, or use robofang_bootstrap_guide for a full setup checklist.",
+            "bridge_reachable": False,
+            "error": out.get("error", "Not reachable"),
+            "next_step": "Start bridge: uv run python -m robofang.main",
         }
-    return {
-        "success": True,
-        "bridge_url": bridge_url,
-        "bridge_reachable": False,
-        "error": out.get("error", "Bridge not reachable"),
-        "next_step": "Start the RoboFang bridge: from the RoboFang repo run `uv run python -m robofang.main` or `robofang-bridge` (default port 10871). Set ROBOFANG_BRIDGE_URL if the bridge runs elsewhere.",
-    }
+    elif operation == "guide":
+        steps = [
+            {"order": 1, "title": "Start bridge", "action": "Run bridge (10871)"},
+            {"order": 2, "title": "Verify bridge", "action": "Call check"},
+        ]
+        if include_ide:
+            steps.extend(
+                [
+                    {"order": 3, "title": "Optional: Hub", "action": "Run hub (10864)"},
+                    {"order": 4, "title": "Optional: IDE", "action": "Add robofang-mcp"},
+                ]
+            )
+        current_step = 2 if bridge_up else 0
+        return {"success": True, "bridge_reachable": bridge_up, "steps": steps, "current_step": current_step}
+    else:
+        return {"error": f"Unknown operation: {operation}"}
 
 
 @mcp.tool()

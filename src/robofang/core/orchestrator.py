@@ -50,6 +50,7 @@ from robofang.core.routines import (
 from robofang.core.security import SecurityManager
 from robofang.core.security_secrets import SecretsManager
 from robofang.core.skills import SkillManager
+from robofang.core.speech import SpeechHandler
 from robofang.core.storage import RoboFangStorage
 
 logger = logging.getLogger(__name__)
@@ -152,6 +153,10 @@ class OrchestrationClient:
         self._init_connectors()
         adn_connector = self.connectors.get("advanced-memory")
         self.journal_bridge = JournalBridge(adn_connector)
+
+        speech_connector = self.connectors.get("speech")
+        self.speech_handler = SpeechHandler(speech_connector)
+
         self._tool_registry: dict[str, Any] = {}
         self._build_tool_bridge()
         # MCP per-tool discovery: mcp_<connector>_<tool_name> entries added by bridge after startup
@@ -315,6 +320,10 @@ class OrchestrationClient:
             n_conn,
             time.perf_counter() - t0,
         )
+
+        # Greet the commander
+        self.logger.info("RoboFang systems active. Greeting commander...")
+        await self.speak("Good morning, commander. RoboFang systems are active. Fleet readiness is nominal.")
 
         # Start periodic loops: fast (reconnect/pulse) and slow (inbox, etc.)
         self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
@@ -832,13 +841,31 @@ class OrchestrationClient:
             self.logger.warning("Satisficer FAILED. Staged files in DTU shadow will not be committed.")
             self._log_reasoning("DTU", "rollback", "Shadow staging abandoned due to audit failure.")
 
-        return {
+        response = {
             "success": True,
             "vibe": vibe,
             "spec": spec,
             "results": results,
             "audit": audit,
         }
+
+        # PHASE 5: PERSIST (MemOps)
+        if self.journal_bridge and audit.get("passed"):
+            self.logger.info("Promoting mission outcome to MemOps knowledge graph...")
+            await self.journal_bridge.promote_to_adn(
+                {
+                    "content": f"Mission: {vibe}\nResults: {results[:500]}",
+                    "tags": ["mission_success", "council_decision"],
+                }
+            )
+
+        return response
+
+    async def speak(self, text: str) -> bool:
+        """Unified TTS output for the orchestrator."""
+        if self.speech_handler:
+            return await self.speech_handler.speak(text)
+        return False
 
     async def update_routing(self, channel: str, agent: str) -> bool:
         """Updates the routing topology in memory and persists to federation_map.json."""

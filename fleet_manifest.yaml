@@ -125,10 +125,15 @@ hands:
   - id: advanced-memory-mcp
     name: Advanced Memory Hand
     category: Knowledge
-    description: RAG and knowledge graph for persistent context.
+    potassium_score: 9.9
+    description: >
+      The sovereign memory substrate. Persistent knowledge graph (LanceDB + vector
+      RAG), Zettelkasten-style note system, Obsidian/Notion/Joplin import/export,
+      and full agentic context retrieval. The single source of truth for all fleet
+      sessions, research artifacts, and cross-session continuity.
     repo_url: https://github.com/sandraschi/advanced-memory-mcp
     install_script: start.ps1
-    tags: ["RAG", "Knowledge", "Memory"]
+    tags: ["RAG", "Knowledge", "Memory", "LanceDB", "Zettelkasten"]
 
   - id: osc-mcp
     name: OSC Hand
@@ -177,3 +182,29 @@ hands:
     repo_url: https://github.com/sandraschi/autohotkey-mcp
     install_script: start.ps1
     tags: ["Automation", "Windows", "AHK"]
+
+  - id: speech-mcp
+    name: Polyglot Speech Hand
+    category: Voice
+    potassium_score: 9.6
+    description: >
+      The ears and voice of the fleet. Offline-first multilingual TTS (Kokoro,
+      Edge-TTS, 35+ languages), openWakeWord wake-word detection, neural language
+      selector, and live STT Mission Control dashboard. Zero cloud dependency —
+      all inference runs locally on your hardware.
+    repo_url: https://github.com/sandraschi/speech-mcp
+    install_script: web/start.bat
+    tags: ["Speech", "TTS", "STT", "Wake Word", "Offline", "Polyglot"]
+
+  - id: worldlabs-mcp
+    name: World Labs Spark Hand
+    category: Creative
+    potassium_score: 9.4
+    description: >
+      Immersive spatial intelligence. Generate navigable 3D Gaussian splat worlds
+      from text, images, videos, or multi-image captures using the World Labs
+      Marble API. Persistent scene baking, art gallery browser, Plex cinema
+      integration, and in-world Sovereign Command Console.
+    repo_url: https://github.com/sandraschi/worldlabs-mcp
+    install_script: webapp/start.ps1
+    tags: ["XR", "Spark", "3D", "Gaussian Splat", "Spatial AI"]

@@ -228,18 +228,55 @@ class ReasoningEngine:
         model: str = "llama3",
         max_turns: int = 5,
         use_native_tools: bool = True,
+        max_history_messages: int = 6,
     ) -> dict[str, Any]:
         """
         Agentic reasoning loop. Dispatches to native (JSON) or legacy (XML)
         based on configuration. Default: Native (v12.6).
+
+        Args:
+            max_history_messages: Maximum number of mid-conversation messages to
+                retain in the native loop (sliding window). Base system + user
+                prompts are always preserved. Set to 0 to disable.
         """
         if use_native_tools:
             try:
-                return await self._reason_and_act_native(prompt, tool_executor, tools, model, max_turns)
+                return await self._reason_and_act_native(
+                    prompt, tool_executor, tools, model, max_turns, max_history_messages
+                )
             except Exception as e:
                 logger.error(f"Native tool-calling failed, falling back to legacy: {e}")
 
         return await self._reason_and_act_legacy(prompt, tool_executor, tools, model, max_turns)
+
+    @staticmethod
+    def _apply_sliding_window(messages: list[dict[str, Any]], max_history: int) -> list[dict[str, Any]]:
+        """
+        Prune the mid-conversation message history to prevent context exhaustion.
+
+        The first two messages (system prompt + initial user request) are always
+        preserved as the "anchor". Only the middle turn messages are subject to
+        eviction, keeping the most recent ``max_history`` entries.
+
+        Args:
+            messages: Full message list (system, user, assistant, tool, ...).
+            max_history: Maximum number of mid-conversation messages to retain.
+
+        Returns:
+            Pruned message list.
+        """
+        if max_history <= 0 or len(messages) <= 2 + max_history:
+            return messages  # Nothing to prune
+
+        anchor = messages[:2]  # [system, initial-user]
+        middle = messages[2:]  # everything after the anchor
+        pruned_middle = middle[-max_history:]  # keep newest N only
+        dropped = len(middle) - len(pruned_middle)
+        logger.info(
+            f"[SlidingWindow] Context pruned: dropped {dropped} message(s), "
+            f"retaining {len(pruned_middle)}/{len(middle)} mid-turn messages."
+        )
+        return anchor + pruned_middle
 
     async def _reason_and_act_native(
         self,
@@ -248,11 +285,12 @@ class ReasoningEngine:
         tools: list[dict[str, Any]],
         model: str,
         max_turns: int,
+        max_history_messages: int = 6,
     ) -> dict[str, Any]:
         """
-        Native Ollama tool-calling loop (JSON-based).
+        Native Ollama tool-calling loop (JSON-based) with sliding window context management.
         """
-        messages = [
+        messages: list[dict[str, Any]] = [
             {
                 "role": "system",
                 "content": (
@@ -263,25 +301,29 @@ class ReasoningEngine:
             {"role": "user", "content": prompt},
         ]
         full_trail = []
-        executed_actions = set()
+        executed_actions: set[str] = set()
+        content = ""
 
         for turn in range(max_turns):
-            logger.info(f"Native ReAct Loop: Turn {turn + 1}/{max_turns}")
+            # ── Sliding Window ────────────────────────────────────────────────
+            if max_history_messages > 0:
+                messages = self._apply_sliding_window(messages, max_history_messages)
+            # ─────────────────────────────────────────────────────────────────
+
+            logger.info(f"Native ReAct Loop: Turn {turn + 1}/{max_turns} | ctx={len(messages)} msgs")
             resp = await self.chat(messages, tools=tools, model=model)
             if not resp["success"]:
                 return resp
 
             message = resp["message"]
-
             content = message.get("content", "")
-
             tool_calls = message.get("tool_calls", [])
 
             full_trail.append({"turn": turn, "content": content, "tool_calls": tool_calls})
             messages.append(message)
 
             if not tool_calls:
-                # No more tools called, assume completion
+                # No more tools called — objective complete
                 return {"success": True, "response": content, "trail": full_trail}
 
             for tool_call in tool_calls:
@@ -289,7 +331,7 @@ class ReasoningEngine:
                 tool_name = func.get("name")
                 tool_args = func.get("arguments", {})
 
-                # Deduplication/Circular guard
+                # Deduplication / Circular-call guard
                 call_id = f"{tool_name}:{json.dumps(tool_args, sort_keys=True)}"
                 if call_id in executed_actions:
                     logger.warning(f"Continuous loop detected for {tool_name}. Aborting tool call.")
@@ -304,10 +346,9 @@ class ReasoningEngine:
                 executed_actions.add(call_id)
                 logger.info(f"Executing native tool: {tool_name}")
 
-                # Execute tool via Orchestrator
                 result = await tool_executor(tool_name, **tool_args)
 
-                tool_msg = {
+                tool_msg: dict[str, Any] = {
                     "role": "tool",
                     "content": json.dumps(result),
                     "name": tool_name,
