@@ -1,4 +1,4 @@
-# 🪝 RoboFang v1.8.0-alpha
+# 🪝 RoboFang v1.8.0 (Beta)
 
 **The Command Center for AI Agent Fleets and Real-World Robotics.**
 
@@ -9,14 +9,14 @@
 
 ---
 
-[![Status: Alpha](https://img.shields.io/badge/Status-Alpha-red.svg)](README.md)
+[![Status: Beta](https://img.shields.io/badge/Status-Beta-yellow.svg)](README.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![UV](https://img.shields.io/badge/Package_Manager-UV-orange.svg)](https://github.com/astral-sh/uv)
 [![Tailscale](https://img.shields.io/badge/Network-Tailscale-blue.svg)](https://tailscale.com)
 
 > [!WARNING]
-> RoboFang is currently in **Alpha Status**. Version v1.8.0 introduces significant architectural changes for physical integration and security. Expect rapid iteration and breaking changes.
+> RoboFang is currently in **Beta Status**. Version v1.8.0 introduces significant architectural changes for physical integration and security. Expect rapid iteration as we move towards a stable release.
 
 RoboFang is a secure hub that connects your AI agents (MCP servers) to the physical world. It provides a local-first environment where agents can safely control smart home devices, manage professional software tools, and operate robotic hardware like the **Noetix Bumi**. It prioritizes privacy, local execution, and safety.
 
