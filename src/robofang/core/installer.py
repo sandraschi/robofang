@@ -76,7 +76,7 @@ def _github_owner_repo(repo_url: str) -> tuple[str, str] | None:
         parts = path.split("/")
         if len(parts) >= 2:
             return (parts[0], parts[1])
-    except Exception:
+    except Exception:  # noqa: S110
         pass
     return None
 
@@ -150,7 +150,10 @@ class HandInstaller:
                 logger.error("gh not in PATH for %s", hand_id)
                 return {
                     "success": False,
-                    "error": "GitHub CLI (gh) not found in PATH. Install from https://cli.github.com/ and ensure gh is on PATH.",
+                    "error": (
+                        "GitHub CLI (gh) not found in PATH. "
+                        "Install from https://cli.github.com/ and ensure gh is on PATH."
+                    ),
                 }
 
             dep_err = _install_deps(target_dir)
@@ -196,7 +199,7 @@ class HandInstaller:
                             capture_output=True,
                             text=True,
                             timeout=INSTALL_SCRIPT_TIMEOUT,
-                            shell=True,
+                            shell=False,
                         )
                         if r.returncode != 0:
                             err = (r.stderr or r.stdout or "").strip() or f"exit {r.returncode}"
@@ -214,7 +217,10 @@ class HandInstaller:
             logger.error("gh or script not found for %s: %s", hand_id, e)
             return {
                 "success": False,
-                "error": "GitHub CLI (gh) or install script not found. Install gh from https://cli.github.com/ and ensure it is on PATH.",
+                "error": (
+                    "GitHub CLI (gh) or install script not found. Install gh from "
+                    "https://cli.github.com/ and ensure it is on PATH."
+                ),
             }
         except Exception as e:
             logger.exception("Installation failed for %s", hand_id)
@@ -232,7 +238,7 @@ class HandInstaller:
                 raise
         hands = list(data.get("hands", []))
         if any((h.get("id") == item.id) for h in hands):
-            raise ValueError("Hand '%s' already in manifest." % item.id)
+            raise ValueError(f"Hand '{item.id}' already in manifest.")
         hands.append(item.model_dump())
         data["hands"] = hands
         self.manifest_path.parent.mkdir(parents=True, exist_ok=True)

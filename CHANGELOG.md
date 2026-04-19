@@ -5,6 +5,20 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 
 ---
 
+## [1.8.0-alpha.2] — 2026-04-19 "Industrial Rescue & Security Integrity"
+
+### Added
+- **Autonomous Emergency Dispatch (AED)**: Implemented Level 4 environmental response logic (`core/responder.py`) with "Triple-Lock" robot verification (Sensor ➔ POV Snapshot ➔ VLM Analysis).
+- **Clean Telephony Bridge**: Integrated with the new modular **Telephony-MCP** (Asterisk/SIP) for high-fidelity, industrial-grade first responder notifications.
+- **Sovereign Trinity Protocol**: Adopted the **Ruff + Biome + Semgrep** security toolchain across the repository.
+- **Fleet Auditor**: Established `fleet_trinity_audit.py` in MCD to monitor health across 150+ repositories.
+
+### Fixed
+- **Installer Security (Critical)**: Remedied a `shell=True` injection vulnerability in the fleet installer (`core/installer.py`) found via Semgrep.
+- **Modernized Linting**: Resolved 168+ legacy syntax and type-hinting issues via Ruff.
+
+---
+
 ## [1.8.0-alpha.1] — 2026-04-18 "OpenClaw++ Transition"
 
 ### Added

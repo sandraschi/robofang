@@ -79,7 +79,8 @@ class HandsManager:
                                 )
                             except Exception as e:
                                 logger.warning(
-                                    f"Could not load specialized implementation for {definition.id}: {e}. Falling back to base Hand."
+                                    f"Could not load specialized implementation for {definition.id}: {e}. "
+                                    "Falling back to base Hand."
                                 )
 
                         if not hand:
@@ -113,7 +114,7 @@ class HandsManager:
         """The core heartbeat for all active hands."""
         while self.running:
             now = time.time()
-            for hand_id, hand in self.hands.items():
+            for _hand_id, hand in self.hands.items():
                 if hand.active:
                     # Check if it's time to pulse
                     if hand.next_run is None or now >= hand.next_run:

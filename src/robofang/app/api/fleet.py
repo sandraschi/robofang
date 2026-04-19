@@ -124,7 +124,7 @@ async def fleet_add_from_external(req: AddFromExternalRequest):
     try:
         orchestrator.installer.add_hand_to_manifest(item)
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        raise HTTPException(status_code=409, detail=str(e)) from e
 
     result = await orchestrator.onboard_hand(item.id)
     return {

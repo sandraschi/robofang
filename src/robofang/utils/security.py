@@ -30,7 +30,7 @@ def get_secure_bind_address() -> str:
     if tailscale_bin:
         try:
             # S603/S607: Use absolute path and no untrusted input
-            result = subprocess.run([tailscale_bin, "ip", "-4"], capture_output=True, text=True, check=False, timeout=2)
+            result = subprocess.run([tailscale_bin, "ip", "-4"], capture_output=True, text=True, check=False, timeout=2)  # noqa: S603
             if result.returncode == 0:
                 ts_ip = result.stdout.strip()
                 if ts_ip:

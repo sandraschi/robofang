@@ -94,4 +94,4 @@ async def system_config_reload():
         orchestrator.reload_config()
         return {"success": True, "message": "Configuration reloaded."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
