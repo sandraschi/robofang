@@ -1,6 +1,6 @@
 # 🪝 RoboFang v1.8.0-alpha
 
-**A Comprehensive Orchestration Substrate for Agentic Fleets and Physical Agency.**
+**The Command Center for AI Agent Fleets and Real-World Robotics.**
 
 > [!IMPORTANT]
 > **Canonical Documentation**
@@ -18,20 +18,21 @@
 > [!WARNING]
 > RoboFang is currently in **Alpha Status**. Version v1.8.0 introduces significant architectural changes for physical integration and security. Expect rapid iteration and breaking changes.
 
-RoboFang is a high-fidelity orchestration node designed to bridge local LLM intelligence with a federated fleet of MCP servers and robotic hardware. Built for sovereign control, it prioritizes local execution, cryptographic safety, and physical integration. v1.8.0 introduces the **OpenClaw++** mission loop to ensure deterministic tool use and auditing.
+RoboFang is a secure hub that connects your AI agents (MCP servers) to the physical world. It provides a local-first environment where agents can safely control smart home devices, manage professional software tools, and operate robotic hardware like the **Noetix Bumi**. It prioritizes privacy, local execution, and safety.
 
-## 🌟 The Breakthrough: Noetix Bumi Android
-v1.8.0 establishes the **Noetix Bumi Android** (1m biped) as the primary centerpiece for **Physical Agency**.
-- **iPhone-Priced Breakthrough**: At approximately $1,399, the Bumi delivers the first true mass-market humanoid substrate for agentic experimentation.
+## 🌟 Our favorite bot: Noetix Bumi Android
+v1.8.0 establishes the **Noetix Bumi Android** (1m biped) as a primary centerpiece for robotics experimentation.
+- **Accessible Robotics**: At approximately $1,399, the Bumi delivers the first true mass-market humanoid substrate for agentic experimentation.
 - **Hardware Integration**: High-fidelity control of Bumi's 21+ Degrees of Freedom and sensory array.
 - **Yahboom Baseline**: Full support for the Raspbot v2 platform for entry-level robotics and mapping.
 - **Actuator Mapping**: Modular controllers that standardize how agents interact with hardware manipulators.
 
-## 🛡️ Secure Reasoning: The Mission Loop
-RoboFang introduces a robust reasoning pipeline designed to prevent non-deterministic errors:
-1.  **Enrich (The Foreman)**: Generates high-resolution mission specifications with HMAC-SHA256 signing.
-2.  **Execute (The Labor)**: ReAct-based tool utilization within the **Dark Twin Universe (DTU)** shadow proxy.
-3.  **Audit (The Satisficer)**: Verifies mission outcomes against the signed specification before atomic commit.
+## 🛡️ Safe Automation: The Mission Loop
+To ensure your agents operate reliably and don't make mistakes, RoboFang uses a "Mission Loop" security pipeline. This three-step process ensures that every action is planned, tested, and checked:
+
+1.  **Define the Plan (The Foreman)**: First, the system analyzes your request and generates a detailed "blueprint" of exactly what should happen. This includes clear success criteria and safety boundaries so the agent knows exactly what the finished goal looks like.
+2.  **Execute in a Sandbox (The Labor)**: Instead of working directly on your system, the agent carries out its tasks inside a "Dark Twin" environment—a safe, isolated shadow of your files. This prevents any accidental damage or partial errors from affecting your real data.
+3.  **Audit the Results (The Satisficer)**: Finally, a secondary judge reviews the completed work. It compares the actual results against the original blueprint. If everything meets the quality standards, the changes are committed. If anything is wrong, the changes are discarded, keeping your system in a known safe state.
 
 ### Security Features
 - **Dark Twin Universe (DTU)**: A filesystem shadow proxy for staging and auditing changes before they impact the host.
