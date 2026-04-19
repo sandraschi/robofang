@@ -231,6 +231,16 @@
             "enabled": true,
             "mcp_backend": "http://localhost:10884",
             "description": "Bastio \u2014 Anti-prompt injection and input/output filtering"
+        },
+        "speech": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10851",
+            "description": "Speech / Polyglot Lab \u2014 advanced speech synthesis and wake word"
+        },
+        "worldlabs": {
+            "enabled": true,
+            "mcp_backend": "http://localhost:10853",
+            "description": "World Labs Spark \u2014 XR Hub, 3D world building"
         }
     },
     "domains": {
@@ -501,6 +511,14 @@
                     "avatar control"
                 ]
             },
+            "worldlabs": {
+                "path": "worldlabs-mcp",
+                "capabilities": [
+                    "XR hub",
+                    "persistent scene baking",
+                    "spark integration"
+                ]
+            },
             "vroidstudio": {
                 "path": "vroidstudio-mcp",
                 "capabilities": [
@@ -538,6 +556,14 @@
                 "capabilities": [
                     "prompt injection defense",
                     "inference filtering"
+                ]
+            },
+            "speech": {
+                "path": "speech-mcp",
+                "capabilities": [
+                    "openWakeWord",
+                    "text-to-speech",
+                    "language mapping"
                 ]
             }
         }

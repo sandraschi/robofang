@@ -62,6 +62,11 @@ class PluginManager:
             "git-github": "robofang.core.connectors.MCPBridgeConnector",
             "pywinauto": "robofang.core.connectors.MCPBridgeConnector",
             "alexa": "robofang.core.connectors.MCPBridgeConnector",
+            "speech": "robofang.core.connectors.MCPBridgeConnector",
+            "worldlabs": "robofang.core.connectors.MCPBridgeConnector",
+            "bastio": "robofang.core.connectors.MCPBridgeConnector",
+            "defenseclaw": "robofang.core.connectors.MCPBridgeConnector",
+            "openshell": "robofang.core.connectors.MCPBridgeConnector",
             # ── Media creators (via MCPBridgeConnector) ───────────────────────
             "blender": "robofang.core.connectors.MCPBridgeConnector",
             "gimp": "robofang.core.connectors.MCPBridgeConnector",

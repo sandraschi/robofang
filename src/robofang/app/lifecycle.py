@@ -77,6 +77,11 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    # Initialize Prometheus Metrics
+    from prometheus_fastapi_instrumentator import Instrumentator
+
+    Instrumentator().instrument(app).expose(app)
+
     # CORS
     app.add_middleware(
         CORSMiddleware,
