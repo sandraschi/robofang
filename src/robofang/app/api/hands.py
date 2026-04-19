@@ -70,7 +70,7 @@ async def hands_register(req: RegisterHandRequest):
         return {"success": True, "message": f"Hand {req.id} registered."}
     except Exception as e:
         logger.error("Failed to register hand %s: %s", req.id, e)
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/ask")

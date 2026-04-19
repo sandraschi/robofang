@@ -39,9 +39,11 @@ RoboFang is a secure hub that connects your AI agents (MCP servers) to the physi
 - **[Safety Logic](docs/SAFETY.md)**: How the Mission Loop prevents non-deterministic failures.
 - **[Dark Twin (DTU)](docs/SANDBOX_SPEC.md)**: Using filesystem shadows for safe staging.
 - **[Security Integrations](docs/SECURITY_INTEGRATIONS.md)**: Bastio (Anti-Injection) and DefenseClaw (Sandboxing).
+- **[Autonomous Emergency Dispatch (AED)](docs/SAFETY.md#aed)**: Level 4 industrial rescue response with Trinity verification.
 
 ### 🤖 Physical Agency (Robotics)
 - **[Robotics Overview](docs/ROBOTICS.md)**: Standardizing actuator mapping and motion control.
+- **[Robot Safety & Hazards](docs/ROBOT_SAFETY.md)**: Crucial protocols for protecting your physical space.
 - **[Noetix Bumi Android](docs/EMBODIED_SENTIENCE.md)**: Guide to operating the flagship 1m humanoid substrate.
 - **[Yahboom Baseline](docs/ROBOTICS.md#yahboom)**: Entry-level support for Raspbot and mapping platforms.
 - **[Snark T-800](docs/ROBOTICS_T_800.md)**: Decommissioned status and critical safety warnings.

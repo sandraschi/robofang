@@ -96,7 +96,7 @@ async def connectors_update_topology(topo_update: dict[str, Any]):
         orchestrator.update_topology({"connectors": topo_update})
         return {"success": True, "message": "Topology updated."}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/config")

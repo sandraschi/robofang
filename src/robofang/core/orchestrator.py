@@ -26,6 +26,7 @@ from robofang.core.openfang_adapter import resolve as openfang_resolve
 from robofang.core.personality import PersonalityEngine
 from robofang.core.plugins import PluginManager
 from robofang.core.reasoning import ReasoningEngine
+from robofang.core.responder import EmergencyResponder
 from robofang.core.routines import (
     create_routine as _create_routine,
 )
@@ -110,6 +111,8 @@ class OrchestrationClient:
         self.knowledge = KnowledgeEngine(storage=self.storage)
         self.memory = _OrchestratorMemory(storage=self.storage)
         self.hands = HandsManager(self)
+        self.responder = EmergencyResponder(self)
+        self._active_tasks: set[asyncio.Task] = set()
 
         # New Core Logic Extensions (RoboFang Evolution)
         # Installer paths: env wins; else cwd so install works wherever the bridge is started from.
@@ -128,7 +131,8 @@ class OrchestrationClient:
             manifest_path = cwd / "fleet_manifest.yaml"
             hands_base_dir = cwd / "hands"
             self.logger.info(
-                "Using installer paths from cwd: manifest=%s hands_dir=%s (set ROBOFANG_FLEET_MANIFEST and ROBOFANG_HANDS_DIR to override)",
+                "Using installer paths from cwd: manifest=%s hands_dir=%s "
+                "(set ROBOFANG_FLEET_MANIFEST and ROBOFANG_HANDS_DIR to override)",
                 manifest_path,
                 hands_base_dir,
             )
@@ -190,12 +194,18 @@ class OrchestrationClient:
         self._tool_registry["system_request_human_intervention"] = {
             "type": "system",
             "handler": self.escalator.request_help,
-            "description": "Request immediate human intervention/help. Use when stuck, blocked, or in case of critical error. Parameters: reason(str), context(dict).",
+            "description": (
+                "Request immediate human intervention/help. Use when stuck, blocked, "
+                "or in case of critical error. Parameters: reason(str), context(dict)."
+            ),
         }
         self._tool_registry["system_dtu_stage"] = {
             "type": "system",
             "handler": self.dtu.stage_change,
-            "description": "Stage a file modification in the DTU shadow proxy for auditing. Parameters: target_base(str), rel_path(str), content(str).",
+            "description": (
+                "Stage a file modification in the DTU shadow proxy for auditing. "
+                "Parameters: target_base(str), rel_path(str), content(str)."
+            ),
         }
         self._tool_registry["system_dtu_commit"] = {
             "type": "system",
@@ -325,9 +335,11 @@ class OrchestrationClient:
         self.logger.info("RoboFang systems active. Greeting commander...")
         await self.speak("Good morning, commander. RoboFang systems are active. Fleet readiness is nominal.")
 
-        # Start periodic loops: fast (reconnect/pulse) and slow (inbox, etc.)
+        # Start periodic loops: fast (reconnect/pulse), slow (inbox, etc.), and safety (AED)
         self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
         self.slow_task = asyncio.create_task(self._slow_loop())
+        self.safety_task = asyncio.create_task(self._safety_monitor_loop())
+
         t1 = time.perf_counter()
         await self.hands.start()
         self.logger.info("Orchestrator: hands.start done (%.2fs)", time.perf_counter() - t1)
@@ -342,9 +354,10 @@ class OrchestrationClient:
     async def stop(self):
         self.logger.info("Stopping Orchestrator...")
         self.running = False
-        for task_name, task in [
+        for _, task in [
             ("heartbeat", self.heartbeat_task),
             ("slow", self.slow_task),
+            ("safety", self.safety_task),
         ]:
             if task:
                 task.cancel()
@@ -483,6 +496,42 @@ class OrchestrationClient:
                 await asyncio.sleep(60)
         self.logger.info("[ORCHESTRATOR] Slow loop stopped.")
 
+    async def _safety_monitor_loop(self):
+        """High-frequency loop (10s) for critical AED (Autonomous Emergency Dispatch) monitoring."""
+        self.logger.info("[ORCHESTRATOR] Safety monitor loop started.")
+        while self.running:
+            try:
+                # 1. Poll Netatmo / Environmental Sensors for Level 4 Triggers
+                # We target sensors that might report the 180C threshold
+                netatmo = self.connectors.get("netatmo")  # Example connector name
+                if netatmo and getattr(netatmo, "active", False):
+                    # Call a discovery or health tool to get latest telemetry
+                    # In RoboFang, we use the hands_manager to call tools via the bridge
+                    try:
+                        # Hypothetical tool name from devices-mcp
+                        data = await self.hands.call_tool("mcp_devices-mcp_get_thermal_telemetry", {})
+                        if data and isinstance(data, dict):
+                            for sensor_id, val in data.items():
+                                if val >= 180:
+                                    # Trigger the responder
+                                    task = asyncio.create_task(
+                                        self.responder.handle_environmental_alert(
+                                            sensor_id=sensor_id, value=val, threshold=180
+                                        )
+                                    )
+                                    self._active_tasks.add(task)
+                                    task.add_done_callback(self._active_tasks.discard)
+                    except Exception as e:
+                        self.logger.debug(f"Safety poll fail (mcp_devices-mcp): {e}")
+
+                await asyncio.sleep(10)  # 10 second safety pulse
+            except asyncio.CancelledError:
+                break
+            except Exception as e:
+                self.logger.error(f"Safety monitor error: {e}")
+                await asyncio.sleep(10)
+        self.logger.info("[ORCHESTRATOR] Safety monitor loop stopped.")
+
     async def register_agent(self, body: dict[str, Any]) -> dict[str, Any]:
         """Register a new agent with Moltbook."""
         self.logger.info(f"Registering agent: {body.get('name')}")
@@ -541,7 +590,10 @@ class OrchestrationClient:
         self._log_reasoning(
             "Ask",
             "thought",
-            f"Ask started — difficulty {difficulty['level']} (score {difficulty['score']}), council={effective_council}.",
+            (
+                f"Ask started — difficulty {difficulty['level']} "
+                f"(score {difficulty['score']}), council={effective_council}."
+            ),
         )
 
         # 1. Prompt Refinement (Optional Phase 0)
@@ -632,7 +684,9 @@ class OrchestrationClient:
         if not await self.security.validate_action(tool_name, kwargs, orchestrator=self):
             return {
                 "success": False,
-                "error": f"SECURITY_REJECTION: DefenseClaw has blocked the action '{tool_name}' due to policy violation.",
+                "error": (
+                    f"SECURITY_REJECTION: DefenseClaw has blocked the action '{tool_name}' " "due to policy violation."
+                ),
             }
 
         if tool_name not in self._tool_registry:
@@ -685,13 +739,19 @@ class OrchestrationClient:
             self._log_reasoning(
                 "CouncilOfDozens",
                 "adjudication",
-                f"Tool: {tool_name} | Approved: {adjudication.get('approved')} | Rationale: {adjudication.get('rationale')}",
+                (
+                    f"Tool: {tool_name} | Approved: {adjudication.get('approved')} | "
+                    f"Rationale: {adjudication.get('rationale')}"
+                ),
             )
 
             if adjudication["success"] and not adjudication["approved"]:
                 return {
                     "success": False,
-                    "error": f"ADJUDICIAL_REJECTION: The Council of Dozens has rejected this action. Rationale: {adjudication['rationale']}",
+                    "error": (
+                        f"ADJUDICIAL_REJECTION: The Council of Dozens has rejected this action. "
+                        f"Rationale: {adjudication['rationale']}"
+                    ),
                 }
 
         tool = self._tool_registry[tool_name]

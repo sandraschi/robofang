@@ -42,7 +42,7 @@ class BaseVectorStore:
         embeddings = list(self.embedding_model.embed(contents))
 
         data = []
-        for doc, emb in zip(documents, embeddings):
+        for doc, emb in zip(documents, embeddings, strict=False):
             entry = {
                 "id": doc.get("id"),
                 "vector": emb.tolist(),

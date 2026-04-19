@@ -52,12 +52,24 @@ _HELP: dict[str, Any] = {
             "description": "MCP tools exposed by RoboFang (MCP & robots hub).",
             "topics": {
                 "robofang_status": "Health and fleet summary. Returns bridge status, connector counts, version.",
-                "robofang_help": "Multi-level help: call with no args for categories, category= for topics, category+topic= for detail.",
-                "robofang_ask": "Send a message to the orchestrator. use_council=True for Council of Dozens; use_rag=True for RAG context.",
+                "robofang_help": (
+                    "Multi-level help: call with no args for categories, category= for topics, "
+                    "category+topic= for detail."
+                ),
+                "robofang_ask": (
+                    "Send a message to the orchestrator. use_council=True for Council of Dozens; "
+                    "use_rag=True for RAG context."
+                ),
                 "robofang_fleet": "Fleet registry: connectors (live + config), domain agents, summary counts.",
                 "robofang_deliberations": "Recent reasoning log entries (Council/ReAct steps). limit=50.",
-                "robofang_agentic_workflow": "High-level goal; uses sampling to plan and run steps (ask, fleet_status, deliberations) to achieve the goal.",
-                "robofang_voice": "Voice relay to kyutai-mcp: voice turns, agentic briefings, Moshi service control, session history (MCP-to-MCP bridge).",
+                "robofang_agentic_workflow": (
+                    "High-level goal; uses sampling to plan and run steps (ask, fleet_status, "
+                    "deliberations) to achieve the goal."
+                ),
+                "robofang_voice": (
+                    "Voice relay to kyutai-mcp: voice turns, agentic briefings, Moshi service "
+                    "control, session history (MCP-to-MCP bridge)."
+                ),
             },
         },
         "council": {
@@ -66,14 +78,18 @@ _HELP: dict[str, Any] = {
                 "enrich": "Foreman: high-intelligence specification from raw prompt.",
                 "execute": "ReAct loop: tool utilization and execution.",
                 "audit": "Satisficer: post-execution verification against spec.",
-                "use_council": "Set use_council=True in robofang_ask to run a council synthesis instead of single-model ask.",
+                "use_council": (
+                    "Set use_council=True in robofang_ask to run a council synthesis instead " "of single-model ask."
+                ),
             },
         },
         "connection": {
             "description": "Connecting to the RoboFang Bridge and MCP.",
             "topics": {
                 "bridge": "Bridge runs on PORT (default 10871). Health: GET /health, fleet: GET /fleet.",
-                "mcp_sse": "MCP over SSE: connect to http://localhost:PORT/sse for Cursor/Claude. Same process as Bridge.",
+                "mcp_sse": (
+                    "MCP over SSE: connect to http://localhost:PORT/sse for Cursor/Claude. " "Same process as Bridge."
+                ),
                 "dashboard": "RoboFang Hub: port 10864 (or 10870). Real-time logs, deliberations, fleet control.",
             },
         },
@@ -219,7 +235,7 @@ async def robofang_fleet() -> dict[str, Any]:
                 "source": "live",
             }
         topology = _orchestrator.topology
-        for name, cfg in topology.get("connectors", {}).items():
+        for name, _cfg in topology.get("connectors", {}).items():
             if name not in live:
                 live[name] = {
                     "id": name,
@@ -230,7 +246,7 @@ async def robofang_fleet() -> dict[str, Any]:
                 }
         agents = []
         for domain_name, domain_entries in topology.get("domains", {}).items():
-            for agent_id, agent_cfg in domain_entries.items():
+            for agent_id, _agent_cfg in domain_entries.items():
                 agents.append(
                     {
                         "id": f"{domain_name}/{agent_id}",
@@ -279,7 +295,8 @@ async def robofang_deliberations(limit: int = 50) -> dict[str, Any]:
 async def robofang_agentic_workflow(goal: str, ctx: Context) -> str:
     """
     Achieve a high-level goal by planning and executing steps via the RoboFang hub (FastMCP 3.1 sampling).
-    Use for: "Summarize fleet status and suggest one improvement", "Ask the council how to secure the hub", "Get recent deliberations and summarize the last decision".
+    Use for: "Summarize fleet status and suggest one improvement", "Ask the council how to secure the hub",
+    "Get recent deliberations and summarize the last decision".
     The LLM will use robofang_status, robofang_ask, robofang_fleet, robofang_deliberations as sub-tools.
     """
     if _orchestrator is None:
@@ -303,9 +320,11 @@ async def robofang_agentic_workflow(goal: str, ctx: Context) -> str:
 
     system_prompt = (
         "You are an operator for the RoboFang MCP & robots hub. You have sub-tools: "
-        "status() for health and connector count; ask(message, use_council) to send a message (use_council=True for Council of Dozens); "
+        "status() for health and connector count; ask(message, use_council) to send a message "
+        "(use_council=True for Council of Dozens); "
         "fleet() for full fleet registry; deliberations(limit) for recent reasoning log. "
-        "Plan a short sequence of steps to achieve the user's goal. Execute the steps and then summarize what was done and the outcome."
+        "Plan a short sequence of steps to achieve the user's goal. Execute the steps and then "
+        "summarize what was done and the outcome."
     )
     try:
         result = await ctx.sample(
@@ -328,11 +347,18 @@ def robofang_quick_start(bridge_url: str = "http://localhost:10871") -> str:
     """Get step-by-step instructions to connect and use the RoboFang hub (Bridge + MCP)."""
     return f"""You are helping set up the RoboFang MCP & robots hub.
 
-1. Start the Bridge: from the RoboFang repo run `uv run python -m robofang.main` or `robofang-bridge` (default port 10871). Or set PORT=10867 and run the same.
-2. The RoboFang Hub runs separately on port 10864 (or 10870). It talks to the Bridge for fleet, logs, and deliberations.
-3. MCP clients (Cursor, Claude Desktop): connect via SSE to {bridge_url}/sse so the hub appears as an MCP server with tools robofang_status, robofang_help, robofang_ask, robofang_fleet, robofang_deliberations, robofang_agentic_workflow.
-4. Use robofang_status first to confirm the Bridge is up and connectors are online. Use robofang_ask for single questions; set use_council=True for Council of Dozens synthesis. Use robofang_agentic_workflow for multi-step goals.
-5. Help: robofang_help() for categories; robofang_help(category="tools") for tool list; robofang_help(category="council", topic="use_council") for detail."""
+1. Start the Bridge: from the RoboFang repo run `uv run python -m robofang.main` or `robofang-bridge`
+   (default port 10871). Or set PORT=10867 and run the same.
+2. The RoboFang Hub runs separately on port 10864 (or 10870). It talks to the Bridge for fleet,
+   logs, and deliberations.
+3. MCP clients (Cursor, Claude Desktop): connect via SSE to {bridge_url}/sse so the hub appears
+   as an MCP server with tools robofang_status, robofang_help, robofang_ask, robofang_fleet,
+   robofang_deliberations, robofang_agentic_workflow.
+4. Use robofang_status first to confirm the Bridge is up and connectors are online.
+   Use robofang_ask for single questions; set use_council=True for Council of Dozens synthesis.
+   Use robofang_agentic_workflow for multi-step goals.
+5. Help: robofang_help() for categories; robofang_help(category="tools") for tool list;
+   robofang_help(category="council", topic="use_council") for detail."""
 
 
 def robofang_council_workflow() -> str:
@@ -341,9 +367,12 @@ def robofang_council_workflow() -> str:
 
 1. Use robofang_status to ensure the hub is up.
 2. Use robofang_ask with use_council=True and a clear prompt that states the decision or synthesis you need (e.g. "Evaluate the security implications of enabling connector X" or "Draft a short specification for feature Y").
-3. The Council runs Enrich (Foreman spec) -> Execute (ReAct) -> Audit (Satisficer). Results appear in the response.
-4. Optionally call robofang_deliberations(limit=20) to inspect the reasoning log and then summarize the outcome for the user.
-5. For multi-step goals that mix status, ask, and deliberations, use robofang_agentic_workflow(goal="...") and describe the goal in natural language."""
+3. The Council runs Enrich (Foreman spec) -> Execute (ReAct) -> Audit (Satisficer). Results
+   appear in the response.
+4. Optionally call robofang_deliberations(limit=20) to inspect the reasoning log and then
+   summarize the outcome for the user.
+5. For multi-step goals that mix status, ask, and deliberations, use
+   robofang_agentic_workflow(goal="...") and describe the goal in natural language."""
 
 
 def robofang_voice_workflow() -> str:
@@ -358,7 +387,8 @@ def robofang_voice_workflow() -> str:
 4. For topic briefings: robofang_voice(operation='speak_boilerplate', topic='world_news', style='brief')
    - Topics: weather, world_news, ai_news, stock_market.
 5. Session history: robofang_voice(operation='sessions') to list, then (operation='session_history', session_id='...').
-6. The voice relay calls kyutai-mcp REST directly (no double-MCP overhead). Ensure kyutai-mcp webapp is running on port 10924."""
+6. The voice relay calls kyutai-mcp REST directly (no double-MCP overhead).
+   Ensure kyutai-mcp webapp is running on port 10924."""
 
 
 # ─── Entry Point ─────────────────────────────────────────────────────────────

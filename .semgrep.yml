@@ -1,0 +1,23 @@
+# .semgrep.yml
+rules:
+  - id: robofang-actuator-injection
+    patterns:
+      - pattern-either:
+          - pattern: |
+              subprocess.run(..., shell=True, ...)
+          - pattern: |
+              subprocess.Popen(..., shell=True, ...)
+    message: "Agentic actuator detected using shell=True. This is a critical security risk for autonomous agents."
+    severity: ERROR
+    languages: [python]
+
+  - id: robofang-vlm-prompt-hygiene
+    patterns:
+      - pattern: |
+          analyze_image(..., prompt="$PROMPT")
+      - metavariable-regex:
+          metavariable: "$PROMPT"
+          regex: ".*(ignore previous instructions|sudo|admin).*"
+    message: "Potential prompt injection pattern detected in VLM call."
+    severity: WARNING
+    languages: [python]
