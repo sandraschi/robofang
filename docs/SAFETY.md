@@ -1,39 +1,56 @@
-# robofang v2.0: Safety & Security Architecture
+# RoboFang Safety: Risk & Mitigation
 
-> [!IMPORTANT]
-> robofang v2.0 "Dark Integration" enforces a strict isolation and monitoring policy to ensure agentic autonomy does not compromise host stability or data integrity.
-
-## 1. DTU: Dark Twin Universe (The Safety Proxy)
-
-The **Dark Twin Universe (DTU)** is the primary isolation layer for Phase 2 (Execute) operations.
-
-- **Purpose**: Provides a high-fidelity "Shadow" environment where every file edit, terminal command, and tool call is intercepted and simulated against a twin state.
-- **Mechanism**: All sandboxed tasks are routed through the `DTU_PROXY_URL`. This proxy maintains a virtualized view of the repository, allowing the **Satisficer** to audit the results before they are "pushed" to the live universe.
-- **Safety Mode**: Standard in v2.0. Disabling DTU requires an explicit `safety_mode=False` override in the `SandboxDispatcher`.
-
-## 2. Bastion: Resource Quota Manager
-
-**Bastion** (`LocalBastionManager`) provides local resource protection.
-
-- **Monitoring**: Tracks CPU and RAM consumption of all fleet processes (Sandboxie, WSB, etc.).
-- **Enforcement**: Prevents "Recursion Toxification" or runaway processes from exhausting host resources.
-- **Quotas**: Standard limits are set to 80% CPU/RAM, with hard-kill triggers at 95% (Phase 5).
-
-## 3. Bastio: Policy Gateway
-
-**Bastio** is the logic gatekeeper at the edge of the fleet.
-
-- **Shadow Mode**: Acts as a "Passive Observer" during reasoning, logging intended actions without side effects.
-- **Enforce Mode**: In production execution, Bastio validates every tool call against the **Foreman's Specification** generated in Phase 1. 
-- **Signature Verification**: Future iterations will require cryptographic signing of specifications by the Foreman before Bastio allows execution.
-
-## 4. Federated Safety (Multi-Repo)
-
-When robofang operates across multiple repositories:
-1. Each repository root requires a local `Bastion` instance.
-2. The `Sovereign Dashboard` aggregates safety heartbeats from all active Bastions.
-3. Centralized `AGENT_PROTOCOLS.md` rules define the global "Right to Intervene" for the human operator.
+> [!CAUTION]
+> Safety is an active engineering process, not a passive state. This document defines the risks associated with autonomous agent orchestration and the specific technical mitigations implemented in RoboFang.
 
 ---
 
-*Refer to `sandbox_dispatcher.py` for implementation details on proxy routing and resource tracking.*
+## 1. Safety Pillars
+
+| Pillar | Technical Solution |
+|--------|-------------------|
+| **Hardened Boundaries** | [Taboo Protocol](TABOO_PROTOCOL.md) for restricted paths/commands. |
+| **Isolation** | [Sandbox Strategy](SANDBOX_SPEC.md) for destructive tool execution. |
+| **Supervision** | [Financial Bastion](FINANCIAL_BASTION.md) for cloud budget and loop breaking. |
+| **Integrity** | [Injection Shield](INJECTION_SHIELD.md) for taint tracking and fleet verification. |
+
+---
+
+## 2. Risk Matrix: Vulnerabilities & Mitigations
+
+| Risk | Impact | Technical Mitigation |
+|------|--------|-------------------|
+| **Destructive Agent** | Deletion of critical data (Inbox, system files). | **Taboo Protocol** blocks path/command patterns; **Sandbox** isolates tool-use. |
+| **Agentic Runaway** | Unbounded loops, high API bills, resource exhaustion. | **Financial Bastion** circuit breakers; **Supervisor** heartbeats. |
+| **Prompt Injection** | Adversarial takeover of agent logic via external content. | **Taint Tracking** in the [Injection Shield](INJECTION_SHIELD.md); Mandatory HITL (Human-in-the-Loop) for high-risk actions. |
+| **Supply Chain Poisoning** | Malicious code in an MCP fleet repository. | **Fleet Verification** heartbeat checks for unauthorized commits. |
+| **GPU Contention** | Out of Memory (OOM) failures or UI freezing. | **VRAM Orchestrator** in the [Model Economy](MODEL_ECONOMY.md); Priority-based queuing. |
+
+---
+
+## 3. The "Destructive Agent" Problem
+
+To prevent an agent from accidentally or maliciously deleting critical system folders (e.g., your Inbox or the root repository), RoboFang implements three levels of defense:
+
+1. **Level 1 (Taboo)**: The Bridge intercepts all command strings (e.g., `rm`, `delete`, `truncate`) and checks them against a hardcoded list of forbidden paths (e.g., `C:/Users/sandr/Inbox`). If a match is found, the command is blocked **before** it reaches the shell.
+2. **Level 2 (Shadow Filesystem)**: For any "Labor" task that modifies the filesystem, the agent is spawned in a **Windows Sandbox (.wsb)** with a cloned copy of the relevant files. The agent works in isolation.
+3. **Level 3 (Supervisor Approval)**: No change made in the Sandbox is committed to the "Live" filesystem without a manual approval of the diff in the **Sovereign Dashboard**.
+
+---
+
+## 4. Prompt Injection (Direct & Indirect)
+
+RoboFang treats all external data (Web, Email, Chat) as **Tainted**. 
+- **Direct Injection**: An agent receiving instructions directly from an untrusted source is prohibited from executing financial or destructive tools.
+- **Indirect Injection**: Data ingested by a "Perceive" tool (e.g., reading a webpage) is marked as `Tainted`. This taint propagates through the system. If tainte data is used in a "Think" prompt, the resulting plan is flagged for mandatory human review.
+
+---
+
+## 5. Continuous Verification
+
+The **Fleet Verification** script (`fleet-verify.ps1`) runs every 4 hours or upon system startup. It scans all 30+ repositories in the fleet for:
+- Unauthorized `.git` history manipulation.
+- Addition of suspicious executable files.
+- Changes to `mcp_config.json` that introduce unvetted external servers.
+
+If any anomaly is detected, the **Supervisor** initiates a "Safe Mode" lock, preventing all autonomous activity until a manual audit is completed.

@@ -2,11 +2,6 @@
 
 **The Command Center for AI Agent Fleets and Real-World Robotics.**
 
-> [!IMPORTANT]
-> **Canonical Documentation**
-> The core design, integration specs, and standard operating procedures for RoboFang have been migrated to the `mcp-central-docs` repository. 
-> Please see `mcp-central-docs/projects/robofang` for the canonical knowledge base.
-
 ---
 
 [![Status: Beta](https://img.shields.io/badge/Status-Beta-yellow.svg)](README.md)
@@ -18,26 +13,40 @@
 > [!WARNING]
 > RoboFang is currently in **Beta Status**. Version v1.8.0 introduces significant architectural changes for physical integration and security. Expect rapid iteration as we move towards a stable release.
 
-RoboFang is a secure hub that connects your AI agents (MCP servers) to the physical world. It provides a local-first environment where agents can safely control smart home devices, manage professional software tools, and operate robotic hardware like the **Noetix Bumi**. It prioritizes privacy, local execution, and safety.
+RoboFang is a secure hub that connects your AI agents (MCP servers) to the physical world. It provides a local-first environment where agents can safely control smart home devices, manage professional software tools, and operate robotic hardware. It prioritizes privacy, local execution, and safety.
 
-## 🌟 Our favorite bot: Noetix Bumi Android
-v1.8.0 establishes the **Noetix Bumi Android** (1m biped) as a primary centerpiece for robotics experimentation.
-- **Accessible Robotics**: At approximately $1,399, the Bumi delivers the first true mass-market humanoid substrate for agentic experimentation.
-- **Hardware Integration**: High-fidelity control of Bumi's 21+ Degrees of Freedom and sensory array.
-- **Yahboom Baseline**: Full support for the Raspbot v2 platform for entry-level robotics and mapping.
-- **Actuator Mapping**: Modular controllers that standardize how agents interact with hardware manipulators.
+## 📖 Comprehensive Documentation
 
-## 🛡️ Safe Automation: The Mission Loop
-To ensure your agents operate reliably and don't make mistakes, RoboFang uses a "Mission Loop" security pipeline. This three-step process ensures that every action is planned, tested, and checked:
+### 🛠️ Getting Started
+- **[Installation Guide](docs/INSTALLATION.md)**: System requirements and setup instructions.
+- **[Quick Start](docs/COUNCIL_QUICK_START.md)**: Your first mission with the RoboFang Council.
+- **[CLI Toolbelt](docs/CLI_TOOLBELT.md)**: Managing the fleet from the command line.
+- **[Onboarding](docs/ONBOARDING_AND_COMMS_CREDENTIALS.md)**: Setting up communication channels and credentials.
 
-1.  **Define the Plan (The Foreman)**: First, the system analyzes your request and generates a detailed "blueprint" of exactly what should happen. This includes clear success criteria and safety boundaries so the agent knows exactly what the finished goal looks like.
-2.  **Execute in a Sandbox (The Labor)**: Instead of working directly on your system, the agent carries out its tasks inside a "Dark Twin" environment—a safe, isolated shadow of your files. This prevents any accidental damage or partial errors from affecting your real data.
-3.  **Audit the Results (The Satisficer)**: Finally, a secondary judge reviews the completed work. It compares the actual results against the original blueprint. If everything meets the quality standards, the changes are committed. If anything is wrong, the changes are discarded, keeping your system in a known safe state.
+### 🏗️ System Architecture
+- **[Agentic Mesh](docs/architecture/AGENTIC_MESH_ARCHITECTURE.md)**: High-level overview of the federated node architecture.
+- **[Cognitive Loop](docs/COGNITIVE_ARCHITECTURE.md)**: Deep dive into the foreman/labor/audit reasoning engine.
+- **[OpenClaw++ Standards](docs/standards/AGENT_PROTOCOLS.md)**: The underlying protocols for autonomous coordination.
+- **[Philosophy](docs/AGENTIC_OS_PHILOSOPHY.md)**: Why we build for sovereign agency.
 
-### Security Features
-- **Dark Twin Universe (DTU)**: A filesystem shadow proxy for staging and auditing changes before they impact the host.
-- **Secure Bindings**: Dynamic Tailscale IP discovery prevents exposure to non-trusted local networks.
-- **Resource Guard**: Active monitoring and circuit-breaking for child processes.
+### 🕸️ The Mesh (Software & Tools)
+- **[MCP Fleet](docs/MCP_FLEET.md)**: Discovering and managing model context protocol servers.
+- **[Skill Manager](docs/HANDS.md)**: Developing and deploying custom "hands" for specific tasks.
+- **[Federation](docs/FEDERATION.md)**: Bridging multiple RoboFang nodes across Tailscale.
+- **[MemOps](docs/MEMOPS_STATUS.md)**: Long-term memory and knowledge graph integration.
+
+### 🛡️ Security & Safety
+- **[Safety Logic](docs/SAFETY.md)**: How the Mission Loop prevents non-deterministic failures.
+- **[Dark Twin (DTU)](docs/SANDBOX_SPEC.md)**: Using filesystem shadows for safe staging.
+- **[Security Integrations](docs/SECURITY_INTEGRATIONS.md)**: Bastio (Anti-Injection) and DefenseClaw (Sandboxing).
+
+### 🤖 Physical Agency (Robotics)
+- **[Robotics Overview](docs/ROBOTICS.md)**: Standardizing actuator mapping and motion control.
+- **[Noetix Bumi Android](docs/EMBODIED_SENTIENCE.md)**: Guide to operating the flagship 1m humanoid substrate.
+- **[Yahboom Baseline](docs/ROBOTICS.md#yahboom)**: Entry-level support for Raspbot and mapping platforms.
+- **[Snark T-800](docs/ROBOTICS_T_800.md)**: Decommissioned status and critical safety warnings.
+
+---
 
 ## 🚀 Quick Start
 ```powershell
@@ -49,11 +58,6 @@ uv sync
 # 2. Secure Launch
 uv run python -m robofang.main
 ```
-
-## 📖 Documentation
-> [!NOTE]
-> Detailed documentation is natively managed in the `mcp-central-docs` Fleet standard.
-> See `mcp-central-docs/projects/robofang/` for detailed architectural plans, guides, and integration information.
 
 ---
 *Engineering for sovereign agency. Every line of code is a step towards physical presence.*

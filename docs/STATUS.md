@@ -1,47 +1,80 @@
-# Ongoing Work & Technical Status
+# RoboFang Status
 
-Current progress and identified technical deficiencies.
-
----
-
-## Integration fixes (2026-03-28)
-
-The following gaps from the Phase 8 bridge refactor were closed:
-
-| Item | Change |
-|------|--------|
-| Hub webapp fleet deck | `App.tsx` now calls `GET /api/connectors/active` and maps `data.active` to the fleet list (was wrong path `/api/fleet/active` and wrong field `connectors`). |
-| Hub operator query | Added `POST /api/hands/ask` delegating to `orchestrator.ask` (same contract as MCP `robofang_ask`). Responses expose `response` for the UI. |
-| Council path at runtime | `ReasoningEngine.council_synthesis` was missing while `OrchestrationClient.ask` still called it — restored with parallel member rounds + synthesizer pass. |
-| Bridge startup | Lifespan startup calls `update_backends_from_topology()` so `MCP_BACKENDS` reflects `federation_map` before serving APIs. |
-
-**Verify locally:** `py -3 -m pytest tests\test_bridge_import.py -q` (use project venv if pytest-cov is required). Dev UI: Vite proxies `/api` → bridge `10871` per `vite.config.ts`.
-
-**Vendor security stack (DefenseClaw / OpenShell / Bastio):** Roadmap and non-claims are in **`docs/SECURITY_INTEGRATIONS.md`**. Hub UI marks these as **Coming soon** until wired.
+> Real-time health, technical debt registry, and dependency audit.
 
 ---
 
-## Active Development
+## System Health Overview
 
-1. **Tool-Use Migration**: Refactoring the ReAct loop to use Ollama's native `/api/chat` tool-calling functionality instead of XML regex parsing.
-2. **Bumi Integration**: Building the simulation pipeline for the Noetix Bumi humanoid.
-3. **Connector Maturity**: Expanding the standard `get_capabilities()` schema across all 30+ fleet members.
-
----
-
-## Known Deficiencies (Tech Debt)
-
-- **Regex Reliability**: Small models (3B-7B) often struggle with correctly formatting XML tags for tool calls.
-- **Hardcoded Paths**: Several modules still rely on `D:/Dev/repos` as a hardcoded root.
-- **CORS Configuration**: Historical confusion between ports 10871 and 10865/10867 sometimes causes communication blocks.
-- **Sync Blocking**: Some older connectors perform synchronous I/O operations that can block the Bridge's event loop.
-- **DocsOps Synthesis Failure**: `ask_docs` tool occasionally returns raw search data instead of synthesized AI answers (Regression identified 2026-03-28).
-- **DocsOps Reindexing Failure**: LanceDB crashes during document insertion due to strict type enforcement on stringified booleans (`pyarrow.lib.ArrowInvalid: Could not convert 'false' with type str`).
+| Component | Status | Port | Health Check |
+|-----------|--------|------|--------------|
+| **Bridge** | ✅ Operational | 10871 | `GET /health` |
+| **Supervisor** | ✅ Operational | 10872 | Process running |
+| **Heartbeat** | ✅ Operational | 10872 | Async integrity checks |
+| **Dashboard** | ✅ Operational | 10864 | Frontend loading |
+| **Ollama** | ✅ Operational | 11434 | `GET /` |
+| **Council** | ✅ Hardened | — | Robust ReAct (v12.1) |
+| **Hands** | ✅ Operational | — | Discovered: 11 |
 
 ---
 
-## Maintenance History
+## Connector Gaps & Weaknesses
 
-- **2026-03-28**: Major documentation overhaul and Moshi voice pipeline integration.
-- **2026-03-20**: Initial LiDAR point cloud visualization verified.
-- **2026-03-13**: Competitive audit vs OpenFang finalized.
+To achieve parity with industry-leading frameworks like OpenClaw, the following areas require development:
+
+| Domain | Status | Gap |
+|--------|--------|-----|
+| **Social / Messaging** | ⚠️ Weak | Discord/Slack connectors need more robust real-world testing. |
+| **Mobile Integration** | ❌ Missing | No native support for WhatsApp, Signal, or Telegram status polling. |
+| **Cloud Office** | ❌ Missing | No native connectors for Microsoft 365, Notion, or Google Workspace. |
+| **Voice Interface** | [/] In Progress | Kyutai Moshi integration is functional but lacks persona-aware persistence. |
+
+---
+
+## Technical Debt Registry
+
+| Debt Item | Severity | Impact | Mitigation Plan |
+|-----------|----------|--------|-----------------|
+| **XML Regex Parsing** | **Critical** | ReAct loop fragility on small models | Migrate to Ollama `/api/chat` tool-use API. |
+| **Hardcoded Paths** | ✅ Audited | Repo portability | `ROBOFANG_REPOS_ROOT` established as standard. |
+
+---
+
+## Dependency Audit
+
+### Python (uv sync / pyproject.toml)
+
+| Package | Purpose | Version | Status |
+|---------|---------|---------|--------|
+| `fastapi` | API Gateway | `0.111+` | ✅ SOTA |
+| `fastmcp` | MCP Framework | `3.1+` | ✅ SOTA |
+| `pydantic` | Data Validation | `2.7+` | ✅ SOTA |
+| `httpx` | Async HTTP Client | `0.27+` | ✅ SOTA |
+| `lancedb` | Vector Database | — | ✅ SOTA |
+| `fastembed` | Embeddings | — | ⚠️ Cache issues fixed |
+| `python-osc` | Robotics Comms | `1.8.3+` | ✅ Verified |
+
+---
+
+## Known Issues
+
+1. **Member Disconnect**: If an Ollama member is unloaded from VRAM, the Council session hangs for 30s before timeout.
+   - *Fix: Implement pre-session ping to all council members.*
+2. **Dashboard Vibe Lag**: Deliberations feed (SSE) can lag if more than 50 events are buffered.
+   - *Fix: Implement frontend pagination or virtualization for logs.*
+3. **ResoniteLink Jitter**: High-frequency Joint control can cause UI jitter in Resonite.
+   - *Fix: Implement client-side interpolation or reduce OSC frequency to 30Hz.*
+4. **GPU Race Condition**: Swapping a Tier 1 (70B) model into VRAM before Tier 2 is fully unloaded causes an OOM crash.
+   - *Fix: Implement strict sequential queuing in the [VRAM Orchestrator](MODEL_ECONOMY.md).*
+5. **Prompt Leakage**: System prompts can sometimes be leaked via Tainted tools if output isn't properly sanitized.
+   - *Fix: Implement the [Injection Shield](INJECTION_SHIELD.md) and taint tracking.*
+
+---
+
+## Maintenance Log
+
+- **2026-03-28**: [Bug Bash & Stability Sprint](walkthrough.md) (v12.1) — Hardened ReAct loop, async Heartbeat service, and path auditing.
+- **2026-03-28**: Updated documentation suite for grounded terminology and mobile access.
+- **2026-03-27**: Moshi voice pipeline integration completed.
+- **2026-03-25**: Advanced memory ADN note-taking automated.
+- **2026-03-20**: Initial Yahboom LiDAR mapping verified.
