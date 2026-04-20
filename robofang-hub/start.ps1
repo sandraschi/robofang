@@ -1,3 +1,13 @@
+﻿Param([switch]$Headless)
+
+# --- SOTA Headless Standard ---
+if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch 'Hidden')) {
+    Start-Process pwsh -ArgumentList '-NoProfile', '-File', $PSCommandPath, '-Headless' -WindowStyle Hidden
+    exit
+}
+$WindowStyle = if ($Headless) { 'Hidden' } else { 'Normal' }
+# ------------------------------
+
 # RoboFang Hub Start - Unified Redesign (V13.3)
 # Ports from fleet schema: configs/fleet-stack-ports.json
 $RepoRoot = Split-Path -Parent $PSScriptRoot
@@ -120,3 +130,4 @@ Start-Process `
     -WorkingDirectory $PSScriptRoot `
     -WindowStyle Normal
 Write-Host "    Hub launched. Open http://localhost:$WebPort" -ForegroundColor Green
+

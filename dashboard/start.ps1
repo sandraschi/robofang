@@ -1,3 +1,13 @@
+﻿Param([switch]$Headless)
+
+# --- SOTA Headless Standard ---
+if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch 'Hidden')) {
+    Start-Process pwsh -ArgumentList '-NoProfile', '-File', $PSCommandPath, '-Headless' -WindowStyle Hidden
+    exit
+}
+$WindowStyle = if ($Headless) { 'Hidden' } else { 'Normal' }
+# ------------------------------
+
 # Webapp Start - Standardized SOTA (Supervisor-Led V13.3)
 # Ports from fleet schema: src/robofang/configs/fleet-stack-ports.json
 $RepoRoot = Split-Path -Parent $PSScriptRoot
@@ -66,4 +76,5 @@ catch {
 # 5. Run Vite frontend
 Write-Host "[4/4] Starting Vite frontend on :$WebPort ..." -ForegroundColor Green
 npm run dev -- --port $WebPort --host
+
 
