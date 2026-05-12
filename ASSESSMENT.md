@@ -40,8 +40,23 @@ The reasoning engine has been hardened with a dispatcher-based `reason_and_act` 
 2.  **Fleet Dependency**: The security moats require `bastio-mcp` and `defenseclaw-mcp` to be running. If missing, the system gracefully degrades (logs warnings) but loses protection.
 3.  **Hardcoded Repos Root**: `D:/Dev/repos` persists in several configuration scripts.
 
+## 4. Prompt Injection Defense (May 2026)
+
+**Problem**: Any MCP tool that ingests external text and returns it to the LLM is a vector for prompt injection. Confirmed on arXiv (17+ papers with hidden injections). Same vector exists for RSS feeds, Discord messages, emails, and any other untrusted text source.
+
+**Completed:**
+- **arxiv-mcp**: `sanitize.py` with adversarial safety boundary wrapping (`wrap_untrusted`) applied at every tool return boundary. arXiv API compatibility fixes (removed `size` param, updated deprecated `/search/advanced` endpoint). Single paper lookup with title/ID/URL support.
+- **aiwatcher-mcp**: `scrubber.py` — 3-layer spam classifier (regex, URL blocklist, user blocklist) wired at all 4 ingest boundaries (RSS, Gmail, ArXiv, Readly). Safety preamble wrapping on the distillation `ITEM_PROMPT` so Claude treats feed items as data, not instructions.
+
+**Pending:**
+- **robofang**: Inbound text from Discord, Moltbook, Slack DMs via connectors needs safety wrapping before LLM reasoning.
+- **deepfang**: The `sanitize → adjudicate → dispatch` pipeline routes Discord/Telegram/email text through LLM. Wrapping needed at ingest boundary.
+- **aiwatcher-mcp**: Scrubber Layer 3 (local LLM for borderline cases) is reserved but not wired.
+
+**Pattern**: Safety boundary wrapping (fixed preamble before untrusted text) is superior to regex pattern matching — works for misspellings, homoglyphs, encodings, and unknown injection variants.
+
 ---
 
-**Assessment Finalized**: 2026-03-29 (Phase 8.1 Resolution)
+**Assessment Finalized**: 2026-03-29 (Phase 8.1 Resolution); updated 2026-05-03
 **Signature**: *Sandra Schipal* (Materialist/Reductionist Developer)
 
