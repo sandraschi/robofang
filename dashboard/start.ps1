@@ -35,7 +35,11 @@ foreach ($p in $pids) {
     } catch {
         cmd /c "taskkill /F /PID $p 2>nul"
         if ($LASTEXITCODE -eq 0) { Write-Host "    Killed PID $p (taskkill)" -ForegroundColor DarkGray }
-        else { Write-Warning "Failed to terminate PID $p : $_" }
+        else {
+            try { Get-CimInstance Win32_Process -Filter "ProcessId = $p" -ErrorAction Stop | Invoke-CimMethod -MethodName Terminate -ErrorAction Stop | Out-Null; Write-Host "    Terminated PID $p (CIM)" -ForegroundColor DarkGray } catch {
+                Write-Warning "Failed to terminate PID $p : $_"
+            }
+        }
     }
 }
 
