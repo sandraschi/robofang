@@ -8,6 +8,8 @@ from typing import Any
 
 import httpx
 
+from robofang.sanitize import sanitize_text, wrap_untrusted
+
 logger = logging.getLogger("robofang.reasoning")
 
 
@@ -195,12 +197,12 @@ class ReasoningEngine:
         if not node:
             await self._ensure_model_ready(model)
 
-        payload = {
-            "model": model,
-            "messages": messages,
-            "stream": False,
-            "keep_alive": self._get_keep_alive(model),
-        }
+            payload = {
+                # Wrapped: prompt may contain external text (Discord, email, MCP input)
+                "prompt": sanitize_text(prompt),
+                "stream": False,
+                "keep_alive": self._get_keep_alive(model),
+            }
         if tools:
             payload["tools"] = self._convert_to_json_schema(tools)
 
