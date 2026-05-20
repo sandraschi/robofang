@@ -1,5 +1,12 @@
 # 🪝 RoboFang v1.8.0 (Beta)
 
+<p align="center">
+  <a href="https://github.com/casey/just"><img src="https://img.shields.io/badge/just-ready_to_go-7c5cfc?style=flat-square&logo=just&logoColor=white" alt="Just"></a>
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.13+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"></a>
+  <a href="https://github.com/PrefectHQ/fastmcp"><img src="https://img.shields.io/badge/FastMCP-3.2-7c5cfc?style=flat-square" alt="FastMCP"></a>
+</p>
+
 **The Command Center for AI Agent Fleets and Real-World Robotics.**
 
 ---
@@ -14,6 +21,20 @@
 > RoboFang is currently in **Beta Status**. Version v1.8.0 introduces significant architectural changes for physical integration and security. Expect rapid iteration as we move towards a stable release.
 
 RoboFang is a secure hub that connects your AI agents (MCP servers) to the physical world. It provides a local-first environment where agents can safely control smart home devices, manage professional software tools, and operate robotic hardware. It prioritizes privacy, local execution, and safety.
+
+## Quick Start
+
+```powershell
+git clone https://github.com/sandraschi/robofang
+cd robofang
+just
+```
+
+This opens an interactive dashboard showing all available commands. Run `just bootstrap` to install dependencies, then `just serve` or `just dev` to start.
+
+### Manual Setup
+
+If you don't have `just` installed:
 
 ## 📖 Comprehensive Documentation
 
