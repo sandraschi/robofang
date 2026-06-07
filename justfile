@@ -1,10 +1,10 @@
-set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
+﻿set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
 
 # Open the interactive recipe dashboard in the browser
 default:
-    @pwsh.exe -NoProfile -ExecutionPolicy Bypass -File ../mcp-central-docs/scripts/just-dashboard.ps1 -Path .
+    @just --list
 
 # ── Quality ───────────────────────────────────────────────────────────────────
 
@@ -79,3 +79,4 @@ run:
 # Start the hub (Vite + bridge + supervisor). Windows: use robofang-hub\\start.ps1 or start.bat
 hub:
   @echo "On Windows run: .\\robofang-hub\\start.bat  or  .\\robofang-hub\\start.ps1"
+
