@@ -93,8 +93,19 @@ $bridgeUp = $false
 $lastError = $null
 for ($i = 1; $i -le 50; $i++) {
     try {
-        $r = Invoke-WebRequest -Uri "http://127.0.0.1:$BridgePort/api/diagnostics/heartbeat" -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
-        if ($r.StatusCode -eq 200) { $bridgeUp = $true; break }
+        $healthUrls = @(
+            "http://127.0.0.1:$BridgePort/api/diagnostics/heartbeat",
+            "http://127.0.0.1:$BridgePort/api/system/health"
+        )
+        foreach ($healthUrl in $healthUrls) {
+            try {
+                $r = Invoke-WebRequest -Uri $healthUrl -UseBasicParsing -TimeoutSec 2 -ErrorAction Stop
+                if ($r.StatusCode -eq 200) { $bridgeUp = $true; break }
+            } catch {
+                $lastError = $_.Exception.Message
+            }
+        }
+        if ($bridgeUp) { break }
     } catch {
         $lastError = $_.Exception.Message
     }
