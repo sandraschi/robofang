@@ -23,6 +23,20 @@
 
 ---
 
+## Phase 2.5: Chat-first hub (Q2 2026 — current)
+
+Users expect **messaging-style UX** (OpenClaw, ChatGPT). Fleet deck remains available; **conversation is the default**.
+
+- [/] **Chat thread UI** — bubble layout, composer, Council/RAG toggles ([CHAT_UX.md](./CHAT_UX.md)).
+- [ ] **Streaming ask** — SSE partial tokens for assistant replies.
+- [ ] **Session persistence** — survive refresh; optional server-side history.
+- [ ] **PWA** — mobile-friendly chat via Tailscale.
+- [ ] **Starter fleet packs** — curated manifest bundles for first-run ([NEXT_PRIORITIES.md](./NEXT_PRIORITIES.md)).
+
+Competitive context: [COMPETITIVE_LANDSCAPE.md](./COMPETITIVE_LANDSCAPE.md).
+
+---
+
 ## Phase 3: Advanced Reasoning (Q2 2026)
 
 - [ ] **ReAct Loop Migration**: Move from regex-based parsing to native Ollama `/api/chat` tool use.

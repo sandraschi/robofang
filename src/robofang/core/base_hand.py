@@ -16,6 +16,11 @@ logger = logging.getLogger(__name__)
 class Hand:
     """
     Base class for an autonomous agentic process (a "Hand").
+
+    SOTA 2026-05-27: Hands now carry capability tokens (ocaps).
+    Tools are no longer global strings — each hand holds signed tokens
+    granting access to specific tools. The orchestrator validates tokens
+    before execution.
     """
 
     def __init__(self, definition: HandDefinition, config: dict[str, Any] | None = None):
@@ -32,6 +37,20 @@ class Hand:
         resolved = resolve_hand_settings(self.definition.settings, self.config)
         self.prompt_block = resolved["prompt_block"]
         self.env_vars = resolved["env_vars"]
+
+        # Capability tokens: tokens granting access to specific tools
+        # Set by the TokenAuthority at hand registration time
+        self._capability_tokens: dict[str, Any] = {}
+
+    def set_capability(self, tool_name: str, token: Any):
+        """Store a capability token for a tool."""
+        self._capability_tokens[tool_name] = token
+
+    def has_capability(self, tool_name: str) -> bool:
+        return tool_name in self._capability_tokens
+
+    def get_capabilities(self) -> dict[str, Any]:
+        return dict(self._capability_tokens)
 
     async def pulse(self, orchestrator: Any):
         """Perform one autonomous pulse."""

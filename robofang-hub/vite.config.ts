@@ -11,10 +11,13 @@ export default defineConfig({
     },
   },
   server: {
+    allowedHosts: ['goliath'],
     port: 10870,
     host: true,
     proxy: {
       '/api': { target: 'http://127.0.0.1:10871', changeOrigin: true },
+      '/ask': { target: 'http://127.0.0.1:10871', changeOrigin: true },
+      '/hooks': { target: 'http://127.0.0.1:10871', changeOrigin: true },
       '/fleet': { target: 'http://127.0.0.1:10871', changeOrigin: true },
       '/topology': { target: 'http://127.0.0.1:10871', changeOrigin: true },
       '/logs': { target: 'http://127.0.0.1:10871', changeOrigin: true },

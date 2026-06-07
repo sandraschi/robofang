@@ -72,6 +72,7 @@ def _bridge_env() -> dict:
     env = {**os.environ}
     env["PORT"] = str(BRIDGE_PORT)
     env["PYTHONUNBUFFERED"] = "1"  # so bridge tracebacks appear immediately in bridge_stdout.log
+    env["ROBOFANG_SKIP_GREETING"] = "1"
     if not env.get("ROBOFANG_FLEET_MANIFEST"):
         env["ROBOFANG_FLEET_MANIFEST"] = os.path.join(_REPO_ROOT, "fleet_manifest.yaml")
     if not env.get("ROBOFANG_HANDS_DIR"):

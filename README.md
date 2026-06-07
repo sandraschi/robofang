@@ -62,8 +62,10 @@ If you don't have `just` installed:
 ### 🛡️ Security & Safety
 - **[Safety Logic](docs/SAFETY.md)**: How the Mission Loop prevents non-deterministic failures.
 - **[Dark Twin (DTU)](docs/SANDBOX_SPEC.md)**: Using filesystem shadows for safe staging.
-- **[Security Integrations](docs/SECURITY_INTEGRATIONS.md)**: Bastio (Anti-Injection) and DefenseClaw (Sandboxing).
-- **[Autonomous Emergency Dispatch (AED)](docs/SAFETY.md#aed)**: Level 4 industrial rescue response with Trinity verification.
+- **[Security Integrations](docs/SECURITY_INTEGRATIONS.md)**: DefenseClaw, OpenShell, Bastio — **planned**; honesty contract.
+- **[Competitive landscape](docs/COMPETITIVE_LANDSCAPE.md)**: vs OpenClaw, OpenFang, OpenManus.
+- **[Chat UX](docs/CHAT_UX.md)**: Chat-first hub (what users know).
+- **[Next priorities](docs/NEXT_PRIORITIES.md)**: Maintainer backlog P0–P3.
 
 ### 🤖 Physical Agency (Robotics)
 - **[Robotics Overview](docs/ROBOTICS.md)**: Standardizing actuator mapping and motion control.

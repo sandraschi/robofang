@@ -1,0 +1,85 @@
+# Capability Policies — per-subject tool grants (object capabilities / ocaps)
+# SOTA 2026 — NanoClaw-inspired: tools are explicit tokens, not global strings
+#
+# Format:
+#   subjects:
+#     <subject_id>:
+#       role: admin | agent | readonly | guest
+#       tools:
+#         - name: <tool_name>
+#           scope: execute | read | delegate | admin
+#           max_invocations: <int or null>
+#           expires_minutes: <int or null>
+
+subjects:
+  orchestrator:root:
+    role: admin
+    tools: ["*"]  # wildcard = all tools
+
+  agent:cortex:
+    role: agent
+    tools:
+      - name: skill_*
+        scope: execute
+      - name: connector_*
+        scope: execute
+      - name: mcp_*
+        scope: execute
+      - name: system_dtu_stage
+        scope: execute
+      - name: system_dtu_commit
+        scope: execute
+      - name: system_request_human_intervention
+        scope: execute
+
+  guest:
+    role: readonly
+    tools:
+      - name: skill_*
+        scope: read
+
+  collector:
+    role: agent
+    tools:
+      - name: system_dtu_stage
+        scope: execute
+      - name: system_dtu_commit
+        scope: execute
+      - name: connector_netatmo
+        scope: read
+      - name: mcp_devices-mcp_*
+        scope: read
+
+  robotics:
+    role: agent
+    tools:
+      - name: system_dtu_stage
+        scope: execute
+      - name: connector_yahboom
+        scope: execute
+      - name: mcp_devices-mcp_*
+        scope: execute
+      - name: connector_discord
+        scope: execute
+
+  routine_runner:
+    role: agent
+    tools:
+      - name: system_request_human_intervention
+        scope: execute
+      - name: connector_email
+        scope: execute
+      - name: connector_discord
+        scope: execute
+
+# Taint containment rules
+taint_containment:
+  enabled: true
+  auto_revoke_on_taint: true
+  blocked_tools_on_taint:
+    - connector_email
+    - connector_discord
+    - connector_moltbook
+    - skill_delete_file
+    - skill_mutate_config
+    - mcp_system-admin_*

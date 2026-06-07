@@ -46,7 +46,7 @@ class AskRequest(BaseModel):
 @router.get("")
 async def hands_list():
     """Return all currently registered system hands and their status."""
-    hands = orchestrator.get_hands()
+    hands = orchestrator.hands.get_hands_status()
     return {"success": True, "count": len(hands), "hands": hands}
 
 
@@ -115,14 +115,35 @@ async def hands_config(hand_id: str):
     return {"success": True, "config": config}
 
 
+@router.post("/{hand_id}/activate")
+async def hands_activate(hand_id: str):
+    hand_id = hand_id.strip()
+    hand = orchestrator.hands.hands.get(hand_id)
+    if not hand:
+        raise HTTPException(status_code=404, detail=f"Hand not found: {hand_id}")
+    hand.activate()
+    return {"success": True, "id": hand_id, "active": True, "message": f"Hand {hand_id} activated"}
+
+
+@router.post("/{hand_id}/pause")
+async def hands_pause(hand_id: str):
+    hand_id = hand_id.strip()
+    hand = orchestrator.hands.hands.get(hand_id)
+    if not hand:
+        raise HTTPException(status_code=404, detail=f"Hand not found: {hand_id}")
+    hand.pause()
+    return {"success": True, "id": hand_id, "active": False, "message": f"Hand {hand_id} paused"}
+
+
 @router.get("/{hand_id}/status")
 async def hands_status(hand_id: str):
     """Get the current operational status of a specific hand."""
     hand_id = hand_id.strip()
-    # In absence of direct status helper, we look at active connectors
-    active_connectors = orchestrator.get_active_connectors()
+    hand = orchestrator.hands.hands.get(hand_id)
+    if hand:
+        return {"success": True, "online": hand.active, "hand_id": hand_id, "active": hand.active}
     conn_id = _hand_id_to_connector(hand_id)
-    online = conn_id in active_connectors
+    online = conn_id in orchestrator.connectors and getattr(orchestrator.connectors.get(conn_id), "active", False)
     return {"success": True, "online": online, "hand_id": hand_id}
 
 

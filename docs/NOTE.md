@@ -2,4 +2,6 @@
 
 Details for the bridge refactor gap fixes (webapp routes, `POST /api/hands/ask`, `ReasoningEngine.council_synthesis`, lifespan topology sync) live in **`docs/STATUS.md`** under **Integration fixes (2026-03-28)**.
 
-Planned third-party security integrations (Cisco DefenseClaw, NVIDIA OpenShell, Bastio) are described in **`docs/SECURITY_INTEGRATIONS.md`** (honesty contract; not implied active in the hub).
+Planned third-party security integrations (Cisco DefenseClaw, NVIDIA OpenShell, Bastio) are described in **`docs/SECURITY_INTEGRATIONS.md`**.
+
+Competitive analysis: **`docs/COMPETITIVE_LANDSCAPE.md`**. Chat UX: **`docs/CHAT_UX.md`**. Backlog: **`docs/NEXT_PRIORITIES.md`**.

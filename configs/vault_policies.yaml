@@ -1,0 +1,89 @@
+# Agent Vault Policies — credential injection proxy config
+# SOTA 2026 — NanoClaw-inspired: agents never hold raw API keys
+#
+# The vault intercepts outbound LLM API calls and injects credentials
+# at request time, enforcing per-agent rate limits and domain whitelists.
+
+providers:
+  anthropic:
+    base_url: "https://api.anthropic.com"
+    api_key_env: ANTHROPIC_API_KEY
+    default_model: claude-sonnet-4-20250514
+    enabled: true
+
+  openai:
+    base_url: "https://api.openai.com"
+    api_key_env: OPENAI_API_KEY
+    default_model: gpt-4o
+    enabled: true
+
+  deepseek:
+    base_url: "https://api.deepseek.com"
+    api_key_env: DEEPSEEK_API_KEY
+    default_model: deepseek-chat
+    enabled: true
+
+  groq:
+    base_url: "https://api.groq.com/openai"
+    api_key_env: GROQ_API_KEY
+    default_model: ""
+    enabled: false
+
+  ollama:
+    base_url: "http://localhost:11434"
+    api_key_env: OLLAMA_URL
+    default_model: ""
+    enabled: true
+
+# Per-agent rate limits + allowed endpoints
+agents:
+  orchestrator:root:
+    rate_limit_tokens_per_min: 500000
+    rate_limit_requests_per_min: 120
+    allowed_endpoints:
+      - "/v1/chat/completions"
+      - "/v1/embeddings"
+      - "/api/generate"
+      - "/api/chat"
+
+  agent:cortex:
+    rate_limit_tokens_per_min: 200000
+    rate_limit_requests_per_min: 60
+    allowed_endpoints:
+      - "/v1/chat/completions"
+      - "/api/generate"
+      - "/api/chat"
+
+  collector:
+    rate_limit_tokens_per_min: 50000
+    rate_limit_requests_per_min: 30
+    allowed_endpoints:
+      - "/v1/embeddings"
+      - "/api/chat"
+
+  robotics:
+    rate_limit_tokens_per_min: 100000
+    rate_limit_requests_per_min: 30
+    allowed_endpoints:
+      - "/v1/chat/completions"
+      - "/api/chat"
+
+  routine_runner:
+    rate_limit_tokens_per_min: 50000
+    rate_limit_requests_per_min: 20
+    allowed_endpoints:
+      - "/v1/chat/completions"
+      - "/api/chat"
+
+  guest:
+    rate_limit_tokens_per_min: 10000
+    rate_limit_requests_per_min: 10
+    allowed_endpoints:
+      - "/v1/chat/completions"
+
+# Vault server settings
+vault:
+  listen_port: 10952        # separate port for vault proxy (reserved)
+  encryption: aes-256-gcm
+  audit_log_retention: 1000
+  fail_closed: true         # deny if vault is unreachable

@@ -2,10 +2,12 @@
 
 from fastapi import APIRouter
 
+from .comms import hooks_router
 from .connectors import router as connectors_router
 from .docs import router as docs_router
 from .fleet import router as fleet_router
 from .hands import router as hands_router
+from .routines import router as routines_router
 from .system import router as system_router
 
 # Root router for the /api/ prefix
@@ -15,7 +17,9 @@ api_router = APIRouter()
 api_router.include_router(fleet_router)
 api_router.include_router(connectors_router)
 api_router.include_router(hands_router)
+api_router.include_router(routines_router)
 api_router.include_router(system_router)
 api_router.include_router(docs_router)
+api_router.include_router(hooks_router)
 
 __all__ = ["api_router"]

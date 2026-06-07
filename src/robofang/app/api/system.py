@@ -53,8 +53,8 @@ async def system_status():
         "uptime": uptime,
         "cpu_percent": psutil.cpu_percent(),
         "memory_percent": psutil.virtual_memory().percent,
-        "hands_count": len(orchestrator.get_hands()),
-        "connectors_count": len(orchestrator.get_active_connectors()),
+        "hands_count": len(orchestrator.hands.hands),
+        "connectors_count": len([c for c in orchestrator.connectors.values() if getattr(c, "active", False)]),
     }
 
 

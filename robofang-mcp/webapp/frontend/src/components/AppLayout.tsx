@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  LayoutDashboard, 
+  MessageSquare, 
   Settings, 
   Layers, 
   Activity, 
@@ -81,7 +81,7 @@ interface AppLayoutProps {
 }
 
 const VIEW_TITLE: Record<AppLayoutProps['activeView'], string> = {
-  hub: 'The Hub',
+  hub: 'Chat',
   fleet: 'Fleet Deck',
   audit: 'System Audit',
   settings: 'Settings',
@@ -131,8 +131,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children, activeView, onVi
           {isSidebarCollapsed && <div className="mt-8" />}
           
           <NavItem 
-            icon={LayoutDashboard} 
-            label="The Hub" 
+            icon={MessageSquare} 
+            label="Chat" 
             active={activeView === 'hub'} 
             onClick={() => onViewChange('hub')}
             isCollapsed={isSidebarCollapsed}

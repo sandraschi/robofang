@@ -28,6 +28,9 @@ To achieve parity with industry-leading frameworks like OpenClaw, the following 
 | **Mobile Integration** | ❌ Missing | No native support for WhatsApp, Signal, or Telegram status polling. |
 | **Cloud Office** | ❌ Missing | No native connectors for Microsoft 365, Notion, or Google Workspace. |
 | **Voice Interface** | [/] In Progress | Kyutai Moshi integration is functional but lacks persona-aware persistence. |
+| **Chat-first hub** | [/] In Progress | Bubble UI shipped; streaming + PWA still planned — [CHAT_UX.md](./CHAT_UX.md). |
+
+**Competitive analysis:** [COMPETITIVE_LANDSCAPE.md](./COMPETITIVE_LANDSCAPE.md) · **Backlog:** [NEXT_PRIORITIES.md](./NEXT_PRIORITIES.md).
 
 ---
 

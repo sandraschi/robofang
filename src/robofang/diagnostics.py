@@ -6,12 +6,11 @@ Exposes fleet health, adversarial pulse integrity, and autonomous discoveries.
 from __future__ import annotations
 
 import logging
+import os
 import time
 
 from fastapi import APIRouter
 from pydantic import BaseModel
-
-from robofang.supervisor import supervisor
 
 logger = logging.getLogger("ROBOFANG_diagnostics")
 
@@ -58,16 +57,34 @@ def _system_pressure() -> dict[str, float]:
 
 @router.get("/heartbeat", response_model=HeartbeatResponse)
 async def get_heartbeat():
-    """Get the current sovereign substrate heartbeat."""
+    """Get the current sovereign substrate heartbeat (bridge-local; fast)."""
     t0 = time.perf_counter()
-    pulse = supervisor.get_pulse()
+    integrity = "nominal"
+    fleet_count = 0
+    council_active = False
+    if os.getenv("ROBOFANG_SUPERVISOR_PROCESS") == "1":
+        try:
+            from robofang.supervisor import supervisor
+
+            pulse = supervisor.get_pulse()
+            integrity = pulse.get("integrity", "unknown")
+            nodes = supervisor.fleet_nodes
+            fleet_count = len(nodes) if isinstance(nodes, list) else (len(nodes) if isinstance(nodes, dict) else 0)
+            council_active = pulse.get("council_active", False)
+        except Exception:
+            integrity = "degraded"
+    else:
+        try:
+            from robofang.core.state import orchestrator
+
+            fleet_count = len(orchestrator.hands.hands)
+            council_active = getattr(orchestrator, "running", False)
+        except Exception as exc:
+            logger.debug("Bridge heartbeat orchestrator probe failed: %s", exc)
     latency_ms = (time.perf_counter() - t0) * 1000.0
-    nodes = supervisor.fleet_nodes
-    fleet_count = len(nodes) if isinstance(nodes, list) else (len(nodes) if isinstance(nodes, dict) else 0)
-    council_active = pulse.get("council_active", False)
     return {
-        "status": "nominal" if pulse.get("integrity") == "nominal" else "caution",
-        "integrity": pulse.get("integrity", "unknown"),
+        "status": "nominal" if integrity == "nominal" else "caution",
+        "integrity": integrity,
         "council_active": council_active,
         "fleet_node_count": fleet_count,
         "system_pressure": _system_pressure(),
@@ -79,6 +96,16 @@ async def get_heartbeat():
 @router.get("/fleet/health", response_model=HealthReport)
 async def get_fleet_health():
     """Get detailed fleet health and cohesion report."""
+    if os.getenv("ROBOFANG_SUPERVISOR_PROCESS") != "1":
+        return HealthReport(
+            success=True,
+            cohesion_score=100,
+            risk_level="low",
+            anomalies=[],
+            discoveries=[],
+        )
+    from robofang.supervisor import supervisor
+
     report = supervisor.get_fleet_health()
     discoveries = supervisor.get_discoveries()
 
@@ -105,6 +132,8 @@ async def get_fleet_health():
 async def run_forensics():
     """Trigger an adversarial forensic sweep using real pulse and fleet health."""
     logger.info("Initiating agentic forensic sweep...")
+    from robofang.supervisor import supervisor
+
     pulse = supervisor.get_pulse()
     report = supervisor.get_fleet_health()
     discoveries = supervisor.get_discoveries()

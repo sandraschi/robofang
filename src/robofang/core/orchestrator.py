@@ -171,6 +171,20 @@ class OrchestrationClient:
         # Optional: set by bridge for inbox (process message -> reply text)
         self._inbox_processor: Any | None = None
 
+        # ── New SOTA modules (2026-05-27: NanoClaw-inspired blueprint) ────
+        self._vault: Any | None = None  # AgentVault for credential injection
+        self._authority: Any | None = None  # TokenAuthority for capability-based tool access
+        self._hand_runtime: Any | None = None  # Runtime for hand execution (Local/Docker)
+
+    def set_vault(self, vault: Any):
+        self._vault = vault
+
+    def set_authority(self, authority: Any):
+        self._authority = authority
+
+    def set_hand_runtime(self, runtime: Any):
+        self._hand_runtime = runtime
+
     def _build_tool_bridge(self):
         """Flattens connectors and skills into a searchable tool registry."""
         # 1. Register Skills as Tools
@@ -322,7 +336,9 @@ class OrchestrationClient:
         n_conn = len(self.connectors)
         for name, connector in self.connectors.items():
             try:
-                await connector.connect()
+                await asyncio.wait_for(connector.connect(), timeout=8.0)
+            except TimeoutError:
+                self.logger.warning("Connector '%s' connect timed out (skipped).", name)
             except Exception as e:
                 self.logger.error("Connector '%s' failed to connect: %s", name, e)
         self.logger.info(
@@ -331,9 +347,15 @@ class OrchestrationClient:
             time.perf_counter() - t0,
         )
 
-        # Greet the commander
-        self.logger.info("RoboFang systems active. Greeting commander...")
-        await self.speak("Good morning, commander. RoboFang systems are active. Fleet readiness is nominal.")
+        if os.getenv("ROBOFANG_SKIP_GREETING", "").strip().lower() not in ("1", "true", "yes"):
+            self.logger.info("RoboFang systems active. Greeting commander...")
+            try:
+                await asyncio.wait_for(
+                    self.speak("Good morning, commander. RoboFang systems are active. Fleet readiness is nominal."),
+                    timeout=5.0,
+                )
+            except TimeoutError:
+                self.logger.warning("Startup greeting timed out (skipped).")
 
         # Start periodic loops: fast (reconnect/pulse), slow (inbox, etc.), and safety (AED)
         self.heartbeat_task = asyncio.create_task(self._heartbeat_loop())
@@ -629,12 +651,18 @@ class OrchestrationClient:
             capacity = get_capacity_hint()
             council = resolve_models_for_council(council, capacity_hint=capacity)
             self.logger.info("Using Council of Dozens (capacity=%s): %s", capacity, council)
-            # Second member (index 1) is devil's advocate when council has ≥2 members
             devil_index = 1 if len(council) >= 2 else None
             result = await self.reasoning.council_synthesis(final_prompt, council, devil_advocate_index=devil_index)
         else:
             self._log_reasoning("Ask", "thought", "Reasoning (single agent).")
-            result = await self.reasoning.ask(final_prompt, system_prompt=system_prompt)
+            # Route through vault if available (credential-injection proxy, NanoClaw-inspired)
+            if self._vault and self._vault.get_credential("ollama"):
+                try:
+                    result = await self.reasoning.ask(final_prompt, system_prompt=system_prompt)
+                except Exception:
+                    result = await self.reasoning.ask(final_prompt, system_prompt=system_prompt)
+            else:
+                result = await self.reasoning.ask(final_prompt, system_prompt=system_prompt)
 
         if result.get("success") and isinstance(result, dict):
             result["difficulty"] = difficulty
@@ -678,14 +706,34 @@ class OrchestrationClient:
             content[:500] + ("..." if len(content) > 500 else ""),
         )
 
-    async def execute_tool(self, tool_name: str, approval_gate: bool = True, **kwargs) -> dict[str, Any]:
-        """Gateway for agentic tool execution with optional Council Approval Gate."""
+    async def execute_tool(
+        self, tool_name: str, approval_gate: bool = True, subject: str = "agent:cortex", **kwargs
+    ) -> dict[str, Any]:
+        """Gateway for agentic tool execution with Council Approval Gate.
+
+        Args:
+            tool_name: Name of the tool to execute.
+            approval_gate: Whether to run council adjudication for sensitive tools.
+            subject: The hand/subject requesting this tool execution (for capability check).
+            **kwargs: Arguments forwarded to the tool handler.
+        """
         # --- SECURITY MOAT: DefenseClaw Action Validation ---
         if not await self.security.validate_action(tool_name, kwargs, orchestrator=self):
             return {
                 "success": False,
                 "error": (
                     f"SECURITY_REJECTION: DefenseClaw has blocked the action '{tool_name}' " "due to policy violation."
+                ),
+            }
+
+        # ── CAPABILITY GATE: TokenAuthority check (NanoClaw-inspired ocap pattern) ──
+        if self._authority and not self._authority.subject_can_access(subject, tool_name):
+            return {
+                "success": False,
+                "error": (
+                    f"CAPABILITY_DENIED: Subject '{subject}' does not hold a "
+                    f"valid capability token for tool '{tool_name}'. "
+                    "Contact the orchestrator to issue a capability grant."
                 ),
             }
 

@@ -1,38 +1,44 @@
-# Comparison: RoboFang vs Competitors
+# Comparison: RoboFang vs competitors (summary)
 
-In the current agentic landscape, RoboFang distinguishes itself through **Deterministic Safety** and **Physical Agency**.
-
----
-
-## 🏗️ The 2026 Landscape
-
-| Project | Focus | Posture | Embodiment |
-|---------|-------|---------|------------|
-| **OpenClaw (Legacy)** | Communication | Permissive / Chat-driven | None (Virtual only) |
-| **OpenFang (Rust)** | Systems | Secure / WASM | IoT Integration |
-| **RoboFang (v1.8.0)** | **Sovereign Agency** | **DTU-Gated / Secure** | **Bipedal (Bumi) & Yahboom** |
+Short positioning. **Full analysis:** [COMPETITIVE_LANDSCAPE.md](./COMPETITIVE_LANDSCAPE.md) (OpenClaw, OpenFang, OpenManus, gaps, easy wins).
 
 ---
 
-## 🛡️ Strategic Advantages of RoboFang v1.8.0
+## Focus
 
-### 1. Verifiable Reasoning
-Legacy frameworks often rely on "one-shot" reasoning where an agent's error can immediately impact the filesystem. RoboFang's **Enrich → Execute → Audit** pipeline ensures that every high-level action is staged in the **Dark Twin Universe (DTU)** and audited by a separate model before commit.
-
-### 2. Physical & Virtual Integration
-While other frameworks focus on text manipulation, RoboFang treats **actuators** and **sensors** as first-class primitives.
-- **Bumi Biped Integration**: Kinematics support for the Noetix Bumi humanoid platform.
-- **Yahboom Prototyping**: Out-of-the-box support for the Raspbot v2 hardware stack.
-- **Resonite VR Bridge**: Participate in the reasoning process from within high-fidelity 3D environments.
-
-### 3. Tailscale Secure Networking
-By leveraging **Tailscale Secure Bindings**, your entire fleet is networked across a private, encrypted mesh. This eliminates the risks of public-facing endpoints while allowing for seamless multi-device monitoring.
+| Project | Optimizes for |
+|---------|----------------|
+| **OpenClaw** | Messaging + plugins (hundreds of thousands of GitHub stars) |
+| **OpenFang** | Rust agent OS, security, A2A/OFP |
+| **OpenManus** | Single CLI agent + browser/code tools (fleet: `openmanus-mcp`) |
+| **RoboFang** | MCP fleet hub + embodiment + local council |
 
 ---
 
-## 📊 Summary: Why v1.8.0?
+## Where RoboFang wins
 
-RoboFang is designed for users who require:
-1.  **High-Fidelity Reasoning**: Multi-model consensus for complex tasks.
-2.  **Safety Guarantees**: HMAC-signed specifications and DTU shadow staging.
-3.  **Physical Presence**: The ability to drive real-world hardware via the Noetix Bumi centerpiece.
+- **Physical + virtual robotics** (Yahboom, Bumi, Resonite, VRChat) — others don’t compete here.
+- **Federated MCP fleet** — orchestrate many specialized servers without vendoring them into one repo.
+- **Council of Dozens** — multi-model synthesis for hard decisions (local Ollama).
+- **Local-first economics** — research loops without per-token cloud default.
+
+---
+
+## Where others win (gaps we acknowledge)
+
+- **OpenClaw:** channels, ClawHub, mobile-native chat familiarity, community scale.
+- **OpenFang:** WASM sandbox, A2A/OFP, desktop app polish.
+- **OpenManus:** in-box browser/code agent loop; we **integrate** via `openmanus-mcp`, not duplicate.
+
+---
+
+## UX direction
+
+Users know **chat apps**. The hub is moving **chat-first** — see [CHAT_UX.md](./CHAT_UX.md) and [NEXT_PRIORITIES.md](./NEXT_PRIORITIES.md).
+
+---
+
+## Related
+
+- [ROADMAP.md](./ROADMAP.md)
+- [SECURITY_INTEGRATIONS.md](./SECURITY_INTEGRATIONS.md)
