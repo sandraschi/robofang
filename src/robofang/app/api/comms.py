@@ -6,6 +6,7 @@ import logging
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
+
 from robofang.app.inbox import process_inbox_message
 from robofang.core.state import orchestrator
 from robofang.messaging import (

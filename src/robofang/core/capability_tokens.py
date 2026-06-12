@@ -26,13 +26,13 @@ import json
 import logging
 import time
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 logger = logging.getLogger("robofang.capabilities")
 
 
-class ToolScope(str, Enum):
+class ToolScope(StrEnum):
     READ = "read"  # Can read but not mutate
     EXECUTE = "execute"  # Can execute the tool
     DELEGATE = "delegate"  # Can pass the capability to sub-agents

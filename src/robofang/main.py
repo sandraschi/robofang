@@ -11,6 +11,7 @@ import uvicorn
 
 from robofang.app.fleet import _default_bridge_port
 from robofang.app.lifecycle import app
+from robofang.utils.security import get_secure_bind_address
 
 
 def main():
@@ -18,7 +19,9 @@ def main():
     try:
         # Use port from environment or default from fleet-stack-ports.json
         port = int(os.getenv("PORT", _default_bridge_port()))
-        host = os.getenv("ROBOFANG_BRIDGE_HOST", "0.0.0.0")
+        # Secure bind by default (env override → Tailscale IP → 127.0.0.1).
+        # ROBOFANG_BRIDGE_HOST is honoured first for backward compatibility.
+        host = os.getenv("ROBOFANG_BRIDGE_HOST") or get_secure_bind_address()
 
         # In development, you might want reload=True, but standard bridge is False
         uvicorn.run(app, host=host, port=port, reload=False)

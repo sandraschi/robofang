@@ -1,6 +1,7 @@
 """Tests for Agent Vault (credential-injection proxy)."""
 
 import pytest
+
 from robofang.core.credential_vault import (
     AgentVault,
     AgentVaultPolicy,

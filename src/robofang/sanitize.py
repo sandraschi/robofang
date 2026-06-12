@@ -10,8 +10,14 @@ from __future__ import annotations
 import re
 
 _ZERO_WIDTH_CHARS = {
-    "\u200b": "", "\u200c": "", "\u200d": "", "\u200e": "", "\u200f": "",
-    "\u2060": "", "\ufeff": "", "\u00ad": "",
+    "\u200b": "",
+    "\u200c": "",
+    "\u200d": "",
+    "\u200e": "",
+    "\u200f": "",
+    "\u2060": "",
+    "\ufeff": "",
+    "\u00ad": "",
 }
 
 _WRAP_PREFIX = (

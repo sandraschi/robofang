@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+
 from robofang.app.fleet import (
     MCP_BACKENDS,
     _fleet_catalog,

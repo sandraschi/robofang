@@ -79,7 +79,7 @@ _HELP: dict[str, Any] = {
                 "execute": "ReAct loop: tool utilization and execution.",
                 "audit": "Satisficer: post-execution verification against spec.",
                 "use_council": (
-                    "Set use_council=True in robofang_ask to run a council synthesis instead " "of single-model ask."
+                    "Set use_council=True in robofang_ask to run a council synthesis instead of single-model ask."
                 ),
             },
         },
@@ -88,7 +88,7 @@ _HELP: dict[str, Any] = {
             "topics": {
                 "bridge": "Bridge runs on PORT (default 10871). Health: GET /health, fleet: GET /fleet.",
                 "mcp_sse": (
-                    "MCP over SSE: connect to http://localhost:PORT/sse for Cursor/Claude. " "Same process as Bridge."
+                    "MCP over SSE: connect to http://localhost:PORT/sse for Cursor/Claude. Same process as Bridge."
                 ),
                 "dashboard": "RoboFang Hub: port 10864 (or 10870). Real-time logs, deliberations, fleet control.",
             },
@@ -128,10 +128,12 @@ async def robofang_status() -> dict[str, Any]:
     try:
         connector_states = {name: getattr(conn, "active", False) for name, conn in _orchestrator.connectors.items()}
         online = sum(1 for v in connector_states.values() if v)
+        from robofang import __version__
+
         return {
             "success": True,
             "service": "RoboFang-bridge",
-            "version": "0.3.0",
+            "version": __version__,
             "connectors_online": online,
             "connectors_total": len(connector_states),
             "connectors": connector_states,

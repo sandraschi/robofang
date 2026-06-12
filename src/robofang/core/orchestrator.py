@@ -722,7 +722,7 @@ class OrchestrationClient:
             return {
                 "success": False,
                 "error": (
-                    f"SECURITY_REJECTION: DefenseClaw has blocked the action '{tool_name}' " "due to policy violation."
+                    f"SECURITY_REJECTION: DefenseClaw has blocked the action '{tool_name}' due to policy violation."
                 ),
             }
 

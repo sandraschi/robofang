@@ -4,6 +4,7 @@ import logging
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+
 from robofang.app.fleet import (
     _hand_id_to_connector,
 )

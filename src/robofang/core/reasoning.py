@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from robofang.sanitize import sanitize_text, wrap_untrusted
+from robofang.sanitize import sanitize_text
 
 logger = logging.getLogger("robofang.reasoning")
 
@@ -197,12 +197,17 @@ class ReasoningEngine:
         if not node:
             await self._ensure_model_ready(model)
 
-            payload = {
-                # Wrapped: prompt may contain external text (Discord, email, MCP input)
-                "prompt": sanitize_text(prompt),
-                "stream": False,
-                "keep_alive": self._get_keep_alive(model),
-            }
+        # Sanitize message contents: any turn may carry external text
+        # (Discord, email, MCP input). /api/chat is messages-based, not prompt-based.
+        safe_messages = [
+            {**m, "content": sanitize_text(m["content"])} if isinstance(m.get("content"), str) else m for m in messages
+        ]
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": safe_messages,
+            "stream": False,
+            "keep_alive": self._get_keep_alive(model),
+        }
         if tools:
             payload["tools"] = self._convert_to_json_schema(tools)
 

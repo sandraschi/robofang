@@ -3,6 +3,7 @@
 import time
 
 import pytest
+
 from robofang.core.capability_tokens import (
     CapabilityToken,
     TokenAuthority,
