@@ -76,3 +76,8 @@ llms-full.txt
 target/
 
 _dashboard/
+
+# Secrets (never commit)
+.env
+.env.*
+!.env.example
