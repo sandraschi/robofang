@@ -368,7 +368,9 @@ def robofang_council_workflow() -> str:
     return """Plan a Council of Dozens workflow with RoboFang:
 
 1. Use robofang_status to ensure the hub is up.
-2. Use robofang_ask with use_council=True and a clear prompt that states the decision or synthesis you need (e.g. "Evaluate the security implications of enabling connector X" or "Draft a short specification for feature Y").
+2. Use robofang_ask with use_council=True and a clear prompt that states the decision or
+   synthesis you need (e.g. "Evaluate the security implications of enabling connector X" or
+   "Draft a short specification for feature Y").
 3. The Council runs Enrich (Foreman spec) -> Execute (ReAct) -> Audit (Satisficer). Results
    appear in the response.
 4. Optionally call robofang_deliberations(limit=20) to inspect the reasoning log and then

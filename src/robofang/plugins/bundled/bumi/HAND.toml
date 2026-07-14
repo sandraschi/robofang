@@ -5,6 +5,15 @@ category = "embodiment"
 icon = "android"
 version = "1.0.0"
 
+[agent]
+name = "bumi-hand"
+description = "Biped Kid-Friendly Android (1m height). Real-world centerpiece for embodied fleet orchestration."
+module = "builtin:hand"
+provider = "default"
+model = "default"
+max_iterations = 20
+system_prompt = """You are the Noetix Bumi biped android. You manage gait, battery, and cohesion systems for a kid-friendly humanoid robot."""
+
 [dashboard]
 metrics = [
     { label = "Battery", memory_key = "bumi_battery" },

@@ -5,6 +5,15 @@ category = "embodiment"
 icon = "robot"
 version = "1.0.0"
 
+[agent]
+name = "yahboom-hand"
+description = "Baseline demonstrator bot for fleet connectivity and basic actuation."
+module = "builtin:hand"
+provider = "default"
+model = "default"
+max_iterations = 20
+system_prompt = """You are a Yahboom robot hand. You can move actuators, report sensor status, and demonstrate basic fleet connectivity."""
+
 [dashboard]
 metrics = [
     { label = "Signal", memory_key = "yahboom_signal" },

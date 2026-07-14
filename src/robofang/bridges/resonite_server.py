@@ -6,6 +6,7 @@ Implements a WebSocket server on port 4242 for real-time 3D world interaction.
 import asyncio
 import json
 import logging
+import os
 
 import websockets
 
@@ -14,8 +15,10 @@ logger = logging.getLogger("resonite_server")
 
 
 class ResoniteServer:
-    def __init__(self, host: str = "0.0.0.0", port: int = 4242):
-        self.host = host
+    def __init__(self, host: str | None = None, port: int = 4242):
+        # Bind to loopback by default; opt into LAN/all-interfaces explicitly via
+        # RESONITE_HOST (e.g. "0.0.0.0" for headset-on-LAN setups).
+        self.host = host or os.getenv("RESONITE_HOST", "127.0.0.1")
         self.port = port
         self.clients: set[websockets.WebSocketServerProtocol] = set()
 

@@ -107,8 +107,8 @@ class TapoConnector(BaseConnector):
                     try:
                         e = await device.get_emeter_realtime()
                         entry["power_w"] = e.get("power")
-                    except Exception:
-                        pass
+                    except Exception as exc:
+                        logger.debug("Tapo emeter read failed for %s: %s", alias, exc)
                 readings.append(entry)
             except Exception as e:
                 readings.append({"alias": alias, "error": str(e)})

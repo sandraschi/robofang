@@ -37,7 +37,7 @@ class _RingHandler(logging.Handler):
                 }
             )
         except Exception:
-            pass
+            logging.getLogger("robofang.logging").debug("log emit failed", exc_info=True)
 
 
 def _categorise(name: str) -> str:

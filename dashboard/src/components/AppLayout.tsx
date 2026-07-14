@@ -58,10 +58,13 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                             <span className="font-heading font-bold text-xl tracking-tight text-white">RoboFang</span>
                         </motion.div>
                     ) : (
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto shadow-lg shadow-indigo-600/30">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
                             <Activity size={18} className="text-white" />
                         </div>
                     )}
+                    <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all" title={isCollapsed ? "Expand" : "Collapse"}>
+                        <PanelLeftClose size={18} className={isCollapsed ? "rotate-180" : ""} />
+                    </button>
                 </div>
 
                 {/* Nav */}
@@ -94,16 +97,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <div className="p-4 border-t border-white/5 space-y-2">
                     <NavItem to="/onboarding" icon={<Rocket size={20} />} label="Onboarding" isCollapsed={isCollapsed} active={location.pathname === '/onboarding'} />
                     <NavItem to="/settings" icon={<Settings size={20} />} label="Settings" isCollapsed={isCollapsed} active={location.pathname === '/settings'} />
-                    <button
-                        onClick={() => setIsCollapsed(!isCollapsed)}
-                        className="w-full h-11 flex items-center justify-center rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/8 hover:border-white/10 transition-all group/toggle mt-1"
-                        title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-                    >
-                        <PanelLeftClose
-                            className={`text-slate-400 transition-transform duration-700 ${isCollapsed ? 'rotate-180' : ''}`}
-                            size={18}
-                        />
-                    </button>
                     {!isCollapsed && (
                         <div className="mt-2 px-2 flex items-center justify-between">
                             <div className="flex flex-col">

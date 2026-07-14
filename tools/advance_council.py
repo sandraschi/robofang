@@ -11,7 +11,10 @@ def main():
 
     # 1. Start or Resume the Resonite Session
     task_name = "Resonite Spatial VLM"
-    task_desc = "Architect a spatially-aware VLM system for Resonite that can manipulate ProtoFlux and 3D primitives via WebMCP or OSC."
+    task_desc = (
+        "Architect a spatially-aware VLM system for Resonite that can manipulate "
+        "ProtoFlux and 3D primitives via WebMCP or OSC."
+    )
 
     session_file = Path(root) / "exchange" / "debates" / "resonite_spatial_vlm_session.json"
 

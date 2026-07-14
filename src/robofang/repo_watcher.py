@@ -38,7 +38,8 @@ class DebouncingRepoHandler(FileSystemEventHandler):
             if resp.status_code == 200:
                 data = resp.json()
                 logger.info(
-                    f"Fleet scan complete: {data.get('total_repositories', 0)} repositories analyzed in {data.get('duration_seconds', 0)}s."
+                    f"Fleet scan complete: {data.get('total_repositories', 0)} repositories "
+                    f"analyzed in {data.get('duration_seconds', 0)}s."
                 )
             else:
                 logger.error(f"Fleet scan failed with HTTP {resp.status_code}")

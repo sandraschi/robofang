@@ -1,4 +1,4 @@
-﻿Param([switch]$Headless)
+Param([switch]$Headless)
 
 # --- SOTA Headless Standard ---
 if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch 'Hidden')) {
@@ -19,6 +19,13 @@ if (Test-Path $PortsPath) {
     $SupervisorPort = $stack.supervisor_port
 } else {
     $WebPort = 10870
+$FleetStartPath = Join-Path $RepoRoot "scripts\FleetStartMode.ps1"
+if (-not (Test-Path -LiteralPath $FleetStartPath)) {
+    Write-Host "ERROR: Missing vendored launcher helper: $FleetStartPath" -ForegroundColor Red
+    exit 1
+}
+. $FleetStartPath
+
     $BridgePort = 10871
     $SupervisorPort = 10872
 }

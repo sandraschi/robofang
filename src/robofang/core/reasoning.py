@@ -386,7 +386,8 @@ class ReasoningEngine:
             {
                 "role": "system",
                 "content": (
-                    "You are a Sovereign RoboFang Agent. Use <thought> for reasoning and <call name='tool'>content</call> for actions.\n"
+                    "You are a Sovereign RoboFang Agent. Use <thought> for reasoning "
+                    "and <call name='tool'>content</call> for actions.\n"
                     "AVAILABLE TOOLS:\n" + json.dumps(tools, indent=2) + "\n\n"
                     "Always close tags. Output final answer without tags when complete."
                 ),

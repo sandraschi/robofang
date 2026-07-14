@@ -24,7 +24,8 @@ class TestAgenticWorkflow(unittest.IsolatedAsyncioTestCase):
         mock_ask.side_effect = [
             {
                 "success": True,
-                "response": "<thought>I need to check the status and then send a message.</thought><call name='connector_mock_social'>target='user', content='Hello'</call>",
+                "response": "<thought>I need to check the status and then send a message.</thought>"
+                "<call name='connector_mock_social'>target='user', content='Hello'</call>",
             },
             # Turn 2: Final Answer
             {"success": True, "response": "I have successfully sent the message."},

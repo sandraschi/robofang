@@ -47,6 +47,7 @@ class RoboticsHand(Hand):
             await orchestrator.moltbook.post(
                 "/post",
                 {
-                    "content": f"[Robotics Hand] Physical state: {telemetry['status']}. Battery: {telemetry['battery']}%."
+                    "content": f"[Robotics Hand] Physical state: {telemetry['status']}. "
+                    f"Battery: {telemetry['battery']}%."
                 },
             )

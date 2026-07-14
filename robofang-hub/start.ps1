@@ -1,4 +1,4 @@
-﻿Param([switch]$Headless)
+Param([switch]$Headless)
 
 # --- SOTA Headless Standard ---
 if ($Headless -and ($Host.UI.RawUI.WindowTitle -notmatch 'Hidden')) {
@@ -19,6 +19,13 @@ if (Test-Path $PortsPath) {
     $SupervisorPort = $stack.supervisor_port
 } else {
     $WebPort = 10870
+$FleetStartPath = Join-Path $RepoRoot "scripts\FleetStartMode.ps1"
+if (-not (Test-Path -LiteralPath $FleetStartPath)) {
+    Write-Host "ERROR: Missing vendored launcher helper: $FleetStartPath" -ForegroundColor Red
+    exit 1
+}
+. $FleetStartPath
+
     $BridgePort = 10871
     $SupervisorPort = 10872
 }
@@ -139,6 +146,10 @@ Write-Host "    Bridge is up." -ForegroundColor Green
 
 # 4. Run Vite (hub) only when bridge is up. Explicit port so we never fall back to 8765 or Vite default.
 Write-Host "[4/4] Starting RoboFang Hub on :$WebPort ..." -ForegroundColor Green
+if (-not (Test-Path (Join-Path $PSScriptRoot "node_modules"))) {
+    Write-Host "    Installing frontend dependencies..." -ForegroundColor Yellow
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", "npm install" -WorkingDirectory $PSScriptRoot -Wait -NoNewWindow
+}
 Start-Process `
     -FilePath "cmd.exe" `
     -ArgumentList "/c", "npm run dev -- --port $WebPort --host" `

@@ -36,7 +36,7 @@ dependencies = [
     # EmailConnector   — stdlib smtplib + imaplib, no extra dep
 
     # MCP 3.1 (Unified Gateway)
-    "fastmcp>=3.2,<4",
+    "fastmcp>=3.4.2,<4",
 
     # Observability (Prometheus /metrics for bridge)
     "prometheus-fastapi-instrumentator>=7.0",
@@ -105,6 +105,20 @@ ignore = ["S101", "B008"]
 "tests/**/*.py" = ["S106"]
 "src/robofang/supervisor.py" = ["S603"]
 "src/robofang/core/container_runtime.py" = ["S603"]
+# Vetted subprocess calls to known binaries (git, uv, winget, docker) with
+# controlled args — not untrusted input. The S603/S607 here are accepted.
+"src/robofang/core/installer.py" = ["S603", "S607"]
+"src/robofang/core/connectors/calibre.py" = ["S603"]
+"src/robofang/cli.py" = ["S603"]
+"src/robofang/app/fleet.py" = ["S603", "S607"]
+"src/robofang/core/connectors/bridge.py" = ["S603"]
+"src/robofang/core/external_registries.py" = ["S607"]
+"src/robofang/core/heartbeat.py" = ["S603"]
+"src/robofang/server_process.py" = ["S603"]
+"tools/repo_stats.py" = ["S607"]
+"tools/arxiv_rag_bridge.py" = ["S603"]
+# Long-form markdown content embedded as a string literal (debate fixture).
+"tools/finalize_round.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -114,4 +128,5 @@ indent-style = "space"
 dev = [
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
+    "ruff>=0.15.21",
 ]

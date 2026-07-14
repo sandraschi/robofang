@@ -44,9 +44,10 @@ class RingConnector(BaseConnector):
                 try:
                     import json as _j
 
-                    token_data = _j.loads(open(token_file).read())
-                except Exception:
-                    pass
+                    with open(token_file) as _tf:
+                        token_data = _j.loads(_tf.read())
+                except Exception as exc:
+                    self.logger.debug("Ring token cache read failed: %s", exc)
             auth = Auth(
                 "RoboFang/1.0",
                 token_data,

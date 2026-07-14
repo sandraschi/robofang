@@ -1,6 +1,7 @@
 """Discord Connector."""
 
 import asyncio
+import contextlib
 import logging
 from typing import Any
 
@@ -60,10 +61,8 @@ class DiscordConnector(BaseConnector):
             await self._client.close()
         if self._bot_task:
             self._bot_task.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await self._bot_task
-            except (asyncio.CancelledError, Exception):
-                pass
         self.active = False
         return True
 

@@ -148,8 +148,8 @@ async def probe_voice_backend() -> dict[str, Any]:
     if backend_ok:
         try:
             moshi_status = await _rest_moshi_status()
-        except Exception:
-            pass
+        except Exception as exc:
+            logger.debug("moshi status fetch failed: %s", exc)
 
     return {
         "backend_url": KYUTAI_BACKEND_URL,

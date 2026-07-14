@@ -1,7 +1,7 @@
 {
     "manifest_version": "0.2",
     "name": "robofang",
-    "version": "0.3.0",
+    "version": "1.8.0a2",
     "description": "RoboFang MCP & robotics orchestration hub",
     "author": {
         "name": "Sandra Schipal"
@@ -25,6 +25,7 @@
         "port": {
             "type": "string",
             "title": "Bridge Port",
+            "description": "Port for the RoboFang bridge server",
             "default": "10870"
         }
     },
