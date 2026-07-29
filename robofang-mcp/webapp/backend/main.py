@@ -1,6 +1,6 @@
 """
 robofang-mcp webapp backend — proxies to RoboFang bridge; serves frontend.
-Port 10761 (fleet webapp standard). CORS for frontend on 10760.
+Port 10874 (fleet webapp standard). CORS for frontend on 10873.
 """
 
 from __future__ import annotations
@@ -17,11 +17,11 @@ from pydantic import BaseModel
 app = FastAPI(title="RoboFang MCP Webapp", version="0.1.0")
 
 BRIDGE_URL = (os.getenv("ROBOFANG_BRIDGE_URL") or "http://localhost:10871").rstrip("/")
-FRONTEND_ORIGIN = os.getenv("CORS_ORIGIN", "http://localhost:10760")
+FRONTEND_ORIGIN = os.getenv("CORS_ORIGIN", "http://localhost:10873")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_ORIGIN, "http://127.0.0.1:10760"],
+    allow_origins=[FRONTEND_ORIGIN, "http://127.0.0.1:10873"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

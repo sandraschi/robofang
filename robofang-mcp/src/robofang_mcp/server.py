@@ -436,7 +436,7 @@ async def robofang_bootstrap_guide(
         {
             "order": 5,
             "title": "Optional: robofang-mcp webapp",
-            "action": "Run webapp backend (10761) and frontend (10760)",
+            "action": "Run webapp backend (10874) and frontend (10873)",
             "detail": "See robofang-mcp/webapp/README.md for status and tool testing UI.",
         },
     ]

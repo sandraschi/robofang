@@ -83,8 +83,8 @@ All MCP server webapps and dashboards MUST use ports from the reserved range **1
 | 10751 | reversing-mcp | Frontend |
 | 10752 | nest-protect-mcp | Frontend |
 | 10753 | nest-protect-mcp | Backend |
-| 10760 | robofang-mcp | Web dashboard frontend |
-| 10761 | robofang-mcp | Web dashboard backend |
+| 10873 | robofang-mcp | Web dashboard frontend |
+| 10874 | robofang-mcp | Web dashboard backend (optional — Vite proxies to bridge) |
 | 10762 | winrar-mcp | Backend |
 | 10763 | winrar-mcp | Frontend |
 | 10764 | openclaw-molt-mcp | Frontend |

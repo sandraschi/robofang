@@ -2,7 +2,7 @@
 
 RoboFang’s **fleet orchestrator** is powerful but unfamiliar. Most users know **chat apps** (OpenClaw, ChatGPT, Telegram bots). The hub webapp should lead with **conversation**, not an operator console.
 
-**Location:** `robofang-mcp/webapp/frontend/` (Vite, port **10760** dev; production served with bridge).
+**Location:** `robofang-mcp/webapp/frontend/` (Vite, port **10873** dev; production served with bridge).
 
 ---
 

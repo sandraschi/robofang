@@ -1,6 +1,6 @@
 # robofang-mcp
 
-Thin MCP server so **Cursor** and **Antigrav** (and other MCP clients) can converse with RoboFang. Optional **webapp** in `webapp/` (ports 10760 frontend, 10761 backend) for status and tool testing — synced with fleet MCP webapp style. The main RoboFang repo has the full Sovereign Hub UI (`robofang-hub`).
+Thin MCP server so **Cursor** and **Antigrav** (and other MCP clients) can converse with RoboFang. Optional **webapp** in `webapp/` (ports 10873 frontend, 10874 backend) for status and tool testing — synced with fleet MCP webapp style. The main RoboFang repo has the full Sovereign Hub UI (`robofang-hub`).
 
 - **FastMCP 3.1**: tools, prompts, sampling (`robofang_agentic_workflow`), optional skills.
 - **Thin**: forwards all tool calls to the RoboFang bridge over HTTP. Start the bridge first (`robofang-bridge` or `python -m robofang.main`).
@@ -85,4 +85,4 @@ So you can either **classic**: install RoboFang → run bridge → run hub → o
 
 ## Webapp (optional)
 
-Operator UI: status, test ask, deliberations tail. See [webapp/README.md](webapp/README.md). Run backend (10761) then frontend dev (10760) or build frontend and serve from backend.
+Operator UI: status, test ask, deliberations tail. See [webapp/README.md](webapp/README.md). Run backend (10874) then frontend dev (10873) or build frontend and serve from backend.
