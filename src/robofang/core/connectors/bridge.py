@@ -72,7 +72,7 @@ class MCPBridgeConnector(BaseConnector):
         self._client = httpx.AsyncClient(timeout=self._timeout)
 
         # Try to reach the server
-        if await self._ping():
+        if await self.ping():
             self.active = True
             self.logger.info(f"MCPBridgeConnector '{self._name}' reachable at {self._url}")
             return True
@@ -83,7 +83,7 @@ class MCPBridgeConnector(BaseConnector):
             await self._start_sidecar()
             # Give it a moment to bind
             await asyncio.sleep(2)
-            if await self._ping():
+            if await self.ping():
                 self.active = True
                 self.logger.info(f"MCPBridgeConnector '{self._name}' sidecar up at {self._url}")
                 return True

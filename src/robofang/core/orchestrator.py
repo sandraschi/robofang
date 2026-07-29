@@ -149,6 +149,7 @@ class OrchestrationClient:
         self.running = False
         self.heartbeat_task: asyncio.Task | None = None
         self.slow_task: asyncio.Task | None = None
+        self.safety_task: asyncio.Task | None = None
 
         # Reasoning Log (Forensics Ring Buffer)
         self.reasoning_log = collections.deque(maxlen=100)

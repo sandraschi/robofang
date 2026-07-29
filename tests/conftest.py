@@ -1,15 +1,17 @@
-"""
-Pytest fixtures for RoboFang bridge API tests.
-Mocks the orchestrator so tests do not require config, disk, or external services.
-"""
+"""Pytest fixtures for RoboFang bridge API tests."""
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
 
+from robofang.main import app
 
-def _make_mock_orchestrator():
+collect_ignore = ["connectors/test_ring.py"]  # standalone script, not pytest
+
+
+@pytest.fixture
+def mock_orchestrator():
     mock = MagicMock()
     mock.topology = {
         "connectors": {
@@ -31,26 +33,7 @@ def _make_mock_orchestrator():
 
 
 @pytest.fixture
-def mock_orchestrator():
-    return _make_mock_orchestrator()
-
-
-@pytest.fixture
-def client(mock_orchestrator):
-    """TestClient for the bridge app with orchestrator patched."""
-
-    async def no_auto_launch():
-        pass
-
-    async def no_refresh_mcp_tools():
-        pass
-
-    with (
-        patch("robofang.main.orchestrator", mock_orchestrator),
-        patch("robofang.main.auto_launch_enabled_connectors", side_effect=no_auto_launch),
-        patch("robofang.main._refresh_mcp_tools_from_backends", side_effect=no_refresh_mcp_tools),
-    ):
-        from robofang.main import app
-
-        with TestClient(app) as c:
-            yield c
+def client():
+    """TestClient wrapping the real bridge app (no orchestrator mock)."""
+    with TestClient(app) as c:
+        yield c
