@@ -1,0 +1,6 @@
+{
+  "name": "robofang",
+  "version": "1.8.0a2",
+  "description": "RoboFang MCP & robotics orchestration hub — voice bridge, fleet management, session control, hands/gripper control.",
+  "hooks": "../hooks/hooks.json"
+}

@@ -1,0 +1,30 @@
+# Normalize line endings to LF for all text files
+* text=auto eol=lf
+
+# PowerShell scripts
+*.ps1 text eol=lf
+*.psm1 text eol=lf
+*.psd1 text eol=lf
+
+# Batch files
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Webapp sources
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary files
+*.png binary
+*.ico binary
+*.exe binary
+*.dll binary
+*.db binary
+*.sqlite3 binary

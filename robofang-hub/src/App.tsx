@@ -52,7 +52,7 @@ import './index.css';
 
 function App() {
   useEffect(() => {
-    console.log('[APP] App mounted correctly');
+    // App initialised
   }, []);
 
   return (

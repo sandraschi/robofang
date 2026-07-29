@@ -1,4 +1,4 @@
-set windows-shell := ["pwsh.exe", "-NoLogo", "-Command"]
+set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
 import 'scripts/just/fleet.just'
 
 # ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -73,6 +73,32 @@ release:
   @echo "  git push origin v0.1.0-alpha.1"
   @echo "Then open Actions → Release and the new GitHub Release (with .exe attached)."
 
+# Run all verification gates: lint, typecheck, tests
+certify: lint test
+  @echo "=== Certification gate passed ==="
+
+# Run lint + typecheck + tests (alias for certfy)
+gates-green: lint test
+  @echo "=== All gates green ==="
+
+# Package MCPB bundle
+mcpb-pack:
+  @echo "Run: mcpb pack . dist/robofang-v$(shell python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])").mcpb"
+
+# E2E tests (placeholder)
+e2e:
+  @echo "No Playwright E2E configured yet — run `just certfy` for standard gates."
+
+# CUA-NSIS smoke test
+cua-nsis-test:
+  uv run python scripts/cua-smoke.py
+
+# First-time bootstrap
+bootstrap:
+  uv sync
+  pre-commit install
+  @echo "Bootstrap complete. Run `just` to see available recipes."
+
 # Run the bridge (FastAPI + MCP)
 run:
   python -m robofang.main
@@ -84,10 +110,19 @@ hub:
 # ── RAG (LanceDB vector index) ─────────────────────────────────────────────────
 
 rag-gpu:
-    @pwsh.exe -NoProfile -ExecutionPolicy Bypass -File scripts/just/rag-gpu.ps1
+	@powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/just/rag-gpu.ps1
 
 rag-gpu-install:
-    @pwsh.exe -NoProfile -ExecutionPolicy Bypass -File scripts/just/rag-gpu-install.ps1
+	@powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/just/rag-gpu-install.ps1
 
 rag-cpu-install:
-    @pwsh.exe -NoProfile -ExecutionPolicy Bypass -File scripts/just/rag-cpu-install.ps1
+	@powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/just/rag-cpu-install.ps1
+
+# ── Native (Tauri) ──────────────────────────────────────────────────────────
+
+# Build the Tauri NSIS desktop installer (full pipeline: frontend -> Rust -> NSIS)
+build-native:
+	$env:Path = "$env:USERPROFILE\.cargo\bin;$env:Path"
+	Set-Location '{{justfile_directory()}}\native'
+	npx @tauri-apps/cli build --bundles nsis
+

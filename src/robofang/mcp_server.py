@@ -32,6 +32,7 @@ def register_mcp(mcp: Any, orchestrator: Any) -> None:
     mcp.tool()(robofang_fleet)
     mcp.tool()(robofang_deliberations)
     mcp.tool()(robofang_agentic_workflow)
+    mcp.tool()(robofang_shutdown)
 
     # Voice bridge — MCP-to-MCP relay to kyutai-mcp
     from robofang.bridges.voice_bridge import robofang_voice
@@ -122,6 +123,14 @@ async def robofang_status() -> dict[str, Any]:
     """
     Return RoboFang Bridge health and fleet summary.
     Use before planning multi-step workflows to confirm the hub is up and connectors are available.
+
+    ## Return Format
+    {"success": bool, "service": str, "version": str,
+     "connectors_online": int, "connectors_total": int,
+     "connectors": dict, "running": bool}
+
+    ## Examples
+    await robofang_status()
     """
     if _orchestrator is None:
         return {"success": False, "error": "Orchestrator not initialized."}
@@ -152,6 +161,14 @@ async def robofang_help(
     Multi-level help for RoboFang MCP.
     No args: list categories. category=: list topics. category= + topic=: full detail.
     Categories: tools, council, connection, skills.
+
+    ## Return Format
+    {"help": str, "usage": str, "categories": dict} or {"category": str, "description": str, "topics": dict}
+
+    ## Examples
+    await robofang_help()
+    await robofang_help(category="tools")
+    await robofang_help(category="council", topic="enrich")
     """
     cats = _HELP["categories"]
     if not category:
@@ -193,6 +210,13 @@ async def robofang_ask(
     Send a message to the RoboFang orchestrator.
     use_council=True: run Council of Dozens synthesis. use_rag=True: augment with RAG context.
     subject: security subject (default guest). persona: personality name (default sovereign).
+
+    ## Return Format
+    {"success": bool, "message": str, "model": str} or {"success": bool, "error": str}
+
+    ## Examples
+    await robofang_ask(message="What is the current fleet status?")
+    await robofang_ask(message="Evaluate security implications of connector X", use_council=True)
     """
     if _orchestrator is None:
         return {"success": False, "error": "Orchestrator not initialized."}
@@ -223,6 +247,15 @@ async def robofang_fleet() -> dict[str, Any]:
     """
     Return the full fleet registry: connectors (live + config), domain agents, summary.
     Same data as GET /fleet on the Bridge.
+
+    ## Return Format
+    {"success": bool,
+     "summary": {"connectors_online": int, "connectors_total": int,
+                 "agents_discovered": int},
+     "connectors": list, "agents": list}
+
+    ## Examples
+    await robofang_fleet()
     """
     if _orchestrator is None:
         return {"success": False, "error": "Orchestrator not initialized."}
@@ -276,7 +309,14 @@ async def robofang_fleet() -> dict[str, Any]:
 async def robofang_deliberations(limit: int = 50) -> dict[str, Any]:
     """
     Return recent reasoning log entries (Council/ReAct deliberation steps).
-    limit: max entries (default 50).
+    limit: max entries (default 50, max 100).
+
+    ## Return Format
+    {"success": bool, "count": int, "deliberations": list}
+
+    ## Examples
+    await robofang_deliberations()
+    await robofang_deliberations(limit=20)
     """
     if _orchestrator is None:
         return {"success": False, "error": "Orchestrator not initialized."}
@@ -340,6 +380,34 @@ async def robofang_agentic_workflow(goal: str, ctx: Context) -> str:
     except Exception as e:
         logger.exception("robofang_agentic_workflow failed")
         return f"Agentic workflow failed: {e}"
+
+
+async def robofang_shutdown(confirm: bool = False) -> dict:
+    """
+    Gracefully shut down the RoboFang bridge server.
+    Use when the user explicitly asks to stop the server or during maintenance.
+
+    ## Return Format
+    {"success": bool, "message": str}
+
+    ## Examples
+    robofang_shutdown(confirm=True)
+    """
+    if not confirm:
+        return {
+            "success": False,
+            "message": "Confirmation required. Call with confirm=True to shut down.",
+        }
+    try:
+        import os
+        import signal
+
+        logger.warning("RoboFang bridge shutting down by request")
+        os.kill(os.getpid(), signal.SIGTERM)
+        return {"success": True, "message": "Shutdown signal sent."}
+    except Exception as e:
+        logger.exception("robofang_shutdown failed")
+        return {"success": False, "error": str(e)}
 
 
 # ─── Prompts ─────────────────────────────────────────────────────────────────

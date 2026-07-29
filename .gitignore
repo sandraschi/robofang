@@ -77,6 +77,13 @@ target/
 
 _dashboard/
 
+# Reports (regenerable snapshots — not source)
+reports/
+
+# MCPB build artifacts
+*.mcpb
+mcpb/
+
 # Secrets (never commit)
 .env
 .env.*

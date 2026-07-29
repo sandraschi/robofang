@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "text",
+            "text": "## Session Context (RoboFang)\n\nYou have access to RoboFang robotics orchestration hub: voice bridge, fleet management, session control, and hands/gripper control.\n\n**Before starting work:**\n1. Check supervisor status\n2. List available hands/grippers\n3. Check active sessions\n\n**At end of work:**\n- Clean up any active sessions"
+          }
+        ]
+      }
+    ]
+  }
+}
