@@ -10,6 +10,10 @@ from typing import Any
 
 from fastmcp import Context
 
+_READ_ONLY = {"readonly": True}
+_MUTATING = {}
+_DESTRUCTIVE = {}
+
 logger = logging.getLogger("robofang.mcp")
 
 # Orchestrator is injected at registration time to avoid circular import.
@@ -26,18 +30,19 @@ def register_mcp(mcp: Any, orchestrator: Any) -> None:
     global _orchestrator
     _orchestrator = orchestrator
 
-    mcp.tool()(robofang_status)
-    mcp.tool()(robofang_help)
-    mcp.tool()(robofang_ask)
-    mcp.tool()(robofang_fleet)
-    mcp.tool()(robofang_deliberations)
-    mcp.tool()(robofang_agentic_workflow)
-    mcp.tool()(robofang_shutdown)
+    mcp.tool(annotations=_READ_ONLY)(robofang_status)
+    mcp.tool(annotations=_READ_ONLY)(robofang_help)
+    mcp.tool(annotations=_MUTATING)(robofang_ask)
+    mcp.tool(annotations=_READ_ONLY)(robofang_fleet)
+    mcp.tool(annotations=_READ_ONLY)(robofang_deliberations)
+    mcp.tool(annotations=_MUTATING)(robofang_agentic_workflow)
+    mcp.tool(annotations=_DESTRUCTIVE)(robofang_shutdown)
+    mcp.tool(annotations=_READ_ONLY)(robofang_rag_search)
 
     # Voice bridge — MCP-to-MCP relay to kyutai-mcp
     from robofang.bridges.voice_bridge import robofang_voice
 
-    mcp.tool()(robofang_voice)
+    mcp.tool(annotations=_MUTATING)(robofang_voice)
 
     mcp.prompt()(robofang_quick_start)
     mcp.prompt()(robofang_council_workflow)
@@ -380,6 +385,36 @@ async def robofang_agentic_workflow(goal: str, ctx: Context) -> str:
     except Exception as e:
         logger.exception("robofang_agentic_workflow failed")
         return f"Agentic workflow failed: {e}"
+
+
+async def robofang_rag_search(query: str, limit: int = 5) -> dict:
+    """
+    Search the local LanceDB RAG corpus for semantically relevant content.
+    Returns document snippets, sources, and similarity scores.
+
+    ## Return Format
+    {"success": bool, "results": list, "count": int, "message": str}
+
+    ## Examples
+    await robofang_rag_search(query="fleet status")
+    await robofang_rag_search(query="connector setup", limit=3)
+    """
+    if _orchestrator is None:
+        return {"success": False, "error": "Orchestrator not initialized."}
+    rag = getattr(_orchestrator, "rag", None)
+    if not rag:
+        return {
+            "success": False,
+            "error": "Local RAG not available.",
+            "message": "No LanceDB instance. Set ROBOFANG_LANCEDB_PATH.",
+        }
+    try:
+        results = rag.search(query, limit=min(max(1, limit), 20))
+        n = len(results)
+        return {"success": True, "results": results, "count": n, "message": f"Found {n} relevant documents."}
+    except Exception as e:
+        logger.exception("robofang_rag_search failed")
+        return {"success": False, "error": str(e)}
 
 
 async def robofang_shutdown(confirm: bool = False) -> dict:

@@ -25,22 +25,31 @@ class KnowledgeEngine:
     async def get_context(self, query: str, limit: int = 5, orchestrator: Any | None = None) -> str:
         """
         [SOTA RAG] Retrieves heterogeneous context for a prompt.
-        Bridges local fragments and ADN semantic search.
+        Tries ADN semantic search first, falls back to local LanceDB RAG.
         """
         self.logger.info(f"KnowledgeEngine: Retrieving context for query: {query}")
 
         context_parts = []
 
-        # 1. Semantic Search (ADN)
+        # 1. Semantic Search (ADN — advanced-memory-mcp)
         search_results = await self.semantic_search(query, orchestrator=orchestrator)
         if search_results:
             context_parts.extend(search_results)
 
-        # 2. Local Context Simulation (Fleet State)
+        # 2. Fallback: local LanceDB RAG
+        if not context_parts and orchestrator and getattr(orchestrator, "rag", None):
+            try:
+                local = orchestrator.rag.retrieve_context(query, limit=limit)
+                if local and local not in ("No relevant context found in RoboFang RAG.",):
+                    context_parts.append(f"[LOCAL_RAG] {local}")
+            except Exception as e:
+                self.logger.error("Local RAG search failed: %s", e)
+
+        # 3. Fleet state fallback
         if not context_parts:
             context_parts.append("[INTERNAL MEMORY] Fleet status verified: Persistence layer active.")
 
-        # 3. Long-Context Reranking (LCR) / Synthesis
+        # 4. Long-Context Reranking (LCR) / Synthesis
         return await self.satisfice_context(context_parts)
 
     async def semantic_search(self, query: str, orchestrator: Any | None = None) -> list[str]:

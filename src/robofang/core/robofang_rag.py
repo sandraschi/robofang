@@ -4,6 +4,7 @@ RoboFang RAG: semantic search and delta-sync. Wholly contained in this repo; use
 
 import json
 import logging
+import os
 from pathlib import Path
 from typing import Any
 
@@ -17,10 +18,11 @@ class RoboFangRAG(BaseVectorStore):
 
     def __init__(
         self,
-        db_path: str = "d:/Dev/repos/robofang/data/lancedb",
+        db_path: str | None = None,
         table_name: str = "robofang_media",
         embedding_model_name: str = "BAAI/bge-small-en-v1.5",
     ):
+        db_path = db_path or os.environ.get("ROBOFANG_LANCEDB_PATH", str(Path.cwd() / "data" / "lancedb"))
         super().__init__(
             db_path=db_path,
             table_name=table_name,

@@ -159,6 +159,16 @@ class OrchestrationClient:
         adn_connector = self.connectors.get("advanced-memory")
         self.journal_bridge = JournalBridge(adn_connector)
 
+        # Local LanceDB RAG (in-repo, no external MCP dependency)
+        try:
+            from robofang.core.robofang_rag import RoboFangRAG
+
+            self.rag = RoboFangRAG()
+            self.logger.info("Local LanceDB RAG initialised.")
+        except Exception as e:
+            self.rag = None
+            self.logger.warning("Local LanceDB RAG unavailable: %s", e)
+
         speech_connector = self.connectors.get("speech")
         self.speech_handler = SpeechHandler(speech_connector)
 
