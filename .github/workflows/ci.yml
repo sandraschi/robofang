@@ -1,8 +1,22 @@
 name: CI
-
 on:
   push:
-    tags: ["v*"]
-  workflow_dispatch:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
 
 jobs:
+  lint-test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --group dev
+      - run: uv run ruff check src/
+      - run: uv run ruff format src/ --check
+      - run: uv run pytest tests/ -q --timeout=60 -m "not github and not integration"
