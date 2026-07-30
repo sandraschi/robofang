@@ -1,10 +1,23 @@
 {
-    "name":  "robofang",
-    "version":  "0.3.0",
-    "description":  "RoboFang MCP \u0026 robotics orchestration hub",
-    "manifest":  "mcpb/manifest.json",
-    "fleet":  {
-                  "stars":  "★★★★★",
-                  "tier":  1
-              }
+    "id": "robofang",
+    "name": "robofang",
+    "version": "1.8.0a2",
+    "description": "RoboFang MCP & robotics orchestration hub",
+    "categories": ["orchestration", "robotics", "infrastructure"],
+    "repository": "https://github.com/sandraschi/robofang",
+    "tools": [
+        "robofang_status",
+        "robofang_help",
+        "robofang_ask",
+        "robofang_fleet",
+        "robofang_deliberations",
+        "robofang_agentic_workflow",
+        "robofang_voice",
+        "robofang_shutdown"
+    ],
+    "manifest": "mcpb/manifest.json",
+    "fleet": {
+        "stars": "★★★★★",
+        "tier": 1
+    }
 }

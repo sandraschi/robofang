@@ -1,0 +1,36 @@
+# RoboFang — LLM context
+
+RoboFang is an MCP & robotics orchestration hub: local AI, Council of Dozens (Foreman/Labor/Satisficer), fleet of MCP servers (hands), Resonite/OSC, memory (ADN/memops). Your hardware, your data. No cloud lock-in.
+
+## Repo layout
+
+- src/robofang/ — Python package: main.py (bridge + FastAPI + MCP at /sse), mcp_server.py (tools/prompts), supervisor.py, core/ (orchestrator, connectors, hands), plugins/, messaging.py, webhooks.py.
+- robofang-hub/ — Vite React hub UI (localhost:10870); start via robofang-hub/start.bat or start.ps1.
+- robofang-mcp/ — Thin MCP server for Cursor/Antigrav: forwards tools to bridge over HTTP; FastMCP 3.1, sampling, prompts, skills. No webapp.
+- hands/ — Installed MCP servers (cloned by hub). ROBOFANG_HANDS_DIR overrides.
+- configs/ — fleet-registry, datasources, etc. Bridge also uses src/robofang/configs/.
+- docs/ — Architecture, installation, MCP fleet, testing, releasing, speedups, just. See docs/README.md and docs/DOCS_STRUCTURE_AND_RAG.md.
+- .github/workflows/ — CI (lint, test), Release (tag v* → wheel, sdist, Windows exe).
+- justfile — Task runner: just (list), just test, just build, just exe, just release, just run, just hub.
+
+## Run
+
+- Full stack: .\robofang-hub\start.bat or .\start_all.ps1 (bridge + hub). Open http://localhost:10870. Bridge default port 10871.
+- Bridge only: python -m robofang.main or just run.
+- Cursor/Antigrav: pip install -e robofang-mcp then robofang-mcp (stdio). Set ROBOFANG_BRIDGE_URL if bridge not on localhost:10871.
+
+## Conventions
+
+- Python 3.11+. Ruff lint/format. Pytest in tests/. No Linux syntax in PowerShell scripts (no &&, use ; or separate commands).
+- Version in pyproject.toml. Release: tag v* (e.g. v0.1.0-alpha.1), push tag → Release workflow builds wheel, sdist, robofang-bridge.exe. See docs/RELEASING.md.
+- MCP tools (bridge and robofang-mcp): robofang_status, robofang_help, robofang_ask, robofang_fleet, robofang_deliberations, robofang_agentic_workflow. Council: use_council=True in robofang_ask.
+
+## Key docs
+
+- docs/INSTALLATION.md — Setup and first run.
+- docs/ARCHITECTURE.md — Council, memory, transport.
+- docs/RELEASING.md — Tag and release.
+- docs/JUST.md — just recipes.
+- docs/SPEEDUPS.md — Python compilation, when to use Rust.
+- robofang-mcp/README.md — Thin MCP server for IDE clients.
+- llms-full.txt — Full reference (tools, endpoints, config, ports, architecture).

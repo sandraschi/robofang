@@ -1,0 +1,104 @@
+# RoboFang — Full Reference
+
+RoboFang MCP & robotics orchestration hub. Multi-service: bridge (FastAPI),
+supervisor, fleet orchestration, plugins (15+), connectors (13 services),
+RAG (LanceDB), voice bridge (kyutai-mcp), Tauri desktop app (NSIS).
+
+## Services
+
+| Service | Port | Role |
+|---------|------|------|
+| Bridge API + MCP | 10871 | FastAPI REST + MCP streamable HTTP |
+| Hub web dashboard | 10870 | Vite React frontend (robofang-hub) |
+| Supervisor | 10872 | Heartbeat, auto-restart, metrics |
+| MCP thin server | 10873 | robofang-mcp webapp frontend |
+
+## Entry Points
+
+- `uv run robofang` -> robofang.cli:main
+- `uv run robofang-bridge` -> robofang.main:main (FastAPI + MCP, PORT=10871)
+- `uv run robofang-supervisor` -> robofang.supervisor:app
+- `uv run robofang-mcp` -> robofang_mcp.server:main (thin MCP server)
+
+## MCP Tools
+
+- `robofang_status` — bridge health, connector counts, version
+- `robofang_help` — multi-level help by category + topic
+- `robofang_ask` — send message to orchestrator (use_council, use_rag)
+- `robofang_fleet` — fleet registry: connectors, domain agents, summary
+- `robofang_deliberations` — recent reasoning log (Council/ReAct)
+- `robofang_agentic_workflow` — multi-step goal via sampling (status/ask/fleet/deliberations)
+- `robofang_voice` — voice relay to kyutai-mcp (turn, briefings, service control, sessions)
+
+## MCP Prompts
+
+- `robofang_quick_start` — step-by-step hub setup
+- `robofang_council_workflow` — Council of Dozens (Enrich -> Execute -> Audit)
+- `robofang_voice_workflow` — voice pipeline guide
+
+## Configuration
+
+| Variable | Purpose |
+|----------|---------|
+| `PORT` / `MCP_PORT` | Bridge port (default 10871 / 10867) |
+| `ROBOFANG_HOST` / `ROBOFANG_BRIDGE_HOST` | Bind host |
+| `ROBOFANG_SUPERVISOR_URL` | Supervisor endpoint |
+| `ROBOFANG_API_KEY` | API authentication |
+| `ROBOFANG_BRIDGE_URL` | Bridge URL for thin MCP server |
+| `ROBOFANG_CORS_ORIGINS` | Extra CORS origins (comma-separated) |
+| `ROBOFANG_TAURI` | Set to 1 when spawned by Tauri |
+| `ROBOFANG_CONNECTORS` | Comma-separated connector list |
+| `ROBOFANG_HANDS_DIR` | Override hands directory |
+| `ROBOFANG_FLEET_MANIFEST` | Fleet manifest YAML path |
+| `ROBOFANG_FLEET_REGISTRY` | Fleet registry path |
+| `ROBOFANG_FLEET_OWNER` | Fleet owner name |
+| `ROBOFANG_REPOS_ROOT` | Repos root directory |
+| `ROBOFANG_VAULT_SECRET` | Vault encryption key |
+| `ROBOFANG_VAULT_DEV_SECRET` | Dev fallback vault secret |
+| `ROBOFANG_VAULT_DB` | Vault DB path |
+| `ROBOFANG_LANCEDB_PATH` | LanceDB storage path |
+| `ROBOFANG_FOREMAN_SECRET` | Council foreman signing secret |
+| `ROBOFANG_BASTIO_API_KEY` | Bastio gateway API key |
+| `ROBOFANG_DISCORD_WEBHOOK` | Discord webhook URL |
+| `ROBOFANG_DISCORD_AGENTS_CHANNEL_ID` | Discord agents channel |
+| `ROBOFANG_TELEGRAM_TOKEN` | Telegram bot token |
+| `ROBOFANG_TELEGRAM_CHAT_ID` | Telegram chat ID |
+| `ROBOFANG_AUTO_LAUNCH_CONNECTORS` | Auto-launch connectors flag |
+| `ROBOFANG_SKIP_GREETING` | Skip startup greeting |
+| `ROBOFANG_SUPERVISOR_PROCESS` | Set to 1 for supervisor process |
+| `MOLTBOOK_API_KEY` | Moltbook API key |
+| `OLLAMA_URL` | Ollama endpoint |
+| `RESONITE_HOST` / `RESONITE_PORT` | Resonite connection |
+| `DEFAULT_MODEL` | Default LLM model |
+| `HA_URL` / `HA_TOKEN` | Home Assistant connection |
+| `PLEX_URL` / `PLEX_TOKEN` | Plex connection |
+| `DISCORD_BOT_TOKEN` | Discord bot token |
+| `SLACK_BOT_TOKEN` | Slack bot token |
+| `KYUTAI_BACKEND_URL` | Kyutai backend URL |
+| `KYUTAI_MCP_URL` | Kyutai MCP URL |
+| `SUPERVISOR_PORT` | Supervisor HTTP port |
+
+## Connectors (13)
+
+Ring, Hue, Tapo (Kasa), Plex, Resonite, Discord, Slack, Shelly, Home
+Assistant, Calibre, Email, Moltbook, Bridge (MCP-to-MCP relay)
+
+## Plugins (15+)
+
+Avatar, Cooking, Dance, Doctor, Housemaker, Musician, PA, Patroller,
+Routine Runner, Robotics Hand, Discord, Slack, Reddit, Teams, WhatsApp,
+Zoom, RustDesk
+
+## Tests
+
+- `pytest` — run test suite (~25 files: core, connectors, integration, E2E)
+- Tests use `asyncio_mode = auto`, 30s timeout, markers for github/integration
+
+## Architecture
+
+- Bridge (FastAPI) serves REST API + mounts FastMCP at /mcp (streamable HTTP)
+- Supervisor handles heartbeat, auto-restart, Prometheus /metrics
+- Hub (robofang-hub) is Vite React on port 10870
+- Tauri desktop wrapper in native/ (NSIS installer, embedded backend)
+- Connectors are stateless HTTP clients abstracted behind base class
+- Plugins add domain-specific capabilities (avatar, dance, cooking, etc.)

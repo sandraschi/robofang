@@ -35,9 +35,14 @@ just
 
 This opens an interactive dashboard showing all available commands. Run `just bootstrap` to install dependencies, then `just serve` or `just dev` to start.
 
-### Manual Setup
+## Ports
 
-If you don't have `just` installed:
+| Port | Service |
+|------|---------|
+| 10870 | Hub web dashboard (Vite React) + bridge API |
+| 10871 | Bridge server (FastAPI + MCP streamable HTTP) |
+| 10872 | Supervisor (heartbeat, auto-restart, metrics) |
+| 10873 | robofang-mcp thin server frontend |
 
 ## 📖 Comprehensive Documentation
 
