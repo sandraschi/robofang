@@ -81,17 +81,9 @@ certify: lint test
 gates-green: lint test
   @echo "=== All gates green ==="
 
-# Package MCPB bundle
-mcpb-pack:
-  @echo "Run: mcpb pack . dist/robofang-v$(shell python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])").mcpb"
-
 # E2E tests (placeholder)
 e2e:
   @echo "No Playwright E2E configured yet — run `just certfy` for standard gates."
-
-# CUA-NSIS smoke test
-cua-nsis-test:
-  uv run python scripts/cua-smoke.py
 
 # First-time bootstrap
 bootstrap:
