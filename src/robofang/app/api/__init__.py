@@ -5,6 +5,7 @@ from fastapi import APIRouter
 from .comms import hooks_router
 from .connectors import router as connectors_router
 from .docs import router as docs_router
+from .events import router as events_router
 from .fleet import router as fleet_router
 from .hands import router as hands_router
 from .rag import router as rag_router
@@ -24,6 +25,7 @@ api_router.include_router(system_router)
 api_router.include_router(skills_router)
 api_router.include_router(rag_router)
 api_router.include_router(docs_router)
+api_router.include_router(events_router)
 api_router.include_router(hooks_router)
 
 __all__ = ["api_router"]

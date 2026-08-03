@@ -211,10 +211,10 @@ class RoboFangStorage:
 
     # --- Audit Log Operations ---
 
-    def log_event(self, level: str, source: str, event: str, details: dict[str, Any] | None = None):
-        """Persist a critical event to the audit log."""
+    def log_event(self, level: str, source: str, event: str, details: dict[str, Any] | None = None) -> int:
+        """Persist a critical event to the audit log. Returns the row id."""
         with self._get_connection() as conn:
-            conn.execute(
+            cur = conn.execute(
                 """
                 INSERT INTO audit_logs (level, source, event, details)
                 VALUES (?, ?, ?, ?)
@@ -222,6 +222,7 @@ class RoboFangStorage:
                 (level, source, event, json.dumps(details or {})),
             )
             conn.commit()
+            return int(cur.lastrowid)
 
     def get_audit_logs(self, limit: int = 100) -> list[dict[str, Any]]:
         """Retrieve the most recent audit logs."""
