@@ -5,6 +5,16 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
 
 ---
 
+## [Unreleased]
+
+### Added
+- **Fleet Events API** (`POST /api/v1/events`): inbound alert sink implementing
+  the aiwatcher-mcp alert contract (`{source, event, urgency, title, url,
+  summary, tags, timestamp}`). Events persist to the audit log and broadcast
+  via Discord/Telegram when urgency >= `ROBOFANG_EVENT_ALERT_THRESHOLD`
+  (default 8.0). `GET /api/v1/events` lists recent events.
+- `storage.log_event()` now returns the audit log row id.
+
 ## [1.8.0-alpha.3] — 2026-07-29 "Assess & Fix Pass 2"
 
 ### Added

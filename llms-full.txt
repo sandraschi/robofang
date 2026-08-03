@@ -83,6 +83,14 @@ RAG (LanceDB), voice bridge (kyutai-mcp), Tauri desktop app (NSIS).
 Ring, Hue, Tapo (Kasa), Plex, Resonite, Discord, Slack, Shelly, Home
 Assistant, Calibre, Email, Moltbook, Bridge (MCP-to-MCP relay)
 
+## Fleet Events API
+
+`POST /api/v1/events` — inbound alert sink for fleet producers (aiwatcher-mcp,
+email-mcp, vla-mcp...). Payload: `{source, event, urgency, title, url, summary,
+tags, timestamp}`. Stored in the audit log; broadcast via Discord/Telegram when
+`urgency >= ROBOFANG_EVENT_ALERT_THRESHOLD` (default 8.0).
+`GET /api/v1/events?limit=N` lists recent events.
+
 ## Plugins (15+)
 
 Avatar, Cooking, Dance, Doctor, Housemaker, Musician, PA, Patroller,
