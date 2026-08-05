@@ -78,7 +78,7 @@ REGISTRY_PORT: dict[str, str] = {
     "web-development-mcp/src/web_development_mcp/transport.py": "10853",
     "windows-operations-mcp/src/windows_operations_mcp/transport.py": "10748",
     "winrar-mcp/src/winrarmcp/transport.py": "10762",
-    "qbt-mcp/src/qbtmcp/transport.py": "10910",
+    "rtorrent-mcp/src/rtorrent_mcp/transport.py": "10910",
     "alexa-mcp/src/alexa_mcp/transport.py": "10801",
 }
 
