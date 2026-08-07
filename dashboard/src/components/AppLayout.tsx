@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
     LayoutDashboard,
@@ -26,12 +26,41 @@ import {
     Monitor,
     Bot,
     Rocket,
+    Moon,
+    Sun,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+// EXPERIMENTAL light mode (invert hack). Not fleet standard - see index.css.
+// Toggling `.dark` off the root flips the invert filter; persisted so the
+// choice survives reloads. Delete this + the CSS block to revert.
+const THEME_KEY = 'robofang-light-mode';
+
+function useExperimentalTheme() {
+    const [light, setLight] = useState(() => {
+        try {
+            return localStorage.getItem(THEME_KEY) === '1';
+        } catch {
+            return false;
+        }
+    });
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('dark', !light);
+        try {
+            localStorage.setItem(THEME_KEY, light ? '1' : '0');
+        } catch {
+            // ignore storage errors
+        }
+    }, [light]);
+
+    return { light, toggle: () => setLight((v) => !v) };
+}
 
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [isCollapsed, setIsCollapsed] = useState(false);
     const location = useLocation();
+    const { light, toggle } = useExperimentalTheme();
 
     const pathnames = location.pathname.split('/').filter((x) => x);
 
@@ -64,6 +93,15 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     )}
                     <button onClick={() => setIsCollapsed(!isCollapsed)} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all" title={isCollapsed ? "Expand" : "Collapse"}>
                         <PanelLeftClose size={18} className={isCollapsed ? "rotate-180" : ""} />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={toggle}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                        title={light ? "Switch to dark (experimental light mode)" : "Switch to light (experimental, ugly)"}
+                        aria-label="Toggle light mode (experimental)"
+                    >
+                        {light ? <Moon size={18} /> : <Sun size={18} />}
                     </button>
                 </div>
 

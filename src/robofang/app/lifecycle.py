@@ -131,12 +131,22 @@ def create_app() -> FastAPI:
         "http://127.0.0.1:10870",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+        "tauri://localhost",
     ]
     _extra = _os.getenv("ROBOFANG_CORS_ORIGINS", "")
     _origins = _default_origins + [o.strip() for o in _extra.split(",") if o.strip()]
+    _origin_regex = (
+        r"https?://(?:[a-zA-Z0-9-]+\.ts\.net|.*?\.tail-[a-f0-9]+\.ts\.net|"
+        r"tauri\.localhost|localhost|127\.0\.0\.1|"
+        r"192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|"
+        r"100\.\d{1,3}\.\d{1,3}\.\d{1,3})(?::\d+)?$|^tauri://localhost$"
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_origins,
+        allow_origin_regex=_origin_regex,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

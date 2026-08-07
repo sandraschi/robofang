@@ -65,7 +65,6 @@ def _check_version():
     """Warn if this file doesn't match the template version."""
     from pathlib import Path
 
-    ver_file = Path(__file__)
     # If the template path exists, compare versions
     tpl = Path(os.getenv("MCP_CENTRAL_DOCS", "")) / "templates/tauri-native/scripts/cua-smoke.py"
     if tpl.exists():
@@ -515,19 +514,32 @@ def nav_click_through(output_dir: str):
 
     for label, expected_header in nav_routes:
         try:
-            idx = next((i for i, (l, _) in enumerate(nav_routes) if l == label), 0)
+            idx = next((i for i, (item, _) in enumerate(nav_routes) if item == label), 0)
             sidebar_click_x = int(cfg("sidebar_click_x", 30))
             sidebar_first_y = int(cfg("sidebar_first_y", 90))
             sidebar_step_y = int(cfg("sidebar_step_y", 55))
             click_x = wx + sidebar_click_x
             click_y = wy + sidebar_first_y + idx * sidebar_step_y
-            cua_click(win.get("handle", 0), click_x, click_y)
+            clicked = False
+            try:
+                import pywinauto
+
+                app = pywinauto.Application(backend="uia").connect(handle=win.get("handle", 0))
+                w = app.window(handle=win.get("handle", 0))
+                link = w.descendants(title=label)
+                if link:
+                    link[0].click_input()
+                    clicked = True
+            except Exception:
+                pass
+            if not clicked:
+                cua_click(win.get("handle", 0), click_x, click_y)
             time.sleep(2)
 
             # OCR after click
             snap_path = os.path.join(snap_dir, f"nav-{label.lower()}-{int(time.time())}.png")
             os.makedirs(snap_dir, exist_ok=True)
-            result = cua_screenshot(win.get("handle", 0), snap_path)
+            cua_screenshot(win.get("handle", 0), snap_path)
             text = cua_ocr_text(win.get("handle", 0), snap_path)
 
             if expected_header.lower() in text.lower():
@@ -650,9 +662,9 @@ def main():
     passed = failed = 0
     fatal_failed = False
 
-    print(f"\n{'='*50}")
+    print(f"\n{'=' * 50}")
     print(f"  CUA Smoke Test — {PRODUCT_NAME}")
-    print(f"{'='*50}\n")
+    print(f"{'=' * 50}\n")
 
     for is_fatal, name, fn in phases:
         print(f"  Phase {phases.index((is_fatal, name, fn)) + 1}: {name}")
@@ -671,7 +683,7 @@ def main():
             if is_fatal:
                 fatal_failed = True
 
-    print(f"{'='*50}")
+    print(f"{'=' * 50}")
     print(f"  Result: {passed}/{passed + failed} phases passed")
     if failed:
         print(f"  {failed} phase(s) FAILED")
@@ -679,7 +691,7 @@ def main():
         print("  FATAL phase failure — see above")
         sys.exit(1)
     print("  ALL PHASES PASSED")
-    print(f"{'='*50}\n")
+    print(f"{'=' * 50}\n")
 
 
 if __name__ == "__main__":

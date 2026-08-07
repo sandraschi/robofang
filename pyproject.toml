@@ -36,7 +36,10 @@ dependencies = [
     # EmailConnector   — stdlib smtplib + imaplib, no extra dep
 
     # MCP 3.1 (Unified Gateway)
-    "fastmcp>=3.4.2,<4",
+    "fastmcp>=3.4.4,<4",
+
+    # Prefab UI (in-chat rich cards for list/status/stats tools)
+    "prefab-ui>=0.14.0",
 
     # Observability (Prometheus /metrics for bridge)
     "prometheus-fastapi-instrumentator>=7.0",
@@ -103,6 +106,9 @@ ignore = ["S101", "B008"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**/*.py" = ["S106"]
+"tests/connectors/test_calibre.py" = ["S603"]
+"scripts/cua-smoke.py" = ["S110", "S310", "S603", "S607", "E501"]
+"scripts/*.py" = ["S110"]
 "src/robofang/supervisor.py" = ["S603"]
 "src/robofang/core/container_runtime.py" = ["S603"]
 # Vetted subprocess calls to known binaries (git, uv, winget, docker) with
@@ -119,6 +125,10 @@ ignore = ["S101", "B008"]
 "tools/arxiv_rag_bridge.py" = ["S603"]
 # Long-form markdown content embedded as a string literal (debate fixture).
 "tools/finalize_round.py" = ["E501"]
+"robofang-mcp/**/*.py" = ["E501"]
+"robofang-mcp/src/robofang_mcp/**/*.py" = ["E501"]
+"scratch_refactor.py" = ["E501", "E402"]
+"scripts/council_benchmark.py" = ["E501"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -128,5 +138,5 @@ indent-style = "space"
 dev = [
     "pytest>=9.0.2",
     "pytest-asyncio>=1.3.0",
-    "ruff>=0.15.21",
+    "ruff>=0.16.0,<0.17",
 ]

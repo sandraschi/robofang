@@ -1,13 +1,13 @@
 set windows-shell := ["powershell.exe", "-NoProfile", "-Command"]
 import 'scripts/just/fleet.just'
 
-# ── Dashboard ─────────────────────────────────────────────────────────────────
+# --- Dashboard ---
 
 # Open the interactive recipe dashboard in the browser
 default:
     @just --list
 
-# ── Quality ───────────────────────────────────────────────────────────────────
+# --- Quality ---
 
 # Execute Ruff SOTA v13.1 linting
 lint:
@@ -20,7 +20,7 @@ fix:
     uv run ruff check . --fix --unsafe-fixes
     uv run ruff format .
 
-# ── Hardening ─────────────────────────────────────────────────────────────────
+# --- Hardening ---
 
 # Execute Bandit security audit
 check-sec:
@@ -32,7 +32,7 @@ audit-deps:
     Set-Location '{{justfile_directory()}}'
     uv run safety check
 
-# RoboFang task runner (just – https://just.systems)
+# --- RoboFang task runner  just  https just systems ---
 # Usage: just [recipe]   or   just --list
 
 # Repo statistics (Markdown, tools, FastMCP, MCP tools)
@@ -71,7 +71,7 @@ release:
   @echo "Create and push an annotated tag to trigger the Release workflow, e.g.:"
   @echo "  git tag -a v0.1.0-alpha.1 -m \"Release v0.1.0-alpha.1\""
   @echo "  git push origin v0.1.0-alpha.1"
-  @echo "Then open Actions → Release and the new GitHub Release (with .exe attached)."
+  @echo "Then open Actions  Release and the new GitHub Release (with .exe attached)."
 
 # Run all verification gates: lint, typecheck, tests
 certify: lint test
@@ -83,7 +83,7 @@ gates-green: lint test
 
 # E2E tests (placeholder)
 e2e:
-  @echo "No Playwright E2E configured yet — run `just certfy` for standard gates."
+  @echo "No Playwright E2E configured yet - run `just certfy` for standard gates."
 
 # First-time bootstrap
 bootstrap:
@@ -99,7 +99,7 @@ run:
 hub:
   @echo "On Windows run: .\\robofang-hub\\start.bat  or  .\\robofang-hub\\start.ps1"
 
-# ── RAG (LanceDB vector index) ─────────────────────────────────────────────────
+# --- RAG  LanceDB vector index ---
 
 rag-gpu:
 	@powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/just/rag-gpu.ps1
@@ -110,7 +110,7 @@ rag-gpu-install:
 rag-cpu-install:
 	@powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/just/rag-cpu-install.ps1
 
-# ── Native (Tauri) ──────────────────────────────────────────────────────────
+# --- Native  Tauri ---
 
 # Build the Tauri NSIS desktop installer (full pipeline: frontend -> Rust -> NSIS)
 build-native:
