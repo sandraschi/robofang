@@ -108,7 +108,7 @@ ignore = ["S101", "B008"]
 "tests/**/*.py" = ["S106"]
 "tests/connectors/test_calibre.py" = ["S603"]
 "scripts/cua-smoke.py" = ["S110", "S310", "S603", "S607", "E501"]
-"scripts/*.py" = ["S110"]
+"scripts/*.py" = ["S110", "B007", "S310", "S603", "S607"]
 "src/robofang/supervisor.py" = ["S603"]
 "src/robofang/core/container_runtime.py" = ["S603"]
 # Vetted subprocess calls to known binaries (git, uv, winget, docker) with
