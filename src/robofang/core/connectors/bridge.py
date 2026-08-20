@@ -69,6 +69,10 @@ class MCPBridgeConnector(BaseConnector):
     async def connect(self) -> bool:
         import httpx
 
+        # Never leak the previous client (and its pooled sockets) - each leaked
+        # AsyncClient kept connections to the backend open forever (blooper #23).
+        await self._close_client()
+
         self._client = httpx.AsyncClient(timeout=self._timeout)
 
         # Try to reach the server
@@ -88,10 +92,21 @@ class MCPBridgeConnector(BaseConnector):
                 self.logger.info(f"MCPBridgeConnector '{self._name}' sidecar up at {self._url}")
                 return True
             self.logger.error(f"MCPBridgeConnector '{self._name}' sidecar didn't respond after start")
+            await self._close_client()
             return False
 
         self.logger.warning(f"MCPBridgeConnector '{self._name}' not reachable at {self._url}")
+        await self._close_client()
         return False
+
+    async def _close_client(self) -> None:
+        """Close the httpx client and drop its pooled connections."""
+        if self._client is not None:
+            try:
+                await self._client.aclose()
+            except Exception as exc:
+                logger.debug("MCPBridgeConnector '%s' client close failed: %s", self._name, exc)
+            self._client = None
 
     async def disconnect(self) -> bool:
         if self._client:

@@ -100,6 +100,7 @@ class OrchestrationClient:
         self.logger = logging.getLogger("robofang.orchestrator")
         self.topology: dict[str, Any] = {}
         self.connectors: dict[str, Any] = {}
+        self._last_reconnect: dict[str, float] = {}
         self._last_breeze_at: float = 0.0
         self.storage = storage or RoboFangStorage()
         self.moltbook = MoltbookClient(api_key=self.config.get("moltbook_api_key"))
@@ -416,6 +417,14 @@ class OrchestrationClient:
                 # 1. Check connector health (iterate self.connectors, not a nonexistent connector_manager)
                 for name, connector in self.connectors.items():
                     if not getattr(connector, "active", False):
+                        # Reconnect cooldown: never hammer a dead connector faster
+                        # than once per 60s. Each failed connect() in MCPBridgeConnector
+                        # used to leak a fresh httpx.AsyncClient (blooper #23 class) -
+                        # the cooldown bounds that too.
+                        now = time.monotonic()
+                        if now - self._last_reconnect.get(name, 0.0) < 60:
+                            continue
+                        self._last_reconnect[name] = now
                         self.logger.warning(f"Connector '{name}' reports inactive — attempting reconnect.")
                         try:
                             await connector.connect()
