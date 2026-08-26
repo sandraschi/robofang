@@ -1,4 +1,4 @@
-use std::fs::{self, OpenOptions};
+﻿use std::fs::{self, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{SocketAddr, TcpStream};
 use std::path::PathBuf;
@@ -15,7 +15,7 @@ pub struct BackendProcess(pub Mutex<Option<Child>>);
 
 // -- PER-REPO: Customize these constants --
 const BACKEND_NAME: &str = "robofang-backend.exe";
-const BACKEND_PORT: u16 = 10700;
+const BACKEND_PORT: u16 = 10871;
 const BACKEND_TAG: &str = "robofang-backend-x86_64-pc-windows-msvc.exe";
 const ENV_PORT: &str = "ROBOFANG_PORT";
 const ENV_HOST: &str = "ROBOFANG_HOST";
@@ -171,7 +171,7 @@ fn stop_managed_child(state: &BackendProcess) {
 pub fn spawn_backend(app: AppHandle, state: &BackendProcess) -> Result<String, String> {
     stop_managed_child(state);
     if !free_port(BACKEND_PORT) {
-        let msg = format!("Could not free port {BACKEND_PORT} after 240s — TIME_WAIT not cleared");
+        let msg = format!("Could not free port {BACKEND_PORT} after 240s â€” TIME_WAIT not cleared");
         log_line(&app, &msg);
         return Err(msg);
     }
