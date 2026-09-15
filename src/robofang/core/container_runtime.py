@@ -1,4 +1,4 @@
-"""Container Runtime — abstraction for per-hand execution isolation.
+"""Container Runtime - abstraction for per-hand execution isolation.
 
 Inspired by NanoClaw's container-runner.ts pattern. Each hand can run:
     - LocalRuntime: in-process asyncio task (current behavior, backward compat)
@@ -177,7 +177,7 @@ class DockerRuntime:
         cfg = config or HandContainerConfig()
 
         if not self._docker_available():
-            raise RuntimeError("Docker not available — install Docker Desktop or switch to LocalRuntime")
+            raise RuntimeError("Docker not available - install Docker Desktop or switch to LocalRuntime")
 
         container_name = self._container_name(hand_id)
         args = [
@@ -230,7 +230,8 @@ class DockerRuntime:
         if not container_name:
             return False
         try:
-            subprocess.run(
+            await asyncio.to_thread(
+                subprocess.run,
                 [self._docker, "stop", "-t", "10", container_name],
                 capture_output=True,
                 timeout=15,
