@@ -656,7 +656,7 @@ function ReadlyCard() {
     <ConnectorCard
       title="Readly" subtitle={`${docs.length} documents`}
       icon={<BookOpen size={18} />} accentClass="border-cyan-500/30 shadow-cyan-500/10"
-      online={online} loading={loading} error={error} onRefresh={fetch} port={10863}
+      online={online} loading={loading} error={error} onRefresh={fetch} port={10737}
     >
       {selected && (
         <div className="mb-3 p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
@@ -711,7 +711,7 @@ const WAVE4_CONNECTORS = [
   { key: "notion", label: "Notion", port: 10811 },
   { key: "fastsearch", label: "Search", port: 10845 },
   { key: "immich", label: "Immich", port: 10839 },
-  { key: "readly", label: "Readly", port: 10863 },
+  { key: "readly", label: "Readly", port: 10737 },
 ];
 
 function StatusStrip() {

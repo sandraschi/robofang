@@ -170,7 +170,7 @@
         },
         "readly": {
             "enabled": true,
-            "mcp_backend": "http://localhost:10863",
+            "mcp_backend": "http://localhost:10737",
             "description": "Readly MCP \u2014 document reading, PDF analysis",
             "priority": "weak"
         },
