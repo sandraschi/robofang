@@ -18,7 +18,7 @@ class Hand:
     Base class for an autonomous agentic process (a "Hand").
 
     SOTA 2026-05-27: Hands now carry capability tokens (ocaps).
-    Tools are no longer global strings — each hand holds signed tokens
+    Tools are no longer global strings - each hand holds signed tokens
     granting access to specific tools. The orchestrator validates tokens
     before execution.
     """

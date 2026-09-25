@@ -1,4 +1,4 @@
-"""Agent Vault — local credential-injection proxy inspired by NanoClaw's OneCLI pattern.
+"""Agent Vault - local credential-injection proxy inspired by NanoClaw's OneCLI pattern.
 
 Agents never hold raw API keys. Outbound LLM requests route through the vault,
 which checks per-agent rate limits, domain whitelists, and injects credentials

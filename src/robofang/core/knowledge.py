@@ -31,7 +31,7 @@ class KnowledgeEngine:
 
         context_parts = []
 
-        # 1. Semantic Search (ADN — advanced-memory-mcp)
+        # 1. Semantic Search (ADN - advanced-memory-mcp)
         search_results = await self.semantic_search(query, orchestrator=orchestrator)
         if search_results:
             context_parts.extend(search_results)

@@ -1,5 +1,5 @@
 """
-voice_bridge.py — MCP-to-MCP voice relay bridge for RoboFang.
+voice_bridge.py - MCP-to-MCP voice relay bridge for RoboFang.
 
 Connects to kyutai-mcp's voice_pipeline tool via HTTP transport, enabling
 any RoboFang orchestrator/agent to speak, listen, and manage Moshi service
@@ -159,7 +159,7 @@ async def probe_voice_backend() -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# Unified MCP tool — register this in Robofang's mcp_server.py
+# Unified MCP tool - register this in Robofang's mcp_server.py
 # ---------------------------------------------------------------------------
 
 
@@ -184,7 +184,7 @@ async def robofang_voice(
     symbols: list[str] | None = None,
     style: str = "normal",
 ) -> dict[str, Any]:
-    """robofang_voice — Voice relay to kyutai-mcp voice pipeline (MCP-to-MCP bridge).
+    """robofang_voice - Voice relay to kyutai-mcp voice pipeline (MCP-to-MCP bridge).
 
     BRIDGE PATTERN:
     RoboFang orchestrator → robofang_voice → kyutai-mcp backend REST → Moshi.
@@ -203,15 +203,15 @@ async def robofang_voice(
         operation: Which voice operation to run.
         utterance: User speech text (required for 'turn').
         session_id: Session ID for turn tracking / history lookup.
-        provider: LLM provider for voice synthesis — 'auto', 'ollama', 'lmstudio'.
+        provider: LLM provider for voice synthesis - 'auto', 'ollama', 'lmstudio'.
         model: Specific model name or None for auto-select.
         use_deep_reasoner: Use deeper model for final answer synthesis.
-        deep_provider: Provider override for deep reasoner — 'same', 'ollama', 'lmstudio'.
+        deep_provider: Provider override for deep reasoner - 'same', 'ollama', 'lmstudio'.
         deep_model: Model override for deep reasoner.
         location_hint: Location override for weather queries.
-        topic: Briefing topic — 'weather', 'world_news', 'ai_news', 'stock_market'.
+        topic: Briefing topic - 'weather', 'world_news', 'ai_news', 'stock_market'.
         symbols: Stock ticker symbols for stock_market briefings.
-        style: Briefing style — 'brief', 'normal', 'detailed'.
+        style: Briefing style - 'brief', 'normal', 'detailed'.
 
     Returns:
         dict with success, result payload, and bridge metadata.

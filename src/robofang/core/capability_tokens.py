@@ -1,4 +1,4 @@
-"""Object Capabilities (ocaps) — tools as explicit capability tokens, not global strings.
+"""Object Capabilities (ocaps) - tools as explicit capability tokens, not global strings.
 
 Inspired by NanoClaw's flaw: agents with access to read email AND access to Slack
 can be tricked by prompt injection into exfiltrating data. Ocaps fix this by making
@@ -193,7 +193,7 @@ class TokenAuthority:
         return tool_name in tool_names
 
     def mark_tainted(self, subject_id: str):
-        """Mark a subject as tainted — revoke all caps and add to monitor list."""
+        """Mark a subject as tainted - revoke all caps and add to monitor list."""
         self._monitor.add(subject_id)
         self.revoke_all_for_subject(subject_id)
         logger.warning("TAINTAINED: Subject '%s' marked as tainted. All capabilities revoked.", subject_id)
