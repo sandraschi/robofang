@@ -34,6 +34,18 @@ class BaseVectorStore:
         )
         self.table_name = table_name
 
+    def _table_exists(self) -> bool:
+        """lancedb >= 0.2x list_tables() returns a paginated ListTablesResponse, not a list:
+        `name in db.list_tables()` is always False on it."""
+        token: str | None = None
+        while True:
+            resp = self.db.list_tables(page_token=token)
+            if self.table_name in resp.tables:
+                return True
+            token = resp.page_token
+            if not token:
+                return False
+
     def add_documents(self, documents: list[dict[str, Any]], overwrite: bool = True) -> None:
         """
         Embed and index documents.
@@ -63,7 +75,7 @@ class BaseVectorStore:
                 entry["source"] = doc["source"]
             data.append(entry)
 
-        if overwrite or self.table_name not in self.db.list_tables():
+        if overwrite or not self._table_exists():
             self.db.create_table(self.table_name, data=data, mode="overwrite")
         else:
             tbl = self.db.open_table(self.table_name)
@@ -78,7 +90,7 @@ class BaseVectorStore:
         where: str | None = None,
     ) -> list[dict[str, Any]]:
         """Semantic search. Returns list of dicts with vector, content, metadata, etc."""
-        if self.table_name not in self.db.list_tables():
+        if not self._table_exists():
             logger.warning("Table '%s' not found.", self.table_name)
             return []
 
