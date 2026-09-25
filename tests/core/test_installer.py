@@ -3,13 +3,20 @@ Unit tests for HandInstaller: manifest read/write and install flow.
 Uses tmp_path; install() uses mocked subprocess so no real git or network.
 """
 
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 import yaml
 
-from robofang.core.installer import HandInstaller, HandManifestItem, _github_owner_repo
+from robofang.core.installer import (
+    HandInstaller,
+    HandManifestItem,
+    _github_owner_repo,
+    _hand_venv_python,
+    _install_deps,
+)
 
 
 @pytest.fixture
@@ -184,6 +191,29 @@ def test_github_owner_repo():
     assert _github_owner_repo("git@github.com:owner/repo.git") == ("owner", "repo")
     assert _github_owner_repo("https://gitlab.com/other/repo") is None
     assert _github_owner_repo("") is None
+
+
+@patch("robofang.core.installer.subprocess.run")
+def test_install_deps_pip_fallback_never_uses_robofang_interpreter(mock_run, tmp_path):
+    """uv sync fails -> pip fallback must target the hand's own .venv, not sys.executable's env."""
+    (tmp_path / "pyproject.toml").write_text("[project]\nname='x'\n", encoding="utf-8")
+    venv_py = _hand_venv_python(tmp_path)
+
+    def fake_run(cmd, **kwargs):
+        assert "VIRTUAL_ENV" not in kwargs.get("env", {})
+        if cmd[:2] == ["uv", "sync"]:
+            return type("R", (), {"returncode": 1, "stderr": "unsatisfiable", "stdout": ""})()
+        if cmd[1:3] == ["-m", "venv"]:
+            venv_py.parent.mkdir(parents=True)
+            venv_py.write_text("", encoding="utf-8")
+        return type("R", (), {"returncode": 0, "stderr": "", "stdout": ""})()
+
+    mock_run.side_effect = fake_run
+    assert _install_deps(tmp_path) is None
+    pip_call = mock_run.call_args_list[-1].args[0]
+    assert pip_call[0] == str(venv_py)
+    assert pip_call[0] != sys.executable
+    assert pip_call[1:] == ["-m", "pip", "install", "-e", "."]
 
 
 @patch("robofang.core.installer.subprocess.run")

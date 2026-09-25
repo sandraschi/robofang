@@ -2,12 +2,21 @@
 Integration tests for MCP server install from GitHub.
 Requires network and gh CLI. Run with: pytest tests/integration/test_install_from_github.py -m github
 Skip by default: pytest -m "not github"
+Also skipped unless ROBOFANG_RUN_GITHUB_TESTS=1: the addopts -m filter is not applied
+when this file is passed explicitly, and these tests clone and install real repos.
 """
+
+import os
 
 import pytest
 import yaml
 
 from robofang.core.installer import HandInstaller, HandManifestItem
+
+pytestmark = pytest.mark.skipif(
+    os.getenv("ROBOFANG_RUN_GITHUB_TESTS") != "1",
+    reason="network install tests; set ROBOFANG_RUN_GITHUB_TESTS=1 to run",
+)
 
 # Small public repo with no start.ps1 so install script step is skipped
 HELLO_WORLD_REPO = "https://github.com/octocat/Hello-World.git"

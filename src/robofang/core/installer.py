@@ -1,4 +1,5 @@
 import logging
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -15,8 +16,23 @@ INSTALL_SCRIPT_TIMEOUT = 600
 DEPS_INSTALL_TIMEOUT = 300
 
 
+def _hand_env() -> dict[str, str]:
+    """Environment for hand installs, without RoboFang's own active venv."""
+    env = dict(os.environ)
+    env.pop("VIRTUAL_ENV", None)
+    return env
+
+
+def _hand_venv_python(target_dir: Path) -> Path:
+    scripts = "Scripts" if sys.platform == "win32" else "bin"
+    exe = "python.exe" if sys.platform == "win32" else "python"
+    return target_dir / ".venv" / scripts / exe
+
+
 def _install_deps(target_dir: Path) -> str | None:
     """Install Python deps so the MCP server is usable. uv sync if pyproject.toml else pip install -e ..
+    Deps always go into the hand's own .venv - never into RoboFang's interpreter
+    (a hand pinning e.g. fastmcp 2.x would otherwise downgrade RoboFang's own deps).
     Return None on success, else error message."""
     pyproject = target_dir / "pyproject.toml"
     setup_py = target_dir / "setup.py"
@@ -31,6 +47,7 @@ def _install_deps(target_dir: Path) -> str | None:
                 capture_output=True,
                 text=True,
                 timeout=DEPS_INSTALL_TIMEOUT,
+                env=_hand_env(),
             )
             if r.returncode == 0:
                 logger.info("uv sync succeeded in %s", target_dir)
@@ -41,14 +58,28 @@ def _install_deps(target_dir: Path) -> str | None:
             logger.info("uv not in PATH, using pip install -e .")
         except subprocess.TimeoutExpired:
             return "uv sync timed out. Run uv sync or pip install -e . manually in the hand directory."
-    # pip install -e .
+    # pip install -e . into the hand's own venv
+    venv_python = _hand_venv_python(target_dir)
     try:
+        if not venv_python.exists():
+            r = subprocess.run(
+                [sys.executable, "-m", "venv", ".venv"],
+                cwd=str(target_dir),
+                capture_output=True,
+                text=True,
+                timeout=DEPS_INSTALL_TIMEOUT,
+                env=_hand_env(),
+            )
+            if r.returncode != 0 or not venv_python.exists():
+                err = (r.stderr or r.stdout or "").strip() or f"venv exit {r.returncode}"
+                return f"Could not create hand venv: {err}"
         r = subprocess.run(
-            [sys.executable, "-m", "pip", "install", "-e", "."],
+            [str(venv_python), "-m", "pip", "install", "-e", "."],
             cwd=str(target_dir),
             capture_output=True,
             text=True,
             timeout=DEPS_INSTALL_TIMEOUT,
+            env=_hand_env(),
         )
     except subprocess.TimeoutExpired:
         return "pip install -e . timed out. Run uv sync or pip install -e . manually in the hand directory."
