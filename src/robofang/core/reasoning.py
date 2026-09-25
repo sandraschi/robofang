@@ -330,7 +330,7 @@ class ReasoningEngine:
             messages.append(message)
 
             if not tool_calls:
-                # No more tools called — objective complete
+                # No more tools called - objective complete
                 return {"success": True, "response": content, "trail": full_trail}
 
             for tool_call in tool_calls:
@@ -461,7 +461,7 @@ class ReasoningEngine:
         for i, model in enumerate(council_members):
             role = "Sovereign Council Member"
             if devil_advocate_index is not None and i == devil_advocate_index:
-                role = "Advocatus Diaboli — challenge assumptions and surface risks before the council converges."
+                role = "Advocatus Diaboli - challenge assumptions and surface risks before the council converges."
             sys = f"You are {role} on the RoboFang Council. Be concise and substantive."
             combined = f"{prompt}\n\n(Respond in character for your role.)"
             tasks.append(self.ask(combined, system_prompt=sys, model=model))

@@ -20,13 +20,13 @@ set_comms_storage(orchestrator.storage)
 
 # ── New SOTA modules (2026-05-27: NanoClaw-inspired blueprint) ────────────
 
-# 1. Agent Vault — credential injection proxy; agents never hold raw API keys
+# 1. Agent Vault - credential injection proxy; agents never hold raw API keys
 vault = get_vault(storage=orchestrator.storage)
 
-# 2. Capability Authority — tools as explicit tokens, not global strings
+# 2. Capability Authority - tools as explicit tokens, not global strings
 authority = get_authority()
 
-# 3. Container Runtime — abstraction for per-hand isolation (default: local)
+# 3. Container Runtime - abstraction for per-hand isolation (default: local)
 hand_runtime = LocalRuntime(orchestrator.hands)
 
 # Wire into orchestrator so execute_tool and ask() can use them

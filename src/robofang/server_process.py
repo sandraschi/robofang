@@ -117,7 +117,7 @@ class ServerInstance:
             env["PYTHONPATH"] = f"{src};{existing}" if existing else src
 
             try:
-                self._proc = subprocess.Popen(  # — cmd from local trusted fleet-registry.json
+                self._proc = subprocess.Popen(  # - cmd from local trusted fleet-registry.json
                     self.cmd,
                     cwd=self.cwd,
                     stdout=subprocess.PIPE,

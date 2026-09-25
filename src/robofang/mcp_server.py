@@ -39,7 +39,7 @@ def register_mcp(mcp: Any, orchestrator: Any) -> None:
     mcp.tool(annotations=_DESTRUCTIVE)(robofang_shutdown)
     mcp.tool(annotations=_READ_ONLY)(robofang_rag_search)
 
-    # Voice bridge — MCP-to-MCP relay to kyutai-mcp
+    # Voice bridge - MCP-to-MCP relay to kyutai-mcp
     from robofang.bridges.voice_bridge import robofang_voice
 
     mcp.tool(annotations=_MUTATING)(robofang_voice)
@@ -178,7 +178,7 @@ async def robofang_help(
     cats = _HELP["categories"]
     if not category:
         return {
-            "help": "RoboFang MCP & robots hub — MCP Help",
+            "help": "RoboFang MCP & robots hub - MCP Help",
             "usage": "Call with category= to drill down, then category= + topic= for full detail.",
             "categories": {k: v["description"] for k, v in cats.items()},
         }
@@ -484,7 +484,7 @@ def robofang_council_workflow() -> str:
 
 def robofang_voice_workflow() -> str:
     """Guide for using the voice pipeline via the kyutai-mcp bridge."""
-    return """You have access to robofang_voice — a bridge to the kyutai-mcp voice pipeline.
+    return """You have access to robofang_voice - a bridge to the kyutai-mcp voice pipeline.
 
 1. Run robofang_voice(operation='health') to check if the kyutai-mcp backend is reachable.
 2. Run robofang_voice(operation='service_status') to check if Moshi (the speech model) is running.

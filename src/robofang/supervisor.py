@@ -61,7 +61,7 @@ _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__f
 REPOS_ROOT = os.environ.get("ROBOFANG_REPOS_ROOT", os.path.dirname(_REPO_ROOT))
 FLEET_REGISTRY_PATH = os.path.join(REPOS_ROOT, "mcp-central-docs", "operations", "fleet-registry.json")
 
-# Command to start the bridge — same as running `python -m robofang.main`
+# Command to start the bridge - same as running `python -m robofang.main`
 BRIDGE_CMD = [sys.executable, "-m", "robofang.main"]
 BRIDGE_CWD = _REPO_ROOT
 BRIDGE_STDOUT_LOG = os.path.join(_REPO_ROOT, "temp", "bridge_stdout.log")
@@ -410,7 +410,7 @@ class BridgeProcess:
                     bridge_log.flush()
                     with self._lock:
                         self._logs.append(stripped)
-            # stdout closed — process ended
+            # stdout closed - process ended
             proc.wait()
             exit_code = proc.returncode
             with self._lock:
