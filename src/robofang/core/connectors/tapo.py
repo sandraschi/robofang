@@ -12,9 +12,9 @@ class TapoConnector(BaseConnector):
     """Connector for Tapo smart plugs/cameras via python-kasa.
 
     config:
-      username  — Tapo cloud email
-      password  — Tapo cloud password
-      devices   — list of {host, alias, readonly} dicts
+      username  - Tapo cloud email
+      password  - Tapo cloud password
+      devices   - list of {host, alias, readonly} dicts
     """
 
     connector_type = "tapo"

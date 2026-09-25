@@ -288,7 +288,7 @@ class OrchestrationClient:
         1. ROBOFANG_CONNECTORS env var (comma-separated, e.g. "moltbook,resonite")
         2. topology["enabled_connectors"] list in federation_map.json
         3. topology["connectors"][name]["enabled"] == True in federation_map.json
-        4. Empty — no connectors started (explicit opt-in required)
+        4. Empty - no connectors started (explicit opt-in required)
         """
         manager = PluginManager()
         discovered = manager.discover_connectors()
@@ -314,11 +314,11 @@ class OrchestrationClient:
             self.logger.info(f"Connectors derived from federation_map connectors.*.enabled: {enabled_list}")
         else:
             enabled_list = []
-            self.logger.info("No connectors configured — starting with zero connectors.")
+            self.logger.info("No connectors configured - starting with zero connectors.")
 
         for conn_type in enabled_list:
             if conn_type not in discovered:
-                self.logger.warning(f"Enabled connector '{conn_type}' not found in plugin registry — skipping.")
+                self.logger.warning(f"Enabled connector '{conn_type}' not found in plugin registry - skipping.")
                 continue
 
             conn_class = manager.load_connector(conn_type)
@@ -425,7 +425,7 @@ class OrchestrationClient:
                         if now - self._last_reconnect.get(name, 0.0) < 60:
                             continue
                         self._last_reconnect[name] = now
-                        self.logger.warning(f"Connector '{name}' reports inactive — attempting reconnect.")
+                        self.logger.warning(f"Connector '{name}' reports inactive - attempting reconnect.")
                         try:
                             await connector.connect()
                         except Exception as e:
@@ -628,12 +628,12 @@ class OrchestrationClient:
                 difficulty["score"],
             )
         elif use_council and difficulty["level"] == "simple":
-            self.logger.info("Difficulty simple; user requested Council — using Council as requested.")
+            self.logger.info("Difficulty simple; user requested Council - using Council as requested.")
         self._log_reasoning(
             "Ask",
             "thought",
             (
-                f"Ask started — difficulty {difficulty['level']} "
+                f"Ask started - difficulty {difficulty['level']} "
                 f"(score {difficulty['score']}), council={effective_council}."
             ),
         )

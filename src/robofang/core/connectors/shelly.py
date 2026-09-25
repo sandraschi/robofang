@@ -12,10 +12,10 @@ class ShellyConnector(BaseConnector):
     """Connector for Shelly smart devices via local REST API.
 
     Supports Gen1 (/relay/0) and Gen2+ (rpc/Switch.Set) automatically.
-    No cloud dependency — pure LAN REST.
+    No cloud dependency - pure LAN REST.
 
     config:
-      devices — list of {host, alias, gen (1|2), channel (default 0)} dicts
+      devices - list of {host, alias, gen (1|2), channel (default 0)} dicts
     """
 
     connector_type = "shelly"

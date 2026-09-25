@@ -14,9 +14,9 @@ class RingConnector(BaseConnector):
 
     Uses the ring_doorbell library. Token cached in ring_token.cache.
     config:
-      email      — Ring account email
-      password   — Ring account password
-      token_file — path to token cache (default: ring_token.cache)
+      email      - Ring account email
+      password   - Ring account password
+      token_file - path to token cache (default: ring_token.cache)
     """
 
     connector_type = "ring"
@@ -78,8 +78,8 @@ class RingConnector(BaseConnector):
     async def send_message(self, target: str, content: str, **kwargs) -> bool:
         """Trigger a Ring action.
 
-        target  — device name or "all"
-        content — "snapshot" | "live_stream_url"
+        target  - device name or "all"
+        content - "snapshot" | "live_stream_url"
         """
         if not self._ring:
             return False

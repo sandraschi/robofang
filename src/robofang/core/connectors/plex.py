@@ -13,8 +13,8 @@ class PlexConnector(BaseConnector):
     """Connector for Plex Media Server via plexapi.
 
     config:
-      url   — e.g. "http://localhost:32400"
-      token — Plex X-Plex-Token
+      url   - e.g. "http://localhost:32400"
+      token - Plex X-Plex-Token
     """
 
     connector_type = "plex"
@@ -51,8 +51,8 @@ class PlexConnector(BaseConnector):
     async def send_message(self, target: str, content: str, **kwargs) -> bool:
         """Control Plex playback.
 
-        target  — client name (e.g. "Living Room TV") or "all"
-        content — "play" | "pause" | "stop" | "search:QUERY"
+        target  - client name (e.g. "Living Room TV") or "all"
+        content - "play" | "pause" | "stop" | "search:QUERY"
         """
         if not self._server:
             return False
