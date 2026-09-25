@@ -1,7 +1,9 @@
 """Ring Connector."""
 
 import asyncio
+import json
 import logging
+from pathlib import Path
 from typing import Any
 
 from .base import BaseConnector
@@ -12,11 +14,14 @@ logger = logging.getLogger(__name__)
 class RingConnector(BaseConnector):
     """Connector for Ring doorbells and cameras.
 
-    Uses the ring_doorbell library. Token cached in ring_token.cache.
+    Uses the async ring_doorbell >= 0.9 API. Token cached as JSON in ring_token.cache
+    (same format as devices-mcp, so its cache file can be reused).
     config:
-      email      - Ring account email
-      password   - Ring account password
+      email      - Ring account email (only needed when there is no cached token)
+      password   - Ring account password (only needed when there is no cached token)
       token_file - path to token cache (default: ring_token.cache)
+
+    Accounts with 2FA need a cached token: a password login raises Requires2FAError.
     """
 
     connector_type = "ring"
@@ -24,53 +29,64 @@ class RingConnector(BaseConnector):
     def __init__(self, name: str, config: dict[str, Any]):
         super().__init__(name, config)
         self._ring: Any | None = None
+        self._auth: Any | None = None
 
     async def connect(self) -> bool:
         try:
-            from ring_doorbell import Auth, Ring
+            from ring_doorbell import Auth, Requires2FAError, Ring
         except ImportError:
             self.logger.error("ring_doorbell not installed. pip install ring_doorbell")
             return False
-        import os
 
         email = self.config.get("email", "")
         password = self.config.get("password", "")
-        token_file = self.config.get("token_file", "ring_token.cache")
-        loop = asyncio.get_running_loop()
+        token_path = Path(self.config.get("token_file", "ring_token.cache"))
 
-        def _connect():
-            token_data = None
-            if os.path.exists(token_file):
-                try:
-                    import json as _j
+        token_data = None
+        if token_path.exists():
+            try:
+                token_data = json.loads(await asyncio.to_thread(token_path.read_text, encoding="utf-8"))
+            except (OSError, ValueError) as exc:
+                self.logger.warning("Ring token cache unreadable (%s): %s", token_path, exc)
 
-                    with open(token_file) as _tf:
-                        token_data = _j.loads(_tf.read())
-                except Exception as exc:
-                    self.logger.debug("Ring token cache read failed: %s", exc)
-            auth = Auth(
-                "RoboFang/1.0",
-                token_data,
-                lambda t: open(token_file, "w").write(str(t)),
-            )
-            if not token_data:
-                auth.fetch_token(email, password)
-            r = Ring(auth)
-            r.update_data()
-            return r
+        def _save_token(token: dict[str, Any]) -> None:
+            try:
+                token_path.write_text(json.dumps(token), encoding="utf-8")
+            except OSError as exc:
+                self.logger.warning("Ring token cache write failed: %s", exc)
 
+        auth = Auth("RoboFang/1.0", token_data, _save_token)
         try:
-            self._ring = await loop.run_in_executor(None, _connect)
-            devices = self._ring.devices()
-            count = sum(len(v) for v in devices.values())
-            self.logger.info(f"Ring connected. Devices: {count}")
-            self.active = True
-            return True
+            if not token_data:
+                if not (email and password):
+                    self.logger.error("Ring: no cached token and no email/password configured")
+                    await auth.async_close()
+                    return False
+                await auth.async_fetch_token(email, password)
+            ring = Ring(auth)
+            await ring.async_update_data()
+            count = len(ring.devices().all_devices)
+        except Requires2FAError:
+            self.logger.error("Ring account requires 2FA: create a token cache first (e.g. via devices-mcp)")
+            await auth.async_close()
+            return False
         except Exception as e:
             self.logger.error(f"Ring connection failed: {e}")
+            await auth.async_close()
             return False
 
+        self._auth, self._ring = auth, ring
+        self.logger.info(f"Ring connected. Devices: {count}")
+        self.active = True
+        return True
+
     async def disconnect(self) -> bool:
+        if self._auth is not None:
+            try:
+                await self._auth.async_close()
+            except Exception as exc:
+                self.logger.debug("Ring session close failed: %s", exc)
+        self._auth = None
         self._ring = None
         self.active = False
         return True
@@ -91,26 +107,21 @@ class RingConnector(BaseConnector):
         """Return recent motion/doorbell events."""
         if not self._ring:
             return []
-        loop = asyncio.get_running_loop()
         try:
-
-            def _events():
-                results = []
-                for device in self._ring.video_doorbells + self._ring.stickup_cams:
-                    for event in device.history(
-                        limit=limit // max(1, len(self._ring.video_doorbells + self._ring.stickup_cams))
-                    ):
-                        results.append(
-                            {
-                                "device": device.name,
-                                "kind": event.get("kind"),
-                                "created_at": event.get("created_at"),
-                                "answered": event.get("answered"),
-                            }
-                        )
-                return sorted(results, key=lambda e: e.get("created_at", ""), reverse=True)[:limit]
-
-            return await loop.run_in_executor(None, _events)
+            devices = self._ring.devices().video_devices
+            per_device = max(1, limit // max(1, len(devices)))
+            results = []
+            for device in devices:
+                for event in await device.async_history(limit=per_device):
+                    results.append(
+                        {
+                            "device": device.name,
+                            "kind": event.get("kind"),
+                            "created_at": str(event.get("created_at", "")),
+                            "answered": event.get("answered"),
+                        }
+                    )
+            return sorted(results, key=lambda e: e["created_at"], reverse=True)[:limit]
         except Exception as e:
             self.logger.error(f"Ring get_messages error: {e}")
             return []

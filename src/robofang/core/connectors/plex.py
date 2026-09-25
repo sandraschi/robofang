@@ -35,8 +35,9 @@ class PlexConnector(BaseConnector):
             return False
         loop = asyncio.get_running_loop()
         try:
-            self._server = await loop.run_in_executor(None, lambda: PlexServer(self._url, self._token))
-            self.logger.info(f"Plex connected: {self._server.friendlyName}")
+            server = await loop.run_in_executor(None, lambda: PlexServer(self._url, self._token))
+            self._server = server
+            self.logger.info(f"Plex connected: {server.friendlyName}")
             self.active = True
             return True
         except Exception as e:
@@ -54,13 +55,14 @@ class PlexConnector(BaseConnector):
         target  - client name (e.g. "Living Room TV") or "all"
         content - "play" | "pause" | "stop" | "search:QUERY"
         """
-        if not self._server:
+        server = self._server
+        if not server:
             return False
         loop = asyncio.get_running_loop()
         cmd = content.strip().lower()
 
         def _control():
-            clients = self._server.clients()
+            clients = server.clients()
             targets = clients if target == "all" else [c for c in clients if c.title == target]
             if not targets:
                 return False
@@ -83,15 +85,17 @@ class PlexConnector(BaseConnector):
 
     async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         """Return recently added media items."""
-        if not self._server:
+        server = self._server
+        if not server:
             return []
         loop = asyncio.get_running_loop()
         try:
 
             def _recent():
                 items = []
-                for section in self._server.library.sections():
-                    for item in section.recentlyAdded(maxresults=limit // max(1, len(self._server.library.sections()))):
+                sections = server.library.sections()
+                for section in sections:
+                    for item in section.recentlyAdded(maxresults=limit // max(1, len(sections))):
                         items.append(
                             {
                                 "title": item.title,

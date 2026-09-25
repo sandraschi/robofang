@@ -30,10 +30,8 @@ async def test_connect():
     ok = await conn.connect()
     print(f"connect() -> {ok}, active={conn.active}")
     if conn._ring:
-        devices = conn._ring.devices()
-        for dtype, dlist in devices.items():
-            for d in dlist:
-                print(f"  [{dtype}] {d.name}")
+        for d in conn._ring.devices().all_devices:
+            print(f"  [{d.family}] {d.name}")
     await conn.disconnect()
     print("PASS" if ok else "WARN: Ring not reachable — check token / network")
 

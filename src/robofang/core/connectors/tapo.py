@@ -43,6 +43,8 @@ class TapoConnector(BaseConnector):
                 continue
             try:
                 device = await Discover.discover_single(host, credentials=creds)
+                if device is None:
+                    raise ConnectionError("device did not answer discovery")
                 await device.update()
                 self._devices[alias] = device
                 self.logger.info(f"Tapo: {alias} ({host}) on={device.is_on}")
@@ -93,6 +95,8 @@ class TapoConnector(BaseConnector):
             return False
 
     async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
+        from kasa import Module
+
         readings = []
         for alias, device in list(self._devices.items())[:limit]:
             try:
@@ -103,12 +107,9 @@ class TapoConnector(BaseConnector):
                     "is_on": device.is_on,
                     "host": device.host,
                 }
-                if hasattr(device, "emeter_realtime"):
-                    try:
-                        e = await device.get_emeter_realtime()
-                        entry["power_w"] = e.get("power")
-                    except Exception as exc:
-                        logger.debug("Tapo emeter read failed for %s: %s", alias, exc)
+                energy = device.modules.get(Module.Energy)  # python-kasa >= 0.7 module API
+                if energy is not None:
+                    entry["power_w"] = energy.current_consumption
                 readings.append(entry)
             except Exception as e:
                 readings.append({"alias": alias, "error": str(e)})
