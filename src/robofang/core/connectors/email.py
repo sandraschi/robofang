@@ -9,7 +9,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from typing import Any
 
-from .base import BaseConnector, _decode_mime_header
+from .base import BaseConnector, _decode_mime_header, _message_text
 
 logger = logging.getLogger(__name__)
 
@@ -117,17 +117,11 @@ class EmailConnector(BaseConnector):
             results = []
             for eid in reversed(email_ids):
                 _, data = mail.fetch(eid, "(RFC822)")
-                if data[0] is None:
+                raw = data[0][1] if data[0] is not None else None
+                if not isinstance(raw, bytes):
                     continue
-                msg = email_lib.message_from_bytes(data[0][1])
-                body = ""
-                if msg.is_multipart():
-                    for part in msg.walk():
-                        if part.get_content_type() == "text/plain":
-                            body = part.get_payload(decode=True).decode("utf-8", errors="replace")
-                            break
-                else:
-                    body = msg.get_payload(decode=True).decode("utf-8", errors="replace")
+                msg = email_lib.message_from_bytes(raw)
+                body = _message_text(msg)
                 results.append(
                     {
                         "id": eid.decode(),

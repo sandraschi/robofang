@@ -25,6 +25,20 @@ def _decode_mime_header(value: str) -> str:
         return value
 
 
+def _message_text(msg: Any) -> str:
+    """Plain-text body of an email.message.Message (first text/plain part); "" if none.
+
+    get_payload(decode=True) returns None for parts without a decodable payload, so it
+    must never be .decode()d unchecked.
+    """
+    parts = [p for p in msg.walk() if p.get_content_type() == "text/plain"] if msg.is_multipart() else [msg]
+    for part in parts:
+        payload = part.get_payload(decode=True)
+        if isinstance(payload, bytes):
+            return payload.decode(part.get_content_charset() or "utf-8", errors="replace")
+    return ""
+
+
 class BaseConnector(abc.ABC):
     """Base class for all RoboFang sovereign connectors."""
 

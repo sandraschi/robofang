@@ -12,6 +12,8 @@ import os
 
 import httpx
 
+from robofang.core.connectors.base import _message_text
+
 logger = logging.getLogger("ROBOFANG_messaging")
 
 # Optional storage for UI-configured comms (set by main after orchestrator init)
@@ -131,24 +133,14 @@ def fetch_unseen_emails() -> list[dict]:
                 if not data or data[0] is None:
                     continue
                 raw = data[0][1]
-                msg = email.message_from_bytes(raw) if isinstance(raw, bytes) else email.message_from_string(raw)
+                if not isinstance(raw, bytes):
+                    continue
+                msg = email.message_from_bytes(raw)
                 from_addr = msg.get("From", "")
                 if "<" in from_addr and ">" in from_addr:
                     from_addr = from_addr.split("<")[1].split(">")[0].strip()
                 subject = msg.get("Subject", "") or ""
-                body = ""
-                if msg.is_multipart():
-                    for part in msg.walk():
-                        if part.get_content_type() == "text/plain":
-                            body = part.get_payload(decode=True)
-                            if body:
-                                body = body.decode(errors="replace")
-                            break
-                else:
-                    body = msg.get_payload(decode=True)
-                    if body:
-                        body = body.decode(errors="replace")
-                body = (body or "").strip()
+                body = _message_text(msg).strip()
                 if body:
                     out.append({"from_addr": from_addr, "subject": subject, "body": body, "uid": uid})
     except Exception as e:
@@ -236,7 +228,7 @@ class MessagingBridge:
         if not cfg.get("host") or not cfg.get("user"):
             logger.warning("SMTP not configured (host/user).")
             return False
-        from_addr = cfg.get("from_addr") or cfg.get("user")
+        from_addr: str = cfg.get("from_addr") or cfg["user"]
         port = cfg.get("port", 587)
         msg = MIMEMultipart()
         msg["From"] = from_addr
