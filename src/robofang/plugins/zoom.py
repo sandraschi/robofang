@@ -1,11 +1,15 @@
 """
 Zoom Connector for RoboFang.
-[PHASE 6.5] Fleet Expansion bridge.
+[PHASE 6.5] Fleet Expansion bridge - NOT IMPLEMENTED.
+
+Placeholder so plugin discovery finds the connector type. It never claims success:
+connect() and send_message() return False until a real Zoom integration exists.
 """
 
 import logging
+from typing import Any
 
-from robofang.core.plugins import BaseConnector
+from robofang.core.connectors.base import BaseConnector
 
 logger = logging.getLogger(__name__)
 
@@ -13,20 +17,23 @@ logger = logging.getLogger(__name__)
 class ZoomConnector(BaseConnector):
     """Bridge for Zoom Chat and Meeting interaction."""
 
-    def __init__(self, config=None):
-        super().__init__("zoom", config)
-        self.logger = logging.getLogger("robofang.plugins.zoom")
+    connector_type = "zoom"
+
+    def __init__(self, name: str = "zoom", config: dict[str, Any] | None = None):
+        super().__init__(name, config or {})
 
     async def connect(self) -> bool:
-        self.logger.info("Initializing Zoom SDK session...")
-        # v13.0: Zoom App OAuth2 ingestion.
-        self.is_connected = True
+        self.logger.warning("Zoom connector is not implemented; staying disconnected.")
+        self.active = False
+        return False
+
+    async def disconnect(self) -> bool:
+        self.active = False
         return True
 
-    async def disconnect(self):
-        self.logger.info("Zoom session ended.")
-        self.is_connected = False
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        self.logger.warning("Zoom connector is not implemented; message to %s not sent.", target)
+        return False
 
-    async def send_message(self, target: str, content: str):
-        """Post to Zoom Chat or meeting chat (simulated)."""
-        self.logger.info(f"Zoom: Posting to {target} -> {content[:50]}...")
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
+        return []

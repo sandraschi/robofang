@@ -1,11 +1,15 @@
 """
 WhatsApp Connector for RoboFang.
-[PHASE 6.5] Fleet Expansion bridge.
+[PHASE 6.5] Fleet Expansion bridge - NOT IMPLEMENTED.
+
+Placeholder so plugin discovery finds the connector type. It never claims success:
+connect() and send_message() return False until a real WhatsApp integration exists.
 """
 
 import logging
+from typing import Any
 
-from robofang.core.plugins import BaseConnector
+from robofang.core.connectors.base import BaseConnector
 
 logger = logging.getLogger(__name__)
 
@@ -13,20 +17,23 @@ logger = logging.getLogger(__name__)
 class WhatsAppConnector(BaseConnector):
     """Bridge for interacting with WhatsApp Business API or Web Gateway."""
 
-    def __init__(self, config=None):
-        super().__init__("whatsapp", config)
-        self.logger = logging.getLogger("robofang.plugins.whatsapp")
+    connector_type = "whatsapp"
+
+    def __init__(self, name: str = "whatsapp", config: dict[str, Any] | None = None):
+        super().__init__(name, config or {})
 
     async def connect(self) -> bool:
-        self.logger.info("Initializing WhatsApp session...")
-        # v13.0: Baileys or Business API session handshake.
-        self.is_connected = True
+        self.logger.warning("WhatsApp connector is not implemented; staying disconnected.")
+        self.active = False
+        return False
+
+    async def disconnect(self) -> bool:
+        self.active = False
         return True
 
-    async def disconnect(self):
-        self.logger.info("WhatsApp session terminated.")
-        self.is_connected = False
+    async def send_message(self, target: str, content: str, **kwargs) -> bool:
+        self.logger.warning("WhatsApp connector is not implemented; message to %s not sent.", target)
+        return False
 
-    async def send_message(self, target: str, content: str):
-        """Send a WhatsApp message (simulated)."""
-        self.logger.info(f"WhatsApp: Sending message to {target} -> {content[:50]}...")
+    async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
+        return []
