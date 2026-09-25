@@ -11,12 +11,12 @@ logger = logging.getLogger(__name__)
 class HomeAssistantConnector(BaseConnector):
     """Connector for Home Assistant via its REST API.
 
-    Covers entities, services, automations, scripts, events — the entire HA
+    Covers entities, services, automations, scripts, events - the entire HA
     surface area is available through entity_id targeting.
 
     config:
-      url          — e.g. "http://localhost:8123"
-      access_token — long-lived access token
+      url          - e.g. "http://localhost:8123"
+      access_token - long-lived access token
     """
 
     connector_type = "homeassistant"
@@ -64,10 +64,10 @@ class HomeAssistantConnector(BaseConnector):
     async def send_message(self, target: str, content: str, **kwargs) -> bool:
         """Call an HA service or fire an event.
 
-        target  — "domain.service" e.g. "light.turn_on", "switch.toggle",
+        target  - "domain.service" e.g. "light.turn_on", "switch.toggle",
                   "automation.trigger", or "event:EVENT_TYPE"
-        content — entity_id (or JSON string with extra service data)
-        kwargs  — additional service data fields
+        content - entity_id (or JSON string with extra service data)
+        kwargs  - additional service data fields
         """
         import json as _json
 

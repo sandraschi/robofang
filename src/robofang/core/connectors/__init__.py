@@ -56,7 +56,7 @@ class IoTConnector(BaseConnector):
         return False
 
     async def get_messages(self, limit: int = 10) -> list:
-        return [{"status": "deprecated — use TapoConnector, HueConnector, or ShellyConnector"}]
+        return [{"status": "deprecated - use TapoConnector, HueConnector, or ShellyConnector"}]
 
 
 __all__ = [

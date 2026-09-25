@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 class CalibreConnector(BaseConnector):
     """Connector for Calibre library via calibredb CLI subprocess.
 
-    No extra Python deps — uses calibredb which ships with Calibre.
+    No extra Python deps - uses calibredb which ships with Calibre.
 
     config:
-      calibredb_path  — path to calibredb (default: calibredb)
-      library_path    — path to Calibre library folder
+      calibredb_path  - path to calibredb (default: calibredb)
+      library_path    - path to Calibre library folder
     """
 
     connector_type = "calibre"
@@ -64,9 +64,9 @@ class CalibreConnector(BaseConnector):
     async def send_message(self, target: str, content: str, **kwargs) -> bool:
         """Add a book to Calibre or set metadata.
 
-        target  — "add" | "set_metadata"
-        content — file path (add) or book_id (set_metadata)
-        kwargs  — for set_metadata: field, value
+        target  - "add" | "set_metadata"
+        content - file path (add) or book_id (set_metadata)
+        kwargs  - for set_metadata: field, value
         """
         loop = asyncio.get_running_loop()
 

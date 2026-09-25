@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 class EmailConnector(BaseConnector):
     """Connector for email via SMTP (send) + IMAP (read).
 
-    Uses stdlib smtplib/imaplib via run_in_executor — no extra deps.
+    Uses stdlib smtplib/imaplib via run_in_executor - no extra deps.
     Mirrors the implementation pattern from email-mcp/src/email_mcp/server.py.
 
     config:

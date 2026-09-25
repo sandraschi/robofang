@@ -81,7 +81,7 @@ class MCPBridgeConnector(BaseConnector):
             self.logger.info(f"MCPBridgeConnector '{self._name}' reachable at {self._url}")
             return True
 
-        # Not up yet — optionally launch sidecar
+        # Not up yet - optionally launch sidecar
         if self._auto_start and self._start_cmd:
             self.logger.info(f"Starting sidecar: {' '.join(self._start_cmd)}")
             await self._start_sidecar()
@@ -196,7 +196,7 @@ class MCPBridgeConnector(BaseConnector):
             return None
 
     async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
-        """Return the tool list from the bridged server — used as health/discovery."""
+        """Return the tool list from the bridged server - used as health/discovery."""
         if not self.active or not self._client:
             return []
         payload = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
