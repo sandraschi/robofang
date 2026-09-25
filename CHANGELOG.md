@@ -15,6 +15,15 @@ Format: [Keep a Changelog](https://keepachangelog.com/) · Semantic Versioning.
   (default 8.0). `GET /api/v1/events` lists recent events.
 - `storage.log_event()` now returns the audit log row id.
 
+### Fixed
+- `just test` / `uv run pytest` crashed with `unrecognized arguments: --cov` because `pytest.ini` sets coverage addopts but `pytest-cov` was not a dev dependency. Added `pytest-cov>=6.0`.
+- Tauri backend path: strip the Windows extended-length `\\?\` prefix.
+
+### Changed
+- Source comments/docstrings/log strings normalised to ASCII hyphens (em dash sweep).
+- `fleet-start.config.ps1`: backend port 10871, relative `WebRoot`, uvicorn target `robofang.app.lifecycle:app`; FleetStartMode.ps1 synced to the converged canonical.
+- `robofang-mcp`: added `fastapi` / `uvicorn` dependencies.
+
 ## [1.8.0-alpha.3] — 2026-07-29 "Assess & Fix Pass 2"
 
 ### Added
