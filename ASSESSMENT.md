@@ -46,14 +46,14 @@ The reasoning engine has been hardened with a dispatcher-based `reason_and_act` 
 
 **Completed:**
 - **arxiv-mcp**: `sanitize.py` with adversarial safety boundary wrapping (`wrap_untrusted`) applied at every tool return boundary. arXiv API compatibility fixes (removed `size` param, updated deprecated `/search/advanced` endpoint). Single paper lookup with title/ID/URL support.
-- **aiwatcher-mcp**: `scrubber.py` — 3-layer spam classifier (regex, URL blocklist, user blocklist) wired at all 4 ingest boundaries (RSS, Gmail, ArXiv, Readly). Safety preamble wrapping on the distillation `ITEM_PROMPT` so Claude treats feed items as data, not instructions.
+- **aiwatcher-mcp**: `scrubber.py` -- 3-layer spam classifier (regex, URL blocklist, user blocklist) wired at all 4 ingest boundaries (RSS, Gmail, ArXiv, Readly). Safety preamble wrapping on the distillation `ITEM_PROMPT` so Claude treats feed items as data, not instructions.
 
 **Pending:**
 - **robofang**: Inbound text from Discord, Moltbook, Slack DMs via connectors needs safety wrapping before LLM reasoning.
 - **deepfang**: The `sanitize → adjudicate → dispatch` pipeline routes Discord/Telegram/email text through LLM. Wrapping needed at ingest boundary.
 - **aiwatcher-mcp**: Scrubber Layer 3 (local LLM for borderline cases) is reserved but not wired.
 
-**Pattern**: Safety boundary wrapping (fixed preamble before untrusted text) is superior to regex pattern matching — works for misspellings, homoglyphs, encodings, and unknown injection variants.
+**Pattern**: Safety boundary wrapping (fixed preamble before untrusted text) is superior to regex pattern matching -- works for misspellings, homoglyphs, encodings, and unknown injection variants.
 
 ---
 
