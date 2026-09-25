@@ -1,9 +1,12 @@
 """MCP Bridge Connector."""
 
 import asyncio
+import json
 import logging
 import subprocess
 from typing import Any
+
+from robofang.core.tool_router import ToolRoutingError, call_mcp_tool, list_mcp_tools
 
 from .base import BaseConnector
 
@@ -11,12 +14,13 @@ logger = logging.getLogger(__name__)
 
 
 class MCPBridgeConnector(BaseConnector):
-    """Bridge to any FastMCP 2.14.x server running in HTTP transport mode.
+    """Bridge to any FastMCP server running in streamable-HTTP transport mode.
 
     Instead of reimplementing the protocol layer (plexapi, calibredb, immich REST, etc.)
     inside RoboFang, we delegate to the dedicated MCP server that already owns that
     domain.  The MCP server is launched as a sidecar (or is already running) on a
-    configurable port, and we speak to it via the MCP streamable-HTTP protocol.
+    configurable port, and we speak real MCP to it via fastmcp.Client
+    (initialize handshake + session - raw JSON-RPC POSTs are rejected by FastMCP 3.x).
 
     Config keys:
         name        (str)  Human label, e.g. "plex-mcp"
@@ -28,21 +32,15 @@ class MCPBridgeConnector(BaseConnector):
         env         (dict) Extra env vars passed to the sidecar process
         auto_start  (bool) If True, launch the sidecar on connect() if not reachable.
                            Default: True
-        timeout     (int)  HTTP request timeout in seconds. Default: 30
-
-    MCP JSON-RPC call format (streamable HTTP):
-        POST <url>
-        Content-Type: application/json
-        { "jsonrpc": "2.0", "id": 1, "method": "tools/call",
-          "params": { "name": "<tool>", "arguments": { ... } } }
+        timeout     (int)  Request timeout in seconds. Default: 30
 
     send_message() maps to a direct tool call:
         target  = tool name, e.g. "plex_library"
         content = JSON string of arguments, or plain string for "query"
         kwargs  = merged into arguments
 
-    get_messages() calls the server's tools/list to return available tools,
-    useful as a health check and discovery mechanism.
+    get_messages() returns the server's tool list, useful as a health check and
+    discovery mechanism.
     """
 
     connector_type = "mcp_bridge"
@@ -64,17 +62,8 @@ class MCPBridgeConnector(BaseConnector):
         self._auto_start: bool = config.get("auto_start", True)
         self._timeout: int = config.get("timeout", 30)
         self._proc: Any | None = None  # subprocess.Popen if we launched it
-        self._client: Any | None = None  # httpx.AsyncClient
 
     async def connect(self) -> bool:
-        import httpx
-
-        # Never leak the previous client (and its pooled sockets) - each leaked
-        # AsyncClient kept connections to the backend open forever (blooper #23).
-        await self._close_client()
-
-        self._client = httpx.AsyncClient(timeout=self._timeout)
-
         # Try to reach the server
         if await self.ping():
             self.active = True
@@ -92,26 +81,12 @@ class MCPBridgeConnector(BaseConnector):
                 self.logger.info(f"MCPBridgeConnector '{self._name}' sidecar up at {self._url}")
                 return True
             self.logger.error(f"MCPBridgeConnector '{self._name}' sidecar didn't respond after start")
-            await self._close_client()
             return False
 
         self.logger.warning(f"MCPBridgeConnector '{self._name}' not reachable at {self._url}")
-        await self._close_client()
         return False
 
-    async def _close_client(self) -> None:
-        """Close the httpx client and drop its pooled connections."""
-        if self._client is not None:
-            try:
-                await self._client.aclose()
-            except Exception as exc:
-                logger.debug("MCPBridgeConnector '%s' client close failed: %s", self._name, exc)
-            self._client = None
-
     async def disconnect(self) -> bool:
-        if self._client:
-            await self._client.aclose()
-            self._client = None
         if self._proc and self._proc.returncode is None:
             self.logger.info(f"Stopping sidecar '{self._name}'")
             self._proc.terminate()
@@ -124,155 +99,69 @@ class MCPBridgeConnector(BaseConnector):
 
     async def send_message(self, target: str, content: str, **kwargs) -> bool:
         """Call a tool on the bridged MCP server."""
-        import json as _json
-
-        if not self.active or not self._client:
+        if not self.active:
             return False
 
         # Build arguments
         try:
-            args = _json.loads(content) if content.strip().startswith("{") else {"query": content}
-        except Exception:
+            args = json.loads(content) if content.strip().startswith("{") else {"query": content}
+        except ValueError:
             args = {"query": content}
         args.update(kwargs)
 
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "tools/call",
-            "params": {"name": target, "arguments": args},
-        }
         try:
-            resp = await self._client.post(
-                self._url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-            )
-            resp.raise_for_status()
-            result = resp.json()
-            if "error" in result:
-                self.logger.error(f"MCP tool error from '{self._name}': {result['error']}")
-                return False
+            await call_mcp_tool(self._url, target, args, self._timeout)
             return True
-        except Exception as exc:
+        except ToolRoutingError as exc:
             self.logger.error(f"MCPBridgeConnector '{self._name}' send_message failed: {exc}")
             return False
 
     async def call_tool(self, tool: str, arguments: dict[str, Any] | None = None) -> Any:
-        """Call a tool and return the result payload (not just bool)."""
-        import json as _json
-
-        if not self.active or not self._client:
+        """Call a tool and return the result payload (None on failure)."""
+        if not self.active:
             return None
-
-        payload = {
-            "jsonrpc": "2.0",
-            "id": 1,
-            "method": "tools/call",
-            "params": {"name": tool, "arguments": arguments or {}},
-        }
         try:
-            resp = await self._client.post(
-                self._url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-            )
-            resp.raise_for_status()
-            result = resp.json()
-            if "error" in result:
-                self.logger.error(f"MCP tool error: {result['error']}")
-                return None
-            # MCP returns content blocks: [{"type": "text", "text": "..."}]
-            content_blocks = result.get("result", {}).get("content", [])
-            texts = [b["text"] for b in content_blocks if b.get("type") == "text"]
-            raw = "\n".join(texts)
-            # Try JSON parse
-            try:
-                return _json.loads(raw)
-            except Exception:
-                return raw
-        except Exception as exc:
+            return await call_mcp_tool(self._url, tool, arguments, self._timeout)
+        except ToolRoutingError as exc:
             self.logger.error(f"MCPBridgeConnector '{self._name}' call_tool failed: {exc}")
             return None
 
     async def get_messages(self, limit: int = 10) -> list[dict[str, Any]]:
         """Return the tool list from the bridged server - used as health/discovery."""
-        if not self.active or not self._client:
+        if not self.active:
             return []
-        payload = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
         try:
-            resp = await self._client.post(
-                self._url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-            )
-            resp.raise_for_status()
-            result = resp.json()
-            tools = result.get("result", {}).get("tools", [])
-            return [{"name": t["name"], "description": t.get("description", "")[:120]} for t in tools[:limit]]
-        except Exception as exc:
+            return (await list_mcp_tools(self._url, self._timeout))[:limit]
+        except ToolRoutingError as exc:
             self.logger.error(f"MCPBridgeConnector '{self._name}' tools/list failed: {exc}")
             return []
 
     async def ping(self) -> bool:
-        """Liveness check via tools/list."""
+        """Liveness check: tools/list, plus a non-empty answer from the server's help tool if it has one."""
         try:
-            payload = {"jsonrpc": "2.0", "id": 0, "method": "tools/list", "params": {}}
-            resp = await self._client.post(
-                self._url,
-                json=payload,
-                headers={"Content-Type": "application/json"},
-                timeout=5,
-            )
-            if resp.status_code != 200:
-                return False
-            data = resp.json()
-            if "error" in data:
-                return False
-            tools = data.get("result", {}).get("tools", [])
-            help_tool = None
-            for t in tools:
-                if "help" in t.get("name", "").lower():
-                    help_tool = t["name"]
-                    break
+            tools = await list_mcp_tools(self._url, timeout=5)
+            help_tool = next((t["name"] for t in tools if "help" in t["name"].lower()), None)
             if not help_tool:
-                return resp.status_code == 200
-            call_payload = {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "tools/call",
-                "params": {"name": help_tool, "arguments": {}},
-            }
-            call_resp = await self._client.post(
-                self._url,
-                json=call_payload,
-                headers={"Content-Type": "application/json"},
-                timeout=10,
-            )
-            if call_resp.status_code != 200:
-                return False
-            call_data = call_resp.json()
-            if "error" in call_data:
-                return False
-            content_blocks = call_data.get("result", {}).get("content", [])
-            for b in content_blocks:
-                if b.get("type") == "text" and (b.get("text") or "").strip():
-                    return True
-            return False
-        except Exception:
+                return True
+            result = await call_mcp_tool(self._url, help_tool, {}, timeout=10)
+            return bool(result)
+        except ToolRoutingError:
             return False
 
     async def _start_sidecar(self):
         """Launch the MCP server as a background subprocess."""
         import os as _os
 
+        start_cmd = self._start_cmd
+        if not start_cmd:
+            return
         env = _os.environ.copy()
         env.update(self._env)
         loop = asyncio.get_running_loop()
         proc = await loop.run_in_executor(
             None,
             lambda: subprocess.Popen(
-                self._start_cmd,
+                start_cmd,
                 cwd=self._start_cwd,
                 env=env,
                 stdout=subprocess.DEVNULL,

@@ -103,7 +103,8 @@ class ServerInstance:
         return self.port is not None and self.cmd is not None
 
     def start(self) -> dict:
-        if not self.viable:
+        cmd = self.cmd
+        if not self.viable or cmd is None:
             return {"ok": False, "reason": "No port or start command"}
         with self._lock:
             if self._proc and self._proc.poll() is None:
@@ -118,7 +119,7 @@ class ServerInstance:
 
             try:
                 self._proc = subprocess.Popen(  # - cmd from local trusted fleet-registry.json
-                    self.cmd,
+                    cmd,
                     cwd=self.cwd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,

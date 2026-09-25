@@ -37,7 +37,7 @@ from robofang.utils.security import get_absolute_path, get_secure_bind_address
 # ── Configuration ─────────────────────────────────────────────────────────────
 
 
-def _load_fleet_stack_ports() -> dict:
+def _load_fleet_stack_ports() -> dict[str, int]:
     """Load web_port, bridge_port, supervisor_port from fleet schema. Single source of truth."""
     default = {"web_port": 10870, "bridge_port": 10871, "supervisor_port": 10872}
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "configs", "fleet-stack-ports.json")
