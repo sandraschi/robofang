@@ -52,11 +52,13 @@ def stop_all_connectors():
 def get_active_connectors_with_ports() -> list[dict[str, Any]]:
     """Return list of active connectors and their ports found in MCP_BACKENDS."""
     active = []
+    seen: set[str] = set()  # launcher (powershell) + server (python) both match; report once
     for proc in psutil.process_iter(["pid", "name", "cmdline"]):
         try:
             cmd = " ".join(proc.info["cmdline"] or [])
             for name, url in MCP_BACKENDS.items():
-                if name in cmd and ("python" in cmd or "powershell" in cmd):
+                if name not in seen and name in cmd and ("python" in cmd or "powershell" in cmd):
+                    seen.add(name)
                     active.append(
                         {
                             "id": name,
@@ -548,7 +550,7 @@ def _fleet_catalog() -> list[dict[str, Any]]:
     # Fallback to manifest + fleet_catalog_github
     analysis = _load_fleet_analysis()
     for h in orchestrator.installer.get_manifest():
-        entry = {
+        entry: dict[str, Any] = {
             "id": h.id,
             "name": h.name,
             "category": h.category or "Other",

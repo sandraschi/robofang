@@ -541,30 +541,37 @@ class OrchestrationClient:
     async def _safety_monitor_loop(self):
         """High-frequency loop (10s) for critical AED (Autonomous Emergency Dispatch) monitoring."""
         self.logger.info("[ORCHESTRATOR] Safety monitor loop started.")
+        # Netatmo stations to watch: federation_map connectors.netatmo.station_ids or
+        # ROBOFANG_NETATMO_STATIONS (comma-separated). Netatmo refreshes every ~10 min and
+        # rate-limits its API, so poll every 5 min, not every loop tick.
+        netatmo_cfg = self.topology.get("connectors", {}).get("netatmo", {})
+        stations = netatmo_cfg.get("station_ids") or [
+            s.strip() for s in os.getenv("ROBOFANG_NETATMO_STATIONS", "").split(",") if s.strip()
+        ]
+        threshold = float(netatmo_cfg.get("thermal_threshold_c", 180))
+        next_poll = 0.0
         while self.running:
             try:
-                # 1. Poll Netatmo / Environmental Sensors for Level 4 Triggers
-                # We target sensors that might report the 180C threshold
-                netatmo = self.connectors.get("netatmo")  # Example connector name
-                if netatmo and getattr(netatmo, "active", False):
-                    # Call a discovery or health tool to get latest telemetry
-                    # In RoboFang, we use the hands_manager to call tools via the bridge
-                    try:
-                        # Hypothetical tool name from devices-mcp
-                        data = await self.hands.call_tool("mcp_devices-mcp_get_thermal_telemetry", {})
-                        if data and isinstance(data, dict):
-                            for sensor_id, val in data.items():
-                                if val >= 180:
-                                    # Trigger the responder
-                                    task = asyncio.create_task(
-                                        self.responder.handle_environmental_alert(
-                                            sensor_id=sensor_id, value=val, threshold=180
-                                        )
+                if stations and time.monotonic() >= next_poll:
+                    next_poll = time.monotonic() + 300
+                    for station_id in stations:
+                        try:
+                            result = await self.hands.call_tool(
+                                "netatmo",
+                                "weather_data_operations",
+                                {"operation": "current", "station_id": station_id},
+                            )
+                            temp = (result or {}).get("data", {}).get("temperature")
+                            if isinstance(temp, int | float) and temp >= threshold:
+                                task = asyncio.create_task(
+                                    self.responder.handle_environmental_alert(
+                                        sensor_id=station_id, value=float(temp), threshold=threshold
                                     )
-                                    self._active_tasks.add(task)
-                                    task.add_done_callback(self._active_tasks.discard)
-                    except Exception as e:
-                        self.logger.debug(f"Safety poll fail (mcp_devices-mcp): {e}")
+                                )
+                                self._active_tasks.add(task)
+                                task.add_done_callback(self._active_tasks.discard)
+                        except Exception as e:
+                            self.logger.debug(f"Safety poll failed (netatmo {station_id}): {e}")
 
                 await asyncio.sleep(10)  # 10 second safety pulse
             except asyncio.CancelledError:

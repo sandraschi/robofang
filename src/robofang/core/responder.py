@@ -1,10 +1,17 @@
 """
 RoboFang Emergency Responder: AED (Autonomous Emergency Dispatch) Logic.
 Coordinates multi-sensor verification and telephony escalation.
+
+SAFETY: a real emergency call is only placed when ALL of these hold:
+  - verification positively confirms fire (vision check - NOT implemented yet, so
+    verification currently always fails closed and no call is ever placed);
+  - ROBOFANG_AED_LIVE_DISPATCH=1;
+  - a real dispatch address is configured (config "aed_location" or ROBOFANG_AED_LOCATION).
+Otherwise the dispatch is logged as a dry run.
 """
 
-import asyncio
 import logging
+import os
 from typing import Any
 
 logger = logging.getLogger("robofang.core.responder")
@@ -29,25 +36,25 @@ class EmergencyResponder:
             return
 
         self.active_emergencies.add(sensor_id)
-        logger.warning(f"CRITICAL EMERGERNCY TRIGGERED: {sensor_id} reported {value} (Threshold: {threshold})")
+        try:
+            logger.warning(f"CRITICAL EMERGENCY TRIGGERED: {sensor_id} reported {value} (Threshold: {threshold})")
 
-        # 1. Immediate Private Notification (Non-public)
-        msg = f"🚨 [AED] Kritisches Brandereignis detektiert: {sensor_id} ({value}°C). Starte Roboter-Verifizierung."
-        await self.orchestrator.hands_manager.call_tool(
-            "connector_moltbook", "send_dm", {"to": "sandraschi", "message": msg}
-        )
+            # 1. Immediate Private Notification (Non-public)
+            msg = f"[AED] Kritisches Brandereignis detektiert: {sensor_id} ({value}°C). Starte Roboter-Verifizierung."
+            try:
+                await self.orchestrator.hands.call_tool("moltbook", "send_dm", {"to": "sandraschi", "message": msg})
+            except Exception as e:
+                logger.error(f"AED private notification failed: {e}")
 
-        # 2. Multi-Bot Verification (Yahboom POV)
-        verification_passed = await self._verify_threat_with_robot(sensor_id)
+            # 2. Multi-Bot Verification (Yahboom POV)
+            if not await self._verify_threat_with_robot(sensor_id):
+                logger.info("AED verification did not confirm fire. Aborting dispatch.")
+                return
 
-        if not verification_passed:
-            logger.info("AED Verification FAILED: Incident classification: FALSE POSITIVE. Aborting dispatch.")
-            self.active_emergencies.remove(sensor_id)
-            return
-
-        # 3. Final Authority Dispatch (Telephony)
-        await self._initiate_public_dispatch(sensor_id, value)
-        self.active_emergencies.remove(sensor_id)
+            # 3. Final Authority Dispatch (Telephony)
+            await self._initiate_public_dispatch(sensor_id, value)
+        finally:
+            self.active_emergencies.discard(sensor_id)
 
     async def _verify_threat_with_robot(self, target_sensor: str) -> bool:
         """
@@ -55,72 +62,46 @@ class EmergencyResponder:
         Note: SLAM is WIP, using directional/mission-based movement.
         """
         logger.info(f"Engaging Yahboom Raspbot for POV verification of {target_sensor}")
-
-        # Simulated mission: 'move_to_room'
-        # In practice, this would call yahboom-mcp tools
         try:
-            # We assume a 'Room' mapping exists in fleet_config for sensor_id
-            room_name = "Serverraum"  # Mock lookup
-
-            # Mission: Go to room
-            await self.orchestrator.hands_manager.call_tool(
+            # TODO: map sensor_id -> room from fleet_config
+            room_name = "Serverraum"
+            await self.orchestrator.hands.call_tool(
+                "yahboom",
                 "yahboom_agentic_workflow",
-                "goal",
                 {"goal": f"Fahre in den {room_name} und richte die Kamera auf den Brandherd."},
             )
-
-            # Wait for arrival (mock)
-            await asyncio.sleep(5)
-
-            # Take Snapshot
-            snapshot_result = await self.orchestrator.hands_manager.call_tool(
-                "yahboom_tool", "operation", {"operation": "snapshot"}
-            )
-
-            if not snapshot_result or "bytes" not in str(snapshot_result):
-                logger.error("Failed to acquire POV snapshot from Yahboom.")
-                return False  # Safety first: don't dispatch on blind robot
-
-            # Vision Analysis (VLM)
-            # Logic: Fire/Smoke detection
-            logger.info("Analyzing POV snapshot with VLM...")
-            # Mock VLM call
-            is_fire = True
-            # In reality:
-            # await self.orchestrator.reasoning_engine.analyze_image(
-            #     snapshot, prompt="Detect fire or smoke"
-            # )
-
-            return is_fire
-
         except Exception as e:
             logger.error(f"Verification mission failed: {e}")
             return False
 
+        # Fail closed: there is no snapshot + vision (VLM) fire/smoke check yet, and an
+        # unverified alarm must never reach the fire brigade.
+        logger.warning("AED vision verification not implemented - failing closed (no dispatch).")
+        return False
+
     async def _initiate_public_dispatch(self, sensor_id: str, value: float):
         """
-        Places the actual telephony call in German.
+        Places the telephony call in German - only when explicitly enabled and a real address is configured.
         """
+        config = getattr(self.orchestrator, "config", {}) or {}
+        location = config.get("aed_location") or os.getenv("ROBOFANG_AED_LOCATION", "")
+        live = os.getenv("ROBOFANG_AED_LIVE_DISPATCH") == "1"
+        if not live or not location:
+            logger.critical(
+                f"AED DRY RUN - would dispatch fire brigade (122) for {sensor_id} at {value}°C "
+                f"(live={live}, location_configured={bool(location)})"
+            )
+            return
+
         logger.critical(f"INITIATING FIRST RESPONDER DISPATCH for {sensor_id}")
-
-        location = "Hauptstraße 1, 1010 Wien"  # Should be in fleet_config
-
-        # Get Template from Telephony-MCP
-        template = await self.orchestrator.hands_manager.call_tool(
-            "telephony_mcp",
+        template = await self.orchestrator.hands.call_tool(
+            "telephony",
             "get_emergency_template",
             {"event_type": "Brand", "location": location, "details": f"{value} Grad Celsius"},
         )
-
-        # Place Call
-        result = await self.orchestrator.hands_manager.call_tool(
-            "telephony_mcp",
+        result = await self.orchestrator.hands.call_tool(
+            "telephony",
             "place_call",
-            {
-                "to": "122",  # Fire department
-                "message": template,
-                "language": "de-AT",
-            },
+            {"to": "122", "message": template, "language": "de-AT"},  # 122 = fire brigade (AT)
         )
-
         logger.info(f"Dispatch status: {result}")
