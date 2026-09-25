@@ -8,14 +8,15 @@ Run: python tests/connectors/test_ring.py
 
 import asyncio
 import logging
+import os
 import sys
 
 sys.path.insert(0, "src")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
 RING_CONFIG = {
-    "email": "sandraschipal@hotmail.com",
-    "password": "Sec1000ri#",
+    "email": os.getenv("RING_EMAIL", ""),
+    "password": os.getenv("RING_PASSWORD", ""),
     # Use the already-cached token from devices-mcp to avoid 2FA prompt
     "token_file": r"D:\dev\repos\devices-mcp\ring_token.cache",
 }

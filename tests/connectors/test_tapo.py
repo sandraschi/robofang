@@ -6,6 +6,7 @@ Uses real IPs from devices-mcp config.yaml — Tapo devices must be on LAN.
 
 import asyncio
 import logging
+import os
 import sys
 
 sys.path.insert(0, "src")
@@ -13,8 +14,8 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(messag
 
 # Real config from devices-mcp/config.yaml
 TAPO_CONFIG = {
-    "username": "sandraschipal@hotmail.com",
-    "password": "Sec1060ta#",
+    "username": os.getenv("TAPO_USERNAME", ""),
+    "password": os.getenv("TAPO_PASSWORD", ""),
     "devices": [
         {
             "host": "192.168.0.17",
