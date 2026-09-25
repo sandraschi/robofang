@@ -1,4 +1,4 @@
-﻿use std::fs::{self, OpenOptions};
+use std::fs::{self, OpenOptions};
 use std::io::{BufRead, BufReader, Write};
 use std::net::{SocketAddr, TcpStream};
 use std::path::PathBuf;
@@ -94,7 +94,10 @@ pub fn materialize_backend(app: &AppHandle) -> Result<PathBuf, String> {
 
     let bundled = resolve_bundled_backend(app)?;
     log_line(app, &format!("using bundled backend: {}", bundled.display()));
-    Ok(bundled)
+    // Strip Windows extended-length prefix
+    let s = bundled.to_string_lossy().to_string();
+    let clean = s.strip_prefix("\\\\?\\").map(PathBuf::from).unwrap_or(bundled.clone());
+    Ok(clean)
 }
 
 fn free_port(port: u16) -> bool {
@@ -123,7 +126,7 @@ fn free_port(port: u16) -> bool {
         let poll_script = format!(
             "if (Get-NetTCPConnection -LocalPort {port} -ErrorAction SilentlyContinue) {{ 1 }} else {{ 0 }}"
         );
-        for i in 0..240 {
+        for i in 0..10 {
             let output = Command::new("powershell.exe")
                 .args(["-NoProfile", "-Command", &poll_script])
                 .stdout(Stdio::piped()).stderr(Stdio::null())
