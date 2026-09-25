@@ -2,15 +2,16 @@
 # Edit ports/backend target here - start.ps1 is fleet-standard.
 @{
     Name         = 'robofang'
-    BackendPort  = 10870
+    BackendPort  = 10871
     FrontendPort = 10870
     HealthPath   = '/health'
-    WebRoot      = 'D:\Dev\repos\robofang\robofang-hub'
+    WebRoot      = 'robofang-hub'
     Backend = @{
         Kind          = 'uvicorn'
-        UvicornTarget = 'robofang.main:app'
+        UvicornTarget = 'robofang.app.lifecycle:app'
+        WorkDir       = '.'
         SyncExtras    = @('dev')
-        Env           = @{ WEB_PORT = '10870' }
+        Env           = @{ WEB_PORT = '10871' }
     }
     Frontend = @{
         Kind           = 'vite-npm'
