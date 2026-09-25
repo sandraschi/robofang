@@ -14,6 +14,7 @@ from robofang.core.base_hand import Hand
 from robofang.core.hand_manifest import (
     load_hand_definition,
 )
+from robofang.core.tool_router import ToolRouter
 
 logger = logging.getLogger(__name__)
 
@@ -29,17 +30,21 @@ class HandsManager:
         self._loop_task: asyncio.Task | None = None
         self._background_tasks: set[asyncio.Task] = set()
         self.running = False
+        self._router: ToolRouter | None = None
 
     def register_hand(self, hand: Hand):
         self.hands[hand.definition.id] = hand
         logger.info(f"Registered Hand: {hand.definition.name} ({hand.definition.id})")
 
-    async def call_tool(self, tool: str, arguments: dict[str, Any] | None = None) -> Any:
-        """Not implemented: there is no tool-routing layer for hands yet.
+    async def call_tool(self, server: str, tool: str, arguments: dict[str, Any] | None = None) -> Any:
+        """Call `tool` on fleet MCP server `server` (e.g. "yahboom", "devices").
 
-        Callers (orchestrator safety monitor, responder) catch the exception and log it.
+        Raises ToolRoutingError if the server is unknown/unreachable or the tool fails.
         """
-        raise NotImplementedError(f"HandsManager.call_tool is not implemented (tool={tool!r})")
+        if self._router is None:
+            topology = getattr(self.orchestrator, "topology", None)
+            self._router = ToolRouter(topology=topology if isinstance(topology, dict) else None)
+        return await self._router.call(server, tool, arguments)
 
     def load_hands_from_dir(self, directory: str):
         """Scan directory for HAND.toml files and register them."""
