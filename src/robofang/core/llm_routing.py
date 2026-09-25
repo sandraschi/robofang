@@ -18,14 +18,15 @@ def _load_config() -> dict[str, Any]:
     global _config
     if _config is not None:
         return _config
-    _config = {}
+    config: dict[str, Any] = {}
     if _CONFIG_PATH.exists():
         try:
             with open(_CONFIG_PATH, encoding="utf-8") as f:
-                _config = json.load(f)
+                config = json.load(f)
         except Exception as e:
             logger.warning("Could not load llm_model_tiers.json: %s", e)
-    return _config
+    _config = config
+    return config
 
 
 def get_default_resident() -> str:

@@ -379,7 +379,8 @@ class ReasoningEngine:
         Agentic reasoning loop using XML-based ReAct pattern (Legacy).
         """
         # Node-aware model readiness
-        if not (self.federation_config.get("nodes") and "localhost" not in self.federation_config.get("nodes")):
+        nodes = self.federation_config.get("nodes") or {}
+        if not (nodes and "localhost" not in nodes):
             await self._ensure_model_ready(model)
 
         history = [
@@ -396,6 +397,7 @@ class ReasoningEngine:
         current_prompt = prompt
         full_trail = []
         executed_actions = set()
+        content = ""  # max_turns=0 would otherwise hit UnboundLocalError at the final return
 
         for turn in range(max_turns):
             logger.info(f"Legacy ReAct Loop: Turn {turn + 1}/{max_turns}")

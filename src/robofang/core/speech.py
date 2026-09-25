@@ -4,6 +4,7 @@ Supports speech-mcp (Edge-TTS/Kokoro) and kyutai-mcp (Moshi).
 """
 
 import logging
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,8 @@ class SpeechHandler:
             logger.warning("No speech connector available. Text: %s", text)
             return False
 
-        if not hasattr(self.connector, "call_tool") or not callable(self.connector.call_tool):
+        call_tool: Callable[..., Awaitable[Any]] | None = getattr(self.connector, "call_tool", None)
+        if not callable(call_tool):
             logger.error("Speech connector does not support call_tool.")
             return False
 
@@ -34,7 +36,7 @@ class SpeechHandler:
         try:
             # We assume speech-mcp provides a 'tts' tool
             # Parameters for speech-mcp usually include 'text'
-            result = await self.connector.call_tool("tts", {"text": text})
+            result = await call_tool("tts", {"text": text})
             if result and (isinstance(result, dict) and result.get("success", True)):
                 logger.info("Speech synthesized via speech-mcp (tts).")
                 return True
@@ -44,7 +46,7 @@ class SpeechHandler:
         # Attempt 2: voice_bridge style (robofang_voice / turn)
         try:
             # kyutai-mcp or similar bridge
-            result = await self.connector.call_tool("robofang_voice", {"operation": "turn", "utterance": text})
+            result = await call_tool("robofang_voice", {"operation": "turn", "utterance": text})
             if result and (isinstance(result, dict) and result.get("success", True)):
                 logger.info("Speech synthesized via voice bridge.")
                 return True

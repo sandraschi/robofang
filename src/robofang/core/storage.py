@@ -222,7 +222,7 @@ class RoboFangStorage:
                 (level, source, event, json.dumps(details or {})),
             )
             conn.commit()
-            return int(cur.lastrowid)
+            return int(cur.lastrowid or 0)
 
     def get_audit_logs(self, limit: int = 100) -> list[dict[str, Any]]:
         """Retrieve the most recent audit logs."""
