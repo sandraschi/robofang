@@ -58,16 +58,14 @@ async def hands_register(req: RegisterHandRequest):
         item = HandManifestItem(
             id=req.id,
             name=req.name,
-            category=req.category,
-            description=req.description,
-            repo_url=req.repo_url,
+            category=req.category or "External",
+            description=req.description or "",
+            repo_url=req.repo_url or "",
             install_script=req.install_script,
-            tags=req.tags,
+            tags=req.tags or [],
         )
-        # Assuming orchestrator.register_hand handles the logic
-        # In current main.py, it calls add_hand_to_manifest then onboards.
-        # But for direct orchestrator registration:
-        orchestrator.register_hand(item)
+        # Adds to the fleet manifest only; installation is POST /api/fleet/onboard.
+        orchestrator.installer.add_hand_to_manifest(item)
         return {"success": True, "message": f"Hand {req.id} registered."}
     except Exception as e:
         logger.error("Failed to register hand %s: %s", req.id, e)

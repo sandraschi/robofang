@@ -86,7 +86,7 @@ async def connector_logs(connector_id: str, limit: int = 100):
 @router.get("/topology")
 async def connectors_topology():
     """Get the current connector topology (which are enabled/configured)."""
-    topo = orchestrator.get_topology()
+    topo = orchestrator.topology
     return {"success": True, "topology": topo.get("connectors", {})}
 
 

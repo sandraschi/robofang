@@ -444,7 +444,7 @@ class OrchestrationClient:
                     self.logger.debug(f"Soul synthesis loaded {len(system_prompt_parts)} template(s).")
 
                 # 3. Pulse Reflection: Summarize fleet status and "think"
-                if self.moltbook.client:
+                if self.moltbook.api_key:
                     try:
                         persona_list = list(self.personality.personas.keys())
                         status_summary = (

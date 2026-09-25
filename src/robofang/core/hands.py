@@ -34,6 +34,13 @@ class HandsManager:
         self.hands[hand.definition.id] = hand
         logger.info(f"Registered Hand: {hand.definition.name} ({hand.definition.id})")
 
+    async def call_tool(self, tool: str, arguments: dict[str, Any] | None = None) -> Any:
+        """Not implemented: there is no tool-routing layer for hands yet.
+
+        Callers (orchestrator safety monitor, responder) catch the exception and log it.
+        """
+        raise NotImplementedError(f"HandsManager.call_tool is not implemented (tool={tool!r})")
+
     def load_hands_from_dir(self, directory: str):
         """Scan directory for HAND.toml files and register them."""
         if not os.path.exists(directory):
@@ -69,6 +76,8 @@ class HandsManager:
                                 spec = importlib.util.spec_from_file_location(
                                     f"rf_hand_{definition.id}", implementation_path
                                 )
+                                if spec is None or spec.loader is None:
+                                    raise ImportError(f"cannot load {implementation_path}")
                                 module = importlib.util.module_from_spec(spec)
                                 spec.loader.exec_module(module)
 

@@ -17,9 +17,10 @@ class PluginManager:
 
     def __init__(self, plugin_package: str = "robofang.plugins"):
         self.plugin_package = plugin_package
-        self.connectors: dict[str, type[BaseConnector]] = {}
+        # Values start as lazy "module.Class" paths and are replaced by the class once loaded.
+        self.connectors: dict[str, type[BaseConnector] | str] = {}
 
-    def discover_connectors(self) -> dict[str, type[BaseConnector]]:
+    def discover_connectors(self) -> dict[str, type[BaseConnector] | str]:
         """
         Scan the plugins package and local directories for connector classes.
         """
@@ -127,7 +128,7 @@ class PluginManager:
             return None
 
     @classmethod
-    def load_all(cls) -> dict[str, type[BaseConnector]]:
+    def load_all(cls) -> dict[str, type[BaseConnector] | str]:
         """Legacy helper - now returns discovered but not necessarily loaded registry."""
         manager = cls()
         return manager.discover_connectors()
