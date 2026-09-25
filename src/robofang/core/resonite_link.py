@@ -10,6 +10,7 @@ from collections.abc import Callable
 from typing import Any
 
 import websockets
+from websockets.asyncio.client import ClientConnection
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ class ResoniteLinkClient:
 
     def __init__(self, host: str = "localhost", port: int = 4242):
         self.uri = f"ws://{host}:{port}"
-        self.ws: websockets.WebSocketClientProtocol | None = None
+        self.ws: ClientConnection | None = None
         self.logger = logging.getLogger("robofang.resonite.link")
         self.callbacks: dict[str, Callable] = {}
         self._background_tasks: set[asyncio.Task] = set()

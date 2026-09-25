@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+from collections.abc import Callable
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,13 @@ def embed_use_gpu(repo_root: Path | None = None) -> bool:
     return False
 
 
+def _session_providers(model: object) -> list[str]:
+    """ONNX Runtime providers of a fastembed TextEmbedding (private internals: model.model.model)."""
+    session = getattr(getattr(model, "model", None), "model", None)
+    get_providers: Callable[[], list[str]] | None = getattr(session, "get_providers", None)
+    return list(get_providers()) if callable(get_providers) else []
+
+
 def create_text_embedding(
     model_name: str,
     cache_dir: str,
@@ -48,7 +56,7 @@ def create_text_embedding(
                 cache_dir=cache_dir,
                 providers=["CUDAExecutionProvider"],
             )
-            providers = model.model.model.get_providers()
+            providers = _session_providers(model)
             if "CUDAExecutionProvider" in providers:
                 logger.info("FastEmbed providers: %s", providers)
                 return model, "cuda", batch_gpu
@@ -66,5 +74,5 @@ def create_text_embedding(
         cache_dir=cache_dir,
         providers=["CPUExecutionProvider"],
     )
-    logger.info("FastEmbed providers: %s", model.model.model.get_providers())
+    logger.info("FastEmbed providers: %s", _session_providers(model))
     return model, "cpu", batch_cpu

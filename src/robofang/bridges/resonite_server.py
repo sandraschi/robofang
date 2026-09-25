@@ -9,6 +9,7 @@ import logging
 import os
 
 import websockets
+from websockets.asyncio.server import ServerConnection
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("resonite_server")
@@ -20,7 +21,7 @@ class ResoniteServer:
         # RESONITE_HOST (e.g. "0.0.0.0" for headset-on-LAN setups).
         self.host = host or os.getenv("RESONITE_HOST", "127.0.0.1")
         self.port = port
-        self.clients: set[websockets.WebSocketServerProtocol] = set()
+        self.clients: set[ServerConnection] = set()
 
     async def register(self, websocket):
         self.clients.add(websocket)
