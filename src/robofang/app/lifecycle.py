@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,9 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 class AppStatus:
-    START_TIME = None
-    HEALTHY = True
-    LAST_HEARTBEAT = None
+    START_TIME: datetime | None = None
+    HEALTHY: bool = True
+    LAST_HEARTBEAT: datetime | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -49,8 +50,6 @@ async def _start_orchestrator_background():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """FastAPI lifespan context manager for startup and shutdown logic."""
-    from datetime import datetime
-
     AppStatus.START_TIME = datetime.now()
     from robofang import __version__
 

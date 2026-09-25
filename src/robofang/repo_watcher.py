@@ -1,3 +1,4 @@
+import os
 import time
 from threading import Timer
 
@@ -20,7 +21,8 @@ class DebouncingRepoHandler(FileSystemEventHandler):
 
     def on_any_event(self, event):
         # Ignore `.git` and `node_modules` paths to avoid spamming
-        if "\\.git\\" in event.src_path or "\\node_modules\\" in event.src_path or "\\.venv\\" in event.src_path:
+        src_path = os.fsdecode(event.src_path)
+        if "\\.git\\" in src_path or "\\node_modules\\" in src_path or "\\.venv\\" in src_path:
             return
 
         # Cancel existing timer

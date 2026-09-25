@@ -70,13 +70,10 @@ async def system_logs(limit: int = 100):
 async def system_audit():
     """Trigger a system integrity audit (Heartbeat)."""
     try:
-        from robofang.core.heartbeat import Heartbeat
+        from robofang.core.heartbeat import HeartbeatService
 
-        hb = Heartbeat()
-        report = await hb.perform_audit()
+        report = await HeartbeatService().perform_audit()
         return {"success": True, "report": report}
-    except ImportError:
-        return {"success": False, "message": "Heartbeat module not found."}
     except Exception as e:
         logger.exception("Audit failed")
         return {"success": False, "error": str(e)}
@@ -90,9 +87,12 @@ async def system_config():
 
 @router.post("/config/reload")
 async def system_config_reload():
-    """Force reload of the system configuration from disk."""
+    """Reload the fleet topology (federation_map.json) from disk.
+
+    Runtime config is passed in at construction and has no on-disk source to reload.
+    """
     try:
-        orchestrator.reload_config()
-        return {"success": True, "message": "Configuration reloaded."}
+        orchestrator._load_topology()
+        return {"success": True, "message": f"Topology reloaded from {orchestrator.fleet_config_path.name}."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
