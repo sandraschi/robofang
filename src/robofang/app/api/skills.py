@@ -1,4 +1,4 @@
-"""Skills REST endpoints — list and fetch skill content."""
+"""Skills REST endpoints - list and fetch skill content."""
 
 import os
 from pathlib import Path

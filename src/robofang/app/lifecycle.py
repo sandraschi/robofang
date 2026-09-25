@@ -120,7 +120,7 @@ def create_app() -> FastAPI:
 
     Instrumentator().instrument(app).expose(app)
 
-    # CORS — pin to known hub/dev origins. Wildcard "*" with allow_credentials=True
+    # CORS - pin to known hub/dev origins. Wildcard "*" with allow_credentials=True
     # is rejected by the Fetch spec, so credentialed browser calls would silently fail.
     import os as _os
 

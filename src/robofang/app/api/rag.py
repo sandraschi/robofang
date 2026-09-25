@@ -1,4 +1,4 @@
-"""RAG REST endpoints — search the local LanceDB corpus."""
+"""RAG REST endpoints - search the local LanceDB corpus."""
 
 from fastapi import APIRouter, HTTPException
 

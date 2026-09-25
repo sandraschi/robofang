@@ -30,7 +30,7 @@ class RegisterHandRequest(BaseModel):
 
 
 class AskRequest(BaseModel):
-    """Bridge hub operator query — mirrors MCP robofang_ask for REST clients."""
+    """Bridge hub operator query - mirrors MCP robofang_ask for REST clients."""
 
     prompt: str
     use_council: bool = False

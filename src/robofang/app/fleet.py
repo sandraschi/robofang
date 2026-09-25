@@ -75,14 +75,14 @@ def get_active_connectors_with_ports() -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 
 MCP_BACKENDS: dict[str, str] = {
-    # Wave 1 — Home / Media
+    # Wave 1 - Home / Media
     "plex": "http://localhost:10740",
     "calibre": "http://localhost:10720",
     "home-assistant": "http://localhost:10782",
     "tapo": "http://localhost:10716",
     "netatmo": "http://localhost:10823",
     "ring": "http://localhost:10728",
-    # Wave 2 — Creative Tools
+    # Wave 2 - Creative Tools
     "blender": "http://localhost:10849",
     "gimp": "http://localhost:10747",
     "obs": "http://localhost:10819",
@@ -90,26 +90,26 @@ MCP_BACKENDS: dict[str, str] = {
     "reaper": "http://localhost:10797",
     "resolume": "http://localhost:10770",
     "vrchat": "http://localhost:10712",
-    # Wave 3 — Infrastructure
+    # Wave 3 - Infrastructure
     "virtualization": "http://localhost:10701",
     "docker": "http://localhost:10807",
     "windows-operations": "http://localhost:10749",
     "monitoring": "http://localhost:10809",
     "tailscale": "http://localhost:10821",
-    # Wave 4 — Knowledge
+    # Wave 4 - Knowledge
     "advanced-memory": "http://localhost:10705",
     "notion": "http://localhost:10811",
     "fastsearch": "http://localhost:10845",
     "immich": "http://localhost:10839",
     "readly": "http://localhost:10863",
-    # Wave 5 — Comms & Dev
+    # Wave 5 - Comms & Dev
     "email": "http://localhost:10813",
     "alexa": "http://localhost:10801",
     "rustdesk": "http://localhost:10805",
     "bookmarks": "http://localhost:10803",
     "git-github": "http://localhost:10702",
     "pywinauto": "http://localhost:10789",
-    # Wave 6 — Robotics & Hands
+    # Wave 6 - Robotics & Hands
     "unitree": "http://localhost:10831",
     "yahboom": "http://localhost:10833",
     "dreame": "http://localhost:10835",
