@@ -182,6 +182,29 @@ def create_app() -> FastAPI:
             }
         )
 
+    # Fleet health aliases: the fleet gate probes GET /health (and some
+    # repos use /api/v1/health). The canonical detail lives at
+    # /api/system/health -- these stay thin so the probe and humans agree.
+    @app.get("/health")
+    async def fleet_health():
+        return JSONResponse(
+            {
+                "status": "ok" if AppStatus.HEALTHY else "degraded",
+                "service": "robofang",
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+
+    @app.get("/api/v1/health")
+    async def fleet_health_v1():
+        return JSONResponse(
+            {
+                "status": "ok" if AppStatus.HEALTHY else "degraded",
+                "service": "robofang",
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
+
     from robofang.app.api.comms import ask_router
     from robofang.diagnostics import router as diagnostics_router
     from robofang.webhooks import router as webhooks_router
