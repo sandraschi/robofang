@@ -55,7 +55,9 @@ hands/
 # RoboFang Runtime & Data
 exchange/sandbox/
 data/*.db
+data/*.pid
 data/benchmarks/
+src/robofang/data/
 robofang_test.db
 grafana-data/
 prometheus-data/
@@ -63,6 +65,7 @@ memory/
 
 # Backup / temp (do not commit)
 *.bak
+*.bak.*
 *_*.md.bak
 *.md.bak
 *.backup

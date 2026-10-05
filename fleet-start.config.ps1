@@ -1,4 +1,4 @@
-﻿# Per-repo fleet start config for robofang
+# Per-repo fleet start config for robofang
 # Edit ports/backend target here - start.ps1 is fleet-standard.
 @{
     Name         = 'robofang'
@@ -11,6 +11,7 @@
         UvicornTarget = 'robofang.app.lifecycle:app'
         WorkDir       = '.'
         SyncExtras    = @('dev')
+        SyncOnStart  = $true
         Env           = @{ WEB_PORT = '10871' }
     }
     Frontend = @{
