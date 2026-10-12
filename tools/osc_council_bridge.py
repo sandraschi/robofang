@@ -91,7 +91,7 @@ async def _ensure_listener(listen_port: int = 9010) -> None:
     dispatcher = Dispatcher()
     dispatcher.map("/RoboFang/council/response", _osc_response_handler)
 
-    bind_address = get_secure_bind_address()
+    bind_address = await asyncio.to_thread(get_secure_bind_address)
     server = AsyncIOOSCUDPServer((bind_address, listen_port), dispatcher, asyncio.get_event_loop())
     transport, _protocol = await server.create_serve_endpoint()
     _listener_port = listen_port

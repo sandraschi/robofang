@@ -1,5 +1,6 @@
 """RoboFang Fleet API Router: Discovery, Installer, and Catalog management."""
 
+import asyncio
 import logging
 from pathlib import Path
 
@@ -67,7 +68,7 @@ async def fleet_discover(source: str = "registry", limit: int = 50):
     if source == "registry":
         items = await discover_registry(limit=min(limit, 100))
     elif source == "docker":
-        items = discover_docker()
+        items = await asyncio.to_thread(discover_docker)
     else:
         raise HTTPException(
             status_code=400,

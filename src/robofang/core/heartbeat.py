@@ -54,7 +54,7 @@ class HeartbeatService:
                 continue
 
             # Verify Git Remote (Anti-Poisoning)
-            remote_audit = self._verify_git_remote(repo_path)
+            remote_audit = await asyncio.to_thread(self._verify_git_remote, repo_path)
             if not remote_audit["success"]:
                 findings.append(f"POISON_ALERT ({repo_name}): Unknown remote found: {remote_audit['remote']}")
                 logger.critical(
