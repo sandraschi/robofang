@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class SkillLoader:
     """Loads and parses skill files from the legacy skill repository."""
 
-    def __init__(self, skills_dir: str = "C:/Users/sandr/.gemini/antigravity/skills"):
+    def __init__(self, skills_dir: str = str(Path.home() / ".gemini" / "antigravity" / "skills")):
         self.skills_dir = Path(skills_dir)
 
     def load_skill(self, skill_id: str) -> dict[str, Any] | None:
@@ -72,7 +72,7 @@ class SkillLoader:
 class SkillManager:
     """Manages the skill registry and provides prompts for reasoning."""
 
-    def __init__(self, skills_dir: str = "C:/Users/sandr/.gemini/antigravity/skills"):
+    def __init__(self, skills_dir: str = str(Path.home() / ".gemini" / "antigravity" / "skills")):
         self.loader = SkillLoader(skills_dir)
         self.registry = {}
         self.refresh_registry()
