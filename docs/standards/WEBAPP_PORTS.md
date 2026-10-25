@@ -58,7 +58,7 @@ All MCP server webapps and dashboards MUST use ports from the reserved range **1
 | 10719 | meta_mcp | Frontend |
 | 10720 | calibre-mcp | Backend |
 | 10721 | calibre-mcp | Frontend |
-| 10722 | mywienerlinien | Frontend |
+| 10722 | publictransport-mcp | Frontend |
 | 10724 | mcp-studio | Backend |
 | 10725 | mcp-studio | Frontend |
 | 10728 | ring-mcp | Web dashboard |
