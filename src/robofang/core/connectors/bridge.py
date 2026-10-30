@@ -73,7 +73,14 @@ class MCPBridgeConnector(BaseConnector):
         # Not up yet - optionally launch sidecar
         if self._auto_start and self._start_cmd:
             self.logger.info(f"Starting sidecar: {' '.join(self._start_cmd)}")
-            await self._start_sidecar()
+            try:
+                await self._start_sidecar()
+            except OSError as exc:
+                # Missing executable / bad cwd (e.g. machine-specific
+                # start_cmd on a fresh checkout or CI). Degrade to
+                # unreachable instead of crashing the caller.
+                self.logger.warning(f"MCPBridgeConnector '{self._name}' sidecar launch failed: {exc}")
+                return False
             # Give it a moment to bind
             await asyncio.sleep(2)
             if await self.ping():
